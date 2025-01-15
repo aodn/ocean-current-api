@@ -38,6 +38,8 @@ out/
 
 ### env files ###
 .env
+.env.dev
+.env.edge
 
 .DS_Store
 

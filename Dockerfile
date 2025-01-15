@@ -7,4 +7,4 @@ COPY ./build/libs/$ARTIFACT_NAME /app/$ARTIFACT_NAME
 
 EXPOSE 8080
 
-ENTRYPOINT exec java -jar $ARTIFACT_NAME
+ENTRYPOINT ["java", "-jar", "$ARTIFACT_NAME"]
