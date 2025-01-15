@@ -27,7 +27,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springdoc:springdoc-openapi-ui:1.6.11'
-	implementation 'co.elastic.clients:elasticsearch-java:8.15.3'
+	implementation 'co.elastic.clients:elasticsearch-java:8.17.0'
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'

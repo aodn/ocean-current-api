@@ -1,8 +1,19 @@
 spring:
   application:
-    name: "Ocean Current"
+    name: "Ocean Current API"
+  config:
+    import: optional:file:.env[.properties]
 
 server:
   port: 8080
   servlet:
     context-path: /api/v1
+
+management:
+  health:
+    elasticsearch:
+      enabled: false
+
+elasticsearch:
+  host: ${ES_HOST:localhost}
+  api-key: ${ES_API_KEY:placeholder}
