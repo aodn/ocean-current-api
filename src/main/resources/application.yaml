@@ -17,3 +17,7 @@ management:
 elasticsearch:
   host: ${ES_HOST:localhost}
   api-key: ${ES_API_KEY:placeholder}
+
+json:
+  file:
+    path: data/STATE_daily/SST/SST.json
