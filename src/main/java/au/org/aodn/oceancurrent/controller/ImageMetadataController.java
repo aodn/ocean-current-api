@@ -2,17 +2,52 @@ package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.service.SearchService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
 @RestController
 @RequestMapping("/metadata")
 @RequiredArgsConstructor
+@Slf4j
+@Tag(name = "Image Metadata", description = "API for searching image list metadata")
 public class ImageMetadataController {
     private final SearchService searchService;
+
+    @GetMapping("/search")
+    @Operation(description = """
+            Search image files metadata by `main product`, `sub product`, `region`, `date` and `size`.
+            
+            Date is the center date to search around, result will be the past and future `size` days.
+            for example, if date is 20230701 and size is 100, the result will be from 20230323 to 20231009
+            which is 100 days before and after 20230701.
+            """)
+    public ResponseEntity<ImageMetadataGroup> searchImageFilesMetadata(
+            @Parameter(description = "Main product name", example = "sixDaySst")
+            @RequestParam String product,
+            @Parameter(description = "Sub product name (some products no sub products)", example = "sst")
+            @RequestParam(required = false) String subProduct,
+            @Parameter(description = "Region name", example = "Au")
+            @RequestParam String region,
+            @Parameter(description = "Center date to search around", example = "20240701")
+            @RequestParam String date,
+            @RequestParam(defaultValue = "100") int size) {
+        log.info("Received request to search files for product: {}, subProduct: {}, region: {}, date: {}, size: {}",
+                product, subProduct, region, date, size);
+        ImageMetadataGroup results = searchService.searchFilesAroundDate(
+                product, subProduct, region, date, size);
+        return ResponseEntity.ok(results);
+    }
 
     @GetMapping("/product/{product}/region/{region}")
     public ResponseEntity<ImageMetadataGroup> getFilesByProductAndRegion(
@@ -42,17 +77,5 @@ public class ImageMetadataController {
         } catch (IOException e) {
             return ResponseEntity.internalServerError().build();
         }
-    }
-
-    @GetMapping("/search")
-    public ResponseEntity<ImageMetadataGroup> searchFilesByDate(
-            @RequestParam String product,
-            @RequestParam String subProduct,
-            @RequestParam String region,
-            @RequestParam String date,
-            @RequestParam(defaultValue = "100") int size) {
-        ImageMetadataGroup results = searchService.searchFilesAroundDate(
-                product, subProduct, region, date, size);
-        return ResponseEntity.ok(results);
     }
 }
