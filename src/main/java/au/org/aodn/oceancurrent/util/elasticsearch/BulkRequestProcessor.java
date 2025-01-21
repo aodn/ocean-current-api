@@ -1,12 +1,10 @@
 package au.org.aodn.oceancurrent.util.elasticsearch;
 
-import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
