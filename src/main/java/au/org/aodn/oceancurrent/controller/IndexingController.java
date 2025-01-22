@@ -29,8 +29,9 @@ public class IndexingController {
     @Operation(description = "Trigger indexing of JSON files in the data directory")
     public ResponseEntity<String> triggerIndexing() {
         try {
-            indexingService.indexJsonFiles();
-            log.info("Indexing completed");
+            log.info("Received indexing request");
+            indexingService.indexRemoteJsonFiles(true,null);
+            log.info("Indexing request completed");
             return ResponseEntity.ok("Indexing completed");
         } catch (IOException e) {
             log.error("Error during indexing", e);
