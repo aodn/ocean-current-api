@@ -26,11 +26,12 @@ public class ImageMetadataController {
 
     @GetMapping("/search")
     @Operation(description = """
-            Search image files metadata by `main product`, `sub product`, `region`, `date` and `size`.
+            Search image files metadata by `main product`, `sub product`, `region`, `date` and `size`. \n
+            e.g. `/metadata/search?product=sixDaySst&subProduct=sst&region=Au&date=20221001&size=100`
             
-            Date is the center date to search around, result will be the past and future `size` days.
-            for example, if date is 20230701 and size is 100, the result will be from 20230323 to 20231009
-            which is 100 days before and after 20230701.
+            Date is the center date to search around, result will be the past and future `size` "items".
+            For example, if date format is day, and date is 20230701 and size is 100, the result will be from 20230323
+             to 20231009 which is 100 items before and after 20230701.
             """)
     public ResponseEntity<ImageMetadataGroup> searchImageFilesMetadata(
             @Parameter(description = "Main product name", example = "sixDaySst")
@@ -44,7 +45,7 @@ public class ImageMetadataController {
             @RequestParam(defaultValue = "100") int size) {
         log.info("Received request to search files for product: {}, subProduct: {}, region: {}, date: {}, size: {}",
                 product, subProduct, region, date, size);
-        ImageMetadataGroup results = searchService.searchFilesAroundDate(
+        ImageMetadataGroup results = searchService.getImageMetadata(
                 product, subProduct, region, date, size);
         return ResponseEntity.ok(results);
     }

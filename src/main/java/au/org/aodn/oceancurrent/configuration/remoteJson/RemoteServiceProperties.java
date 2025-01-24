@@ -19,7 +19,7 @@ public class RemoteServiceProperties {
     @Data
     public static class JsonConfig {
         @NotBlank(message = "Remote service URL must not be blank")
-        @Pattern(regexp = "^(http|https)://.*$", message = "Remote service URL must start with http:// or https://")
+        @Pattern(regexp = "^(https)://.*$", message = "Remote service URL must start with https://")
         private String baseUrl;
     }
 }
