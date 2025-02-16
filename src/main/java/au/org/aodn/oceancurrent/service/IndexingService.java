@@ -84,6 +84,7 @@ public class IndexingService {
             CountDownLatch urlProcessingLatch = new CountDownLatch(urls.size());
 
             for (String url : urls) {
+                log.info("Indexing url============ '{}'", url);
                 submitUrlProcessingTask(executor, url, urlProcessingLatch, bulkRequestProcessor, callback);
             }
 
@@ -142,7 +143,7 @@ public class IndexingService {
             for (ImageMetadataGroup group : metadata) {
                 processMetadataGroup(group, bulkRequestProcessor);
                 if (callback != null) {
-                    callback.onProgress("Processed metadata group: " + group.getProduct());
+                    callback.onProgress("Processed metadata group: " + url + group.getProduct());
                 }
             }
         } catch (RemoteFileException e) {

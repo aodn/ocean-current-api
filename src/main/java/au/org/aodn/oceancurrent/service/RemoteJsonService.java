@@ -37,6 +37,7 @@ public class RemoteJsonService {
 
     private void validateBaseUrl() {
         String baseUrl = remoteProperties.getJson().getBaseUrl();
+        log.info("baseUrl: {}", baseUrl);
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new RemoteFileException("Base URL is not configured");
         }
