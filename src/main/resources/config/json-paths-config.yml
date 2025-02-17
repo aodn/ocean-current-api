@@ -6,7 +6,7 @@ products:
       - /STATE_daily/SST/SST.json
       - /STATE_daily/SST_ANOM/SST_ANOM.json
       - /STATE_daily/pctiles/pctiles.json
-#
+
 #  - product: "SST 4 hour"
 #    description: "Sea Surface Temperature 4 hour products"
 #    paths:
