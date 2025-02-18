@@ -13,7 +13,6 @@ public class SearchRequest {
     @NotBlank(message = "Product is required")
     private String product;
 
-    @NotBlank(message = "Sub-product is required")
     private String subProduct;
 
     @NotBlank(message = "Region is required")
