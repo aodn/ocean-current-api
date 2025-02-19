@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -202,6 +203,95 @@ public class SearchService {
         }
     }
 
+    public ImageMetadataGroup getImageMetadata(String product, String subProduct,
+                                               String region, String date, int size) {
+        List<ImageMetadataEntry> beforeDocs = getDocumentsBeforeDate(product, subProduct, region, date, size);
+        List<ImageMetadataEntry> afterDocs = getDocumentsAfterDate(product, subProduct, region, date, size);
+
+        List<ImageMetadataEntry> allDocuments = new ArrayList<>();
+        allDocuments.addAll(beforeDocs);
+        allDocuments.addAll(afterDocs);
+
+        List<ImageMetadataEntry> sortedDocuments = allDocuments.stream()
+                .sorted(Comparator.comparing(ImageMetadataEntry::getFileName))
+                .collect(Collectors.toList());
+
+        return ImageMetadataConverter.toGroup(sortedDocuments);
+    }
+
+    private List<ImageMetadataEntry> getDocumentsBeforeDate(String product, String subProduct,
+                                                  String region, String date, int size) {
+        try {
+            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(size)
+                            .query(q -> q
+                                    .bool(b -> b
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT).value(product)))
+                                            .must(m -> m.term(t -> t.field(FIELD_SUB_PRODUCT).value(subProduct)))
+                                            .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
+                                            .must(m -> m.range(r -> r
+                                                    .term(r1 -> r1
+                                                            .field(FIELD_FILE_NAME)
+                                                            .gte(date)
+                                                    )
+                                            ))
+                                    )
+                            )
+                            .sort(srt -> srt
+                                    .field(f -> f
+                                            .field(FIELD_FILE_NAME)
+                                            .order(SortOrder.Desc)
+                                    )
+                            ),
+                    ImageMetadataEntry.class
+            );
+
+            return response.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            log.error("Error executing Elasticsearch query for documents before date", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<ImageMetadataEntry> getDocumentsAfterDate(String product, String subProduct,
+                                                 String region, String date, int size) {
+        try {
+            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(size)
+                            .query(q -> q
+                                    .bool(b -> b
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT).value(product)))
+                                            .must(m -> m.term(t -> t.field(FIELD_SUB_PRODUCT).value(subProduct)))
+                                            .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
+                                            .must(m -> m.range(r -> r
+                                                    .term(r1 -> r1
+                                                            .field(FIELD_FILE_NAME)
+                                                            .gt(date)
+                                                    )
+                                            ))
+                                    )
+                            )
+                            .sort(srt -> srt
+                                    .field(f -> f
+                                            .field(FIELD_FILE_NAME)
+                                            .order(SortOrder.Asc)
+                                    )
+                            ),
+                    ImageMetadataEntry.class
+            );
+
+            return response.hits().hits().stream()
+                    .map(Hit::source)
+                    .collect(Collectors.toList());
+        } catch (IOException e) {
+            log.error("Error executing Elasticsearch query for documents after date", e);
+            throw new RuntimeException(e);
+        }
+    }
     private List<ImageMetadataEntry> extractHits(SearchResponse<ImageMetadataEntry> response) {
         return response.hits().hits().stream()
                 .map(Hit::source)
@@ -231,5 +321,4 @@ public class SearchService {
                 .map(this::extractSourceFromAggregation)
                 .toList();
     }
-
 }
