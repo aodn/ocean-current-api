@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.configuration;
+package au.org.aodn.oceancurrent.configuration.elasticsearch;
 
 import au.org.aodn.oceancurrent.util.UrlUtils;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -26,16 +26,16 @@ import java.io.IOException;
  */
 @Configuration
 @Slf4j
-public class ElasticSearchConfig {
+public class ElasticsearchConfig {
     private final ApplicationContext applicationContext;
     private final String host;
     private final String apiKey;
     private RestClient restClient;
 
-    public ElasticSearchConfig(ApplicationContext applicationContext, ElasticSearchProperties elasticSearchProperties) {
+    public ElasticsearchConfig(ApplicationContext applicationContext, ElasticsearchProperties elasticsearchProperties) {
         this.applicationContext = applicationContext;
-        this.host = elasticSearchProperties.getHost();
-        this.apiKey = elasticSearchProperties.getApiKey();
+        this.host = elasticsearchProperties.getHost();
+        this.apiKey = elasticsearchProperties.getApiKey();
     }
 
     @Bean
