@@ -45,7 +45,7 @@ public class IndexingController {
     public ResponseEntity<String> deleteIndex() {
         try {
             indexingService.deleteIndexIfExists();
-            log.info("Index deleted");
+            log.info("Index deletion completed");
             return ResponseEntity.ok("Index deleted");
         } catch (IOException e) {
             log.error("Error during index deletion", e);

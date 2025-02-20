@@ -56,11 +56,12 @@ public class IndexingService {
 
     public void deleteIndexIfExists() throws IOException {
         boolean exists = isIndexExists();
-        log.info("Delete index with name '{}'", exists);
 
         if (exists) {
             esClient.indices().delete(c -> c.index(indexName));
             log.info("Index with name '{}' deleted", indexName);
+        } else {
+            log.info("Index with name '{}' does not exist", indexName);
         }
     }
 

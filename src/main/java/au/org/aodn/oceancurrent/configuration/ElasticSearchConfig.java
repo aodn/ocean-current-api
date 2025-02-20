@@ -1,166 +1,143 @@
 package au.org.aodn.oceancurrent.configuration;
 
-import au.org.aodn.oceancurrent.constant.ElasticsearchErrorType;
-import au.org.aodn.oceancurrent.exception.ElasticsearchConnectionException;
+import au.org.aodn.oceancurrent.util.UrlUtils;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
-import co.elastic.clients.elasticsearch._types.ElasticsearchException;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
 import co.elastic.clients.transport.ElasticsearchTransport;
 import co.elastic.clients.transport.TransportException;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
-import lombok.AccessLevel;
-import lombok.Data;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+
+/**
+ * Configuration for Elasticsearch Cloud connection.
+ * Validates credentials and URL at startup, failing the startup if validation fails.
+ */
 @Configuration
-//@ConfigurationProperties(prefix = "elasticsearch")
-//@EnableConfigurationProperties(ElasticsearchProperties.class)
 @Slf4j
-@RequiredArgsConstructor
-public class ElasticSearchConfig implements InitializingBean {
-//    private String host;
-//    private String apiKey;
-
-    private final ElasticSearchProperties properties;
+public class ElasticSearchConfig {
     private final ApplicationContext applicationContext;
-    private final RestClient restClient;
+    private final String host;
+    private final String apiKey;
+    private RestClient restClient;
 
-    @Setter(AccessLevel.NONE)
-    private final String[] CONNECTION_ERROR_PATTERNS = {
-            "Connection refused",
-            "No route to host",
-            "Failed to connect",
-            "Connection reset",
-            "Connection timed out"
-    };
-    
-    @Override
-    public void afterPropertiesSet() throws Exception {
-
+    public ElasticSearchConfig(ApplicationContext applicationContext, ElasticSearchProperties elasticSearchProperties) {
+        this.applicationContext = applicationContext;
+        this.host = elasticSearchProperties.getHost();
+        this.apiKey = elasticSearchProperties.getApiKey();
     }
 
     @Bean
     public ElasticsearchClient elasticsearchClient() {
         // Validate required configuration
-        if (!StringUtils.hasText(properties.getHost()) || !StringUtils.hasText(properties.getApiKey())) {
+        if (!StringUtils.hasText(host) || !StringUtils.hasText(apiKey)) {
             failStartup("Missing required Elasticsearch configuration (host or apiKey)");
         }
         try {
             log.info("Initializing Elasticsearch client");
+            if (log.isDebugEnabled()) {
+                log.debug("Elasticsearch connection host: {}", UrlUtils.maskSensitiveUrl(host));
+            }
 
-            RestClient restClient = RestClient.builder(
-                            HttpHost.create(properties.getHost())
+            restClient = RestClient.builder(
+                            HttpHost.create(host)
                     )
-                    .setDefaultHeaders(new Header[]{new BasicHeader("Authorization", "ApiKey " + apiKey)})
+                    .setDefaultHeaders(new Header[]{new BasicHeader(
+                            "Authorization",
+                            "ApiKey " + apiKey
+                    )})
                     .build();
 
             ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
             ElasticsearchClient client = new ElasticsearchClient(transport);
 
-            verifyConnection(client);
+            try {
+                client.security().authenticate();
+                log.info("Successfully authenticated with Elasticsearch");
+            } catch (Exception e) {
+                handleAuthenticationError(e);
+            }
 
             return client;
         } catch (Exception e) {
-            if (e instanceof ElasticsearchConnectionException) {
-                throw e;
+            log.error("Failed to initialize Elasticsearch client: {}", e.getMessage());
+            failStartup(e.getMessage());
+            return null; // This line never executes, just for compilation
+        }
+    }
+
+    /**
+     * Handles authentication errors
+     */
+    private void handleAuthenticationError(Exception e) {
+        if (e instanceof TransportException) {
+            String message = e.getMessage();
+
+            if (message.contains("status: 401") || message.contains("Unauthorized")) {
+                failStartup("Failed to authenticate with Elasticsearch. Check your API key.");
+            } else if (message.contains("status: 404")) {
+                failStartup("Elasticsearch endpoint not found. Check your host URL.");
+            } else if (isConnectionProblem(message)) {
+                failStartup("Cannot connect to Elasticsearch. Check network connectivity.");
             }
-
-            log.error("Failed to initialize Elasticsearch client with host: {}", host, e);
-
-            throw new ElasticsearchConnectionException(
-                    host,
-                    ElasticsearchErrorType.CONNECTION_ERROR,
-                    "Failed to initialize Elasticsearch client. Please check the configuration.",
-                    e
-            );
         }
+
+        failStartup("Failed to connect to Elasticsearch: " + e.getMessage());
     }
 
     /**
-     * Verifies connection to Elasticsearch by performing a ping request
-     * and throws appropriate exceptions based on error patterns
+     * Checks if the error message indicates a connection problem
      */
-    private void verifyConnection(ElasticsearchClient client) {
-        try {
-//            client.ping();
-            client.cluster().health();
-            log.info("Successfully connected to Elasticsearch at {}", host);
-        } catch (Exception e) {
-            if (e instanceof TransportException) {
-                handleTransportException((TransportException) e);
-            }
+    private boolean isConnectionProblem(String message) {
+        if (message == null) return false;
 
-            // General error
-            log.error("Error connecting to Elasticsearch at {}", host);
-            throw new ElasticsearchConnectionException(
-                    host,
-                    ElasticsearchErrorType.GENERAL_ERROR,
-                    "Failed to connect to Elasticsearch due to an unexpected error.",
-                    e
-            );
-        }
-    }
+        String[] connectionErrors = {
+                "Connection refused",
+                "No route to host",
+                "Failed to connect",
+                "Connection reset",
+                "Connection timed out"
+        };
 
-    /**
-     * Analyzes TransportException to determine the specific error type
-     */
-    private void handleTransportException(TransportException e) {
-        String errorMessage = e.getMessage();
-
-        if (errorMessage.contains("status: 401") || errorMessage.contains("Unauthorized")) {
-            // Authentication error
-            log.error("Authentication failed for Elasticsearch at {}", host);
-            throw new ElasticsearchConnectionException(
-                    host,
-                    ElasticsearchErrorType.AUTHENTICATION_ERROR,
-                    "Failed to authenticate with Elasticsearch. The API key may be incorrect or expired.",
-                    e
-            );
-        } else if (errorMessage.contains("status: 404")) {
-            // Endpoint not found
-            log.error("Elasticsearch endpoint not found at {}", host);
-            throw new ElasticsearchConnectionException(
-                    host,
-                    ElasticsearchErrorType.ENDPOINT_ERROR,
-                    "Elasticsearch endpoint not found. The URL path may be incorrect.",
-                    e
-            );
-        } else if (containsAnyPattern(errorMessage, CONNECTION_ERROR_PATTERNS)) {
-            // Host not reachable
-            log.error("Failed to connect to Elasticsearch host at {}", host);
-            throw new ElasticsearchConnectionException(
-                    host,
-                    ElasticsearchErrorType.CONNECTION_ERROR,
-                    "Failed to connect to Elasticsearch host. The URL may be incorrect or the service is not available.",
-                    e
-            );
-        }
-    }
-
-    /**
-     * Helper method to check if a string contains any of the given patterns
-     */
-    private boolean containsAnyPattern(String text, String[] patterns) {
-        for (String pattern : patterns) {
-            if (text.contains(pattern)) {
+        for (String error : connectionErrors) {
+            if (message.contains(error)) {
                 return true;
             }
         }
         return false;
     }
 
+    /**
+     * Forces application to exit during initialization
+     */
+    private void failStartup(String reason) {
+        log.error("Elasticsearch initialization failed: {}", reason);
+        System.exit(SpringApplication.exit(applicationContext, () -> 1));
+    }
+
+    /**
+     * Closes resources when the application shuts down
+     */
+    @PreDestroy
+    public void closeResources() {
+        if (restClient != null) {
+            try {
+                log.info("Closing Elasticsearch client");
+                restClient.close();
+            } catch (IOException e) {
+                log.warn("Error closing Elasticsearch client: {}", e.getMessage());
+            }
+        }
+    }
 }
