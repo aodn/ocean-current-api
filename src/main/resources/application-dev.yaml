@@ -1,3 +1,9 @@
 spring:
   config:
     import: optional:file:.env.dev[.properties]
+  mvc:
+    log-request-details: true
+logging:
+  level:
+    root: info
+    au.org.aodn.oceancurrent: debug

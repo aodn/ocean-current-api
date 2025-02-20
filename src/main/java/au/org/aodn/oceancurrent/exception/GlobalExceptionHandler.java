@@ -1,6 +1,8 @@
 package au.org.aodn.oceancurrent.exception;
 
+import au.org.aodn.oceancurrent.constant.ElasticsearchErrorType;
 import au.org.aodn.oceancurrent.dto.ErrorResponse;
+import co.elastic.clients.transport.TransportException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
@@ -22,7 +24,7 @@ public class GlobalExceptionHandler {
         log.info("GlobalExceptionHandler initialized");
     }
 
-    @ExceptionHandler(value = {ResourceNotFoundException.class})
+    @ExceptionHandler(ResourceNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleResourceNotFoundException(ResourceNotFoundException ex) {
         log.info("Resource Not Found: {}", ex.getMessage());
@@ -33,7 +35,7 @@ public class GlobalExceptionHandler {
         );
     }
 
-    @ExceptionHandler(value = {MethodArgumentNotValidException.class})
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleArgumentNotValid(MethodArgumentNotValidException ex) {
         List<String > errorMessages = ex.getBindingResult().getAllErrors()
@@ -47,6 +49,49 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 errorMessages);
+    }
+
+    @ExceptionHandler(ElasticsearchConnectionException.class)
+    public ErrorResponse handleElasticsearchConnectionException(ElasticsearchConnectionException ex, HttpServletRequest request) {
+        String message = String.format(
+                "%s: Host URL '%s' - %s",
+                ex.getErrorType().name(),
+                ex.getHostUrl(),
+                ex.getMessage()
+        );
+
+        HttpStatus status = ex.getHttpStatus();
+        if (status.is5xxServerError()) {
+            log.error(message, ex);
+        } else {
+            log.warn(message, ex);
+        }
+
+        request.setAttribute("org.springframework.web.servlet.HandlerMapping.errorStatus", ex.getHttpStatus());
+
+        return new ErrorResponse(
+                ex.getErrorType().getTitle(),
+                List.of(ex.getMessage())
+        );
+    }
+
+    @ExceptionHandler(TransportException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorResponse handleTransportException(TransportException ex, HttpServletRequest request) {
+        String errorReference = UUID.randomUUID().toString();
+        String path = request.getRequestURI();
+
+        log.error("Unhandled Elasticsearch transport error [ref:{}] for request to {}: {}",
+                errorReference, path, ex.getMessage(), ex);
+
+        String userMessage = String.format("%s Reference: %s",
+                ElasticsearchErrorType.GENERAL_ERROR.getDetail(),
+                errorReference);
+
+        return new ErrorResponse(
+                ElasticsearchErrorType.GENERAL_ERROR.getTitle(),
+                List.of(userMessage)
+        );
     }
 
     @ExceptionHandler(Exception.class)
