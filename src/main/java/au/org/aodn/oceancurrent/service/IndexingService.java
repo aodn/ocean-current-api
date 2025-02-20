@@ -61,7 +61,7 @@ public class IndexingService {
             esClient.indices().delete(c -> c.index(indexName));
             log.info("Index with name '{}' deleted", indexName);
         } else {
-            log.info("Index with name '{}' does not exist", indexName);
+            log.warn("Index with name '{}' does not exist", indexName);
         }
     }
 
