@@ -70,6 +70,8 @@ public class IndexingService {
             throw new IllegalArgumentException("Please confirm that you want to index all remote JSON files");
         }
 
+        log.info("Starting indexing process");
+
         createIndexIfNotExists();
 
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
@@ -79,29 +81,35 @@ public class IndexingService {
             // Delete existing index
             deleteExistingDocuments();
 
+            if (callback != null) {
+                callback.onProgress("Existing documents deleted, starting indexing");
+            }
+
             // Fetch and process URLs in parallel
             List<String> urls = remoteJsonService.getFullUrls();
+            log.info("Found {} URLs to process", urls.size());
+            if (callback != null) {
+                callback.onProgress("Starting to process " + urls.size() + " files");
+            }
+
             CountDownLatch urlProcessingLatch = new CountDownLatch(urls.size());
 
             for (String url : urls) {
+                log.info("Submitting URL for processing: {}", url);
                 submitUrlProcessingTask(executor, url, urlProcessingLatch, bulkRequestProcessor, callback);
             }
-
-            // Submit progress monitoring task
-            submitProgressMonitorTask(executor, urlProcessingLatch, callback);
 
             // Wait for all URL processing to complete
             urlProcessingLatch.await();
 
             // Flush any remaining documents
             Optional<BulkResponse> finalResponse = bulkRequestProcessor.flush();
+            log.info("Indexing completed successfully for index: {}", indexName);
             finalResponse.ifPresent(response -> {
                 if (callback != null) {
                     callback.onComplete("Indexing completed successfully");
                 }
             });
-
-            log.info("Indexing completed successfully for index: {}", indexName);
 
         } catch (Exception e) {
             log.error("Failed to complete indexing", e);
@@ -139,14 +147,22 @@ public class IndexingService {
         log.info("Processing URL: {}", url);
         try {
             List<ImageMetadataGroup> metadata = remoteJsonService.fetchJsonFromUrl(url);
+            log.info("Successfully processed URL: {}", url);
+            if (callback != null) {
+                callback.onProgress("Processing file: " + url);
+            }
+
             for (ImageMetadataGroup group : metadata) {
                 processMetadataGroup(group, bulkRequestProcessor);
                 if (callback != null) {
-                    callback.onProgress("Processed metadata group: " + group.getProduct());
+                    callback.onProgress("Processed metadata group: " + group.getProduct() + " - " + group.getSubProduct());
                 }
             }
         } catch (RemoteFileException e) {
             log.error("Failed to process URL: {}", url, e);
+            if (callback != null) {
+                callback.onError("Failed to process file: " + url);
+            }
         }
     }
 
@@ -166,26 +182,6 @@ public class IndexingService {
         doc.setFileName(file.getName());
         doc.setFilePath(file.getPath());
         return doc;
-    }
-
-    private void submitProgressMonitorTask(
-            ExecutorService executor,
-            CountDownLatch urlProcessingLatch,
-            IndexingCallback callback) {
-
-        if (callback != null) {
-            executor.submit(() -> {
-                try {
-                    while (urlProcessingLatch.getCount() > 0) {
-                        callback.onProgress("Processing... " +
-                                (urlProcessingLatch.getCount() + " URLs remaining"));
-                        Thread.sleep(5000);
-                    }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
-        }
     }
 
     private void deleteExistingDocuments() throws IOException {
