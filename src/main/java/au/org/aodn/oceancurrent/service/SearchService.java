@@ -233,7 +233,7 @@ public class SearchService {
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .gte(date)
+                                                            .lte(date)
                                                     )
                                             ))
                                     )
@@ -246,6 +246,8 @@ public class SearchService {
                             ),
                     ImageMetadataEntry.class
             );
+
+            log.debug("Found {} documents before date {}", response.hits().hits().size(), date);
 
             return response.hits().hits().stream()
                     .map(Hit::source)
@@ -270,7 +272,7 @@ public class SearchService {
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .gt(date)
+                                                            .gte(date)
                                                     )
                                             ))
                                     )
@@ -283,6 +285,8 @@ public class SearchService {
                             ),
                     ImageMetadataEntry.class
             );
+
+            log.debug("Found {} documents after date {}", response.hits().hits().size(), date);
 
             return response.hits().hits().stream()
                     .map(Hit::source)

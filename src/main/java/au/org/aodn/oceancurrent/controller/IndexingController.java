@@ -30,8 +30,8 @@ public class IndexingController {
     @PostMapping
     @Operation(description = "Trigger indexing of JSON files in the data directory")
     public ResponseEntity<String> triggerIndexing() {
+        log.info("Received indexing request");
         try {
-            log.info("Received indexing request");
             indexingService.indexRemoteJsonFiles(true,null);
             log.info("Indexing request completed");
             return ResponseEntity.ok("Indexing completed");
@@ -43,9 +43,10 @@ public class IndexingController {
     }
 
     @PostMapping(path = "/async")
-    @Operation(description = "Index all metadata records with real-time progress updates via SSE")
+    @Operation(description = "Index all metadata JSON files with real-time progress updates via Server-Sent Events")
     public SseEmitter indexAllMetadataAsync(
             @RequestParam(value = "confirm", defaultValue = "false") Boolean confirm) {
+        log.info("Received indexing request with async progress updates. Acknowledgement: {}", confirm);
         final SseEmitter emitter = new SseEmitter(0L); // No timeout
         final IndexingCallback callback = createCallback(emitter);
 
@@ -54,6 +55,7 @@ public class IndexingController {
                 indexingService.indexRemoteJsonFiles(confirm, callback);
             } catch (IOException e) {
                 emitter.completeWithError(e);
+                log.error("Error during indexing", e);
             }
         }).start();
         return emitter;

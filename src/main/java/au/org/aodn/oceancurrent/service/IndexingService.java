@@ -21,7 +21,6 @@ import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @Slf4j
@@ -71,6 +70,8 @@ public class IndexingService {
             throw new IllegalArgumentException("Please confirm that you want to index all remote JSON files");
         }
 
+        log.info("Starting indexing process");
+
         createIndexIfNotExists();
 
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
@@ -79,7 +80,6 @@ public class IndexingService {
         try {
             // Delete existing index
             deleteExistingDocuments();
-            log.info("Existing documents deleted, starting indexing");
 
             if (callback != null) {
                 callback.onProgress("Existing documents deleted, starting indexing");
@@ -157,9 +157,9 @@ public class IndexingService {
 
             for (ImageMetadataGroup group : metadata) {
                 processMetadataGroup(group, bulkRequestProcessor);
-//                if (callback != null) {
-//                    callback.onProgress("Processed metadata group: " + url + group.getProduct());
-//                }
+                if (callback != null) {
+                    callback.onProgress("Processed metadata group: " + group.getProduct() + " - " + group.getSubProduct());
+                }
             }
         } catch (RemoteFileException e) {
             log.error("Failed to process URL: {}", url, e);

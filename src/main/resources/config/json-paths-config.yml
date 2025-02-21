@@ -7,10 +7,10 @@ products:
       - /STATE_daily/SST_ANOM/SST_ANOM.json
       - /STATE_daily/pctiles/pctiles.json
 
-#  - product: "SST 4 hour"
-#    description: "Sea Surface Temperature 4 hour products"
-#    paths:
-#      - /SST_4hr/SST/SST.json
-#      - /SST_4hr/SST_Filled/SST_Filled.json
-#      - /SST_4hr/SST_Age/SST_Age.json
-#      - /SST_4hr/Wind/Wind.json
+  - product: "SST 4 hour"
+    description: "Sea Surface Temperature 4 hour products"
+    paths:
+      - /SST_4hr/SST/SST.json
+      - /SST_4hr/SST_Filled/SST_Filled.json
+      - /SST_4hr/SST_Age/SST_Age.json
+      - /SST_4hr/Wind/Wind.json
