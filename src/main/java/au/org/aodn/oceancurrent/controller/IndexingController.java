@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.controller;
 import au.org.aodn.oceancurrent.service.IndexingService;
 import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,7 @@ public class IndexingController {
     @PostMapping(path = "/async")
     @Operation(description = "Index all metadata JSON files with real-time progress updates via Server-Sent Events")
     public SseEmitter indexAllMetadataAsync(
+            @Parameter(description = "Flag to confirm the indexing operation")
             @RequestParam(value = "confirm", defaultValue = "false") Boolean confirm) {
         log.info("Received indexing request with async progress updates. Acknowledgement: {}", confirm);
         final SseEmitter emitter = new SseEmitter(0L); // No timeout
