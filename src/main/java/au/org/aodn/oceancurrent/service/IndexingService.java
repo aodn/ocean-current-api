@@ -99,9 +99,6 @@ public class IndexingService {
                 submitUrlProcessingTask(executor, url, urlProcessingLatch, bulkRequestProcessor, callback);
             }
 
-            // Submit progress monitoring task
-            submitProgressMonitorTask(executor, urlProcessingLatch, callback);
-
             // Wait for all URL processing to complete
             urlProcessingLatch.await();
 
@@ -185,27 +182,6 @@ public class IndexingService {
         doc.setFileName(file.getName());
         doc.setFilePath(file.getPath());
         return doc;
-    }
-
-    private void submitProgressMonitorTask(
-            ExecutorService executor,
-            CountDownLatch urlProcessingLatch,
-            IndexingCallback callback) {
-
-        executor.submit(() -> {
-            try {
-                while (urlProcessingLatch.getCount() > 0) {
-                    long remainingUrls = urlProcessingLatch.getCount();
-                    log.info("Processing... {} URLs remaining", remainingUrls);
-                    if (callback != null) {
-                        callback.onProgress("Processing... " + remainingUrls + " URLs remaining");
-                    }
-                    Thread.sleep(5000);
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        });
     }
 
     private void deleteExistingDocuments() throws IOException {
