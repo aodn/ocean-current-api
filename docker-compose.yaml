@@ -1,0 +1,9 @@
+services:
+  app:
+    container_name: ocean-current-api
+    build: .
+    image: aodn/ocean-current-api
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
