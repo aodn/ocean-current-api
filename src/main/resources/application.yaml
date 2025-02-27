@@ -17,6 +17,7 @@ management:
 elasticsearch:
   host: ${ES_HOST:placeholder}
   api-key: ${ES_API_KEY:placeholder}
+  max-result-window: ${ES_MAX_RESULT_WINDOW:20000}
 
 remote:
   json:
