@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.AppConstants;
+import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
 import au.org.aodn.oceancurrent.model.FileMetadata;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
@@ -9,7 +10,6 @@ import au.org.aodn.oceancurrent.util.elasticsearch.BulkRequestProcessor;
 import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
-import co.elastic.clients.elasticsearch.core.DeleteByQueryRequest;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +32,7 @@ public class IndexingService {
 
     private final ElasticsearchClient esClient;
     private final RemoteJsonService remoteJsonService;
+    private final ElasticsearchProperties esProperties;
 
     public void createIndexIfNotExists() throws IOException {
         boolean exists = isIndexExists();
@@ -40,6 +41,11 @@ public class IndexingService {
             CreateIndexRequest request = CreateIndexRequest.of(
                     r -> r
                             .index(indexName)
+                            .settings(s -> s
+                                    .index(i -> i
+                                            .maxResultWindow(esProperties.getMaxResultWindow())
+                                    )
+                            )
                             .mappings(m -> m
                                     .properties("path", p -> p.keyword(k -> k))
                                     .properties("product", p -> p.keyword(k -> k))
@@ -50,7 +56,8 @@ public class IndexingService {
                             )
             );
             esClient.indices().create(request);
-            log.info("Index with name '{}' created", indexName);
+            log.info("Index with name '{}' created with max_result_window of {}",
+                    indexName, esProperties.getMaxResultWindow());
         }
     }
 
@@ -72,8 +79,6 @@ public class IndexingService {
         }
 
         log.info("Starting indexing process");
-
-        createIndexIfNotExists();
 
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, indexName, esClient);

@@ -19,13 +19,15 @@
 ```shell
 elasticsearch.host="your elasticsearch host"
 elasticsearch.apiKey="your elasticsearch api key"
+elasticsearch.maxResultWindow=20000
 remote.json.baseURL="the remote json file server URL"
 ```
 - Or create a .env file in the root directory of the project.
 
-```shell
+```text
 ES_HOST="your elasticsearch host"
 ES_API_KEY="your elasticsearch api key"
+ES_MAX_RESULT_WINDOW=20000
 REMOTE_JSON_BASE_URL="the remote json file server URL"
 ```
 
