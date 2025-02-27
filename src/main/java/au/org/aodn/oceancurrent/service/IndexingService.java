@@ -58,6 +58,7 @@ public class IndexingService {
         boolean exists = isIndexExists();
 
         if (exists) {
+            log.info("Deleting index with name '{}'", indexName);
             esClient.indices().delete(c -> c.index(indexName));
             log.info("Index with name '{}' deleted", indexName);
         } else {
@@ -78,11 +79,14 @@ public class IndexingService {
         BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, indexName, esClient);
 
         try {
-            // Delete existing index
-            deleteExistingDocuments();
-
+            deleteIndexIfExists();
             if (callback != null) {
-                callback.onProgress("Existing documents deleted, starting indexing");
+                callback.onProgress("Existing index deleted");
+            }
+
+            createIndexIfNotExists();
+            if (callback != null) {
+                callback.onProgress("Recreated index, starting indexing");
             }
 
             // Fetch and process URLs in parallel
@@ -182,16 +186,6 @@ public class IndexingService {
         doc.setFileName(file.getName());
         doc.setFilePath(file.getPath());
         return doc;
-    }
-
-    private void deleteExistingDocuments() throws IOException {
-        DeleteByQueryRequest deleteRequest = DeleteByQueryRequest.of(d -> d
-                .index(indexName)
-                .query(q -> q.matchAll(m -> m))
-        );
-        log.info("Deleting existing documents for index: {}", indexName);
-        esClient.deleteByQuery(deleteRequest);
-        log.info("Existing documents deleted");
     }
 
     private boolean isIndexExists() throws IOException {
