@@ -32,8 +32,7 @@ import java.util.stream.Stream;
 public class SearchService {
     private final String indexName = AppConstants.INDEX_NAME;
 
-    private static final String FIELD_PRODUCT = "product";
-    private static final String FIELD_SUB_PRODUCT = "subProduct";
+    private static final String FIELD_PRODUCT_ID = "productId";
     private static final String FIELD_REGION = "region";
     private static final String FIELD_FILE_NAME = "fileName";
 
@@ -45,9 +44,9 @@ public class SearchService {
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
 
-    public ImageMetadataGroup findByProductAndRegion(String product, String region) throws IOException {
+    public ImageMetadataGroup findByProductAndRegion(String productId, String region) throws IOException {
         Query query = QueryBuilders.bool()
-                .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT).value(product)))
+                .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
                 .must(QueryBuilders.term(t -> t.field(FIELD_REGION).value(region)))
                 .build()._toQuery();
 
@@ -61,8 +60,7 @@ public class SearchService {
     }
 
     public ImageMetadataGroup findByProductRegionAndDateRange(
-            String product,
-            String subProduct,
+            String productId,
             String region,
             String fromDate,
             String toDate,
@@ -73,14 +71,8 @@ public class SearchService {
                                 .bool(b -> b
                                         .must(m -> m
                                                 .term(t -> t
-                                                        .field(FIELD_PRODUCT)
-                                                        .value(product)
-                                                )
-                                        )
-                                        .must(m -> m
-                                                .term(t -> t
-                                                        .field(FIELD_SUB_PRODUCT)
-                                                        .value(subProduct)
+                                                        .field(FIELD_PRODUCT_ID)
+                                                        .value(productId)
                                                 )
                                         )
                                         .must(m -> m
@@ -117,24 +109,20 @@ public class SearchService {
     }
 
     public ImageMetadataGroup searchFilesAroundDate(
-            String product,
-            String subProduct,
+            String productId,
             String region,
             String date,
             int size) {
-        log.info("Executing search operation for product: {}, subProduct: {}, region: {}, date: {}",
-                product, subProduct, region, date);
+        log.info("Executing search operation for product: {}, region: {}, date: {}",
+                productId, region, date);
         try {
             SearchResponse<Void> responseVoid = esClient.search(s -> s
                             .index(indexName)
                             .size(0)
                             .query(q -> q.bool(b -> b
                                     .must(
-                                            m -> m.term(t -> t.field(FIELD_PRODUCT).value(product))
+                                            m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId))
 
-                                    )
-                                    .must(
-                                            m -> m.term(t -> t.field(FIELD_SUB_PRODUCT).value(subProduct))
                                     )
                                     .must(
                                             m -> m.term(t -> t.field(FIELD_REGION).value(region))
@@ -197,16 +185,15 @@ public class SearchService {
 
             return ImageMetadataConverter.toGroup(combinedSortedResults);
         } catch (Exception e) {
-            log.error("Search operation failed - product: {}, subProduct: {}, region: {}, date: {}",
-                    product, subProduct, region, date);
+            log.error("Search operation failed - product: {}, region: {}, date: {}",
+                    productId, region, date);
             throw new RuntimeException(e);
         }
     }
 
-    public ImageMetadataGroup getImageMetadata(String product, String subProduct,
-                                               String region, String date, int size) {
-        List<ImageMetadataEntry> beforeDocs = getDocumentsBeforeDate(product, subProduct, region, date, size);
-        List<ImageMetadataEntry> afterDocs = getDocumentsAfterDate(product, subProduct, region, date, size);
+    public ImageMetadataGroup getImageMetadata(String productId, String region, String date, int size) {
+        List<ImageMetadataEntry> beforeDocs = getDocumentsBeforeDate(productId, region, date, size);
+        List<ImageMetadataEntry> afterDocs = getDocumentsAfterDate(productId, region, date, size);
 
         List<ImageMetadataEntry> allDocuments = new ArrayList<>();
         allDocuments.addAll(beforeDocs);
@@ -219,16 +206,40 @@ public class SearchService {
         return ImageMetadataConverter.toGroup(sortedDocuments);
     }
 
-    private List<ImageMetadataEntry> getDocumentsBeforeDate(String product, String subProduct,
-                                                  String region, String date, int size) {
+    public ImageMetadataGroup findAllImageList(String productId, String region) {
+        try {
+            Query query = QueryBuilders.bool()
+                    .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
+                    .must(QueryBuilders.term(t -> t.field(FIELD_REGION).value(region)))
+                    .build()._toQuery();
+
+            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(20000)
+                            .query(query),
+                    ImageMetadataEntry.class
+            );
+
+            List<ImageMetadataEntry> sortedDocuments = extractHits(response).stream()
+                    .sorted(Comparator.comparing(ImageMetadataEntry::getFileName))
+                    .toList();
+
+            log.debug("Found {} documents for product: {} and region: {}",
+                    response.hits().hits().size(), productId, region);
+            return ImageMetadataConverter.toGroup(sortedDocuments);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private List<ImageMetadataEntry> getDocumentsBeforeDate(String productId, String region, String date, int size) {
         try {
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)
                             .size(size)
                             .query(q -> q
                                     .bool(b -> b
-                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT).value(product)))
-                                            .must(m -> m.term(t -> t.field(FIELD_SUB_PRODUCT).value(subProduct)))
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
                                             .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1
@@ -258,16 +269,14 @@ public class SearchService {
         }
     }
 
-    private List<ImageMetadataEntry> getDocumentsAfterDate(String product, String subProduct,
-                                                 String region, String date, int size) {
+    private List<ImageMetadataEntry> getDocumentsAfterDate(String productId, String region, String date, int size) {
         try {
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)
                             .size(size)
                             .query(q -> q
                                     .bool(b -> b
-                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT).value(product)))
-                                            .must(m -> m.term(t -> t.field(FIELD_SUB_PRODUCT).value(subProduct)))
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
                                             .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1

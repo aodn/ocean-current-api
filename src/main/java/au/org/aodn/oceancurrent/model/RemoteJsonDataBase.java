@@ -7,8 +7,9 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ImageMetaDataBase {
+public class RemoteJsonDataBase {
     private String path;
-    private String productId;
+    private String product;
+    private String subProduct;
     private String region;
 }
