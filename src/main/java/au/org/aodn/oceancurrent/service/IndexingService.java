@@ -49,7 +49,6 @@ public class IndexingService {
                             .mappings(m -> m
                                     .properties("path", p -> p.keyword(k -> k))
                                     .properties("productId", p -> p.keyword(k -> k))
-//                                    .properties("subProduct", p -> p.keyword(k -> k))
                                     .properties("region", p -> p.keyword(k -> k))
                                     .properties("fileName", p -> p.keyword(k -> k))
                                     .properties("filePath", p -> p.keyword(k -> k))
