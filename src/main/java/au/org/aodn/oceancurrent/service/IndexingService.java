@@ -5,7 +5,7 @@ import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchPropert
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
 import au.org.aodn.oceancurrent.model.FileMetadata;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
-import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
+import au.org.aodn.oceancurrent.model.RemoteJsonDataGroup;
 import au.org.aodn.oceancurrent.util.elasticsearch.BulkRequestProcessor;
 import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
@@ -48,8 +48,8 @@ public class IndexingService {
                             )
                             .mappings(m -> m
                                     .properties("path", p -> p.keyword(k -> k))
-                                    .properties("product", p -> p.keyword(k -> k))
-                                    .properties("subProduct", p -> p.keyword(k -> k))
+                                    .properties("productId", p -> p.keyword(k -> k))
+//                                    .properties("subProduct", p -> p.keyword(k -> k))
                                     .properties("region", p -> p.keyword(k -> k))
                                     .properties("fileName", p -> p.keyword(k -> k))
                                     .properties("filePath", p -> p.keyword(k -> k))
@@ -155,16 +155,20 @@ public class IndexingService {
     private void processUrl(String url, BulkRequestProcessor bulkRequestProcessor, IndexingCallback callback) {
         log.info("Processing URL: {}", url);
         try {
-            List<ImageMetadataGroup> metadata = remoteJsonService.fetchJsonFromUrl(url);
+            List<RemoteJsonDataGroup> remoteJsonMetadata = remoteJsonService.fetchJsonFromUrl(url);
             log.info("Successfully processed URL: {}", url);
             if (callback != null) {
                 callback.onProgress("Processing file: " + url);
             }
 
-            for (ImageMetadataGroup group : metadata) {
-                processMetadataGroup(group, bulkRequestProcessor);
+            for (RemoteJsonDataGroup group : remoteJsonMetadata) {
+                processRemoteJsonMetadataGroup(group, bulkRequestProcessor);
                 if (callback != null) {
-                    callback.onProgress("Processed metadata group: " + group.getProduct() + " - " + group.getSubProduct());
+                    callback.onProgress(
+                            "Processed remote JSON metadata group: "
+                                    + group.getProduct() + " - "
+                                    + group.getSubProduct()
+                    );
                 }
             }
         } catch (RemoteFileException e) {
@@ -175,17 +179,21 @@ public class IndexingService {
         }
     }
 
-    private void processMetadataGroup(ImageMetadataGroup group, BulkRequestProcessor bulkRequestProcessor) {
+    private void processRemoteJsonMetadataGroup(RemoteJsonDataGroup group, BulkRequestProcessor bulkRequestProcessor) {
         group.getFiles().forEach(file -> {
-            ImageMetadataEntry doc = createMetadataEntry(group, file);
+            ImageMetadataEntry doc = createMetadataEntryFromJson(group, file);
             bulkRequestProcessor.addDocument(doc);
         });
     }
 
-    private ImageMetadataEntry createMetadataEntry(ImageMetadataGroup group, FileMetadata file) {
+    private ImageMetadataEntry createMetadataEntryFromJson(RemoteJsonDataGroup group, FileMetadata file) {
         ImageMetadataEntry doc = new ImageMetadataEntry();
-        doc.setProduct(group.getProduct());
-        doc.setSubProduct(group.getSubProduct());
+
+        String productId = (group.getSubProduct() != null) && !group.getSubProduct().isBlank()
+                ? group.getProduct() + "-" + group.getSubProduct()
+                : group.getProduct();
+
+        doc.setProductId(productId);
         doc.setRegion(group.getRegion());
         doc.setPath(group.getPath());
         doc.setFileName(file.getName());

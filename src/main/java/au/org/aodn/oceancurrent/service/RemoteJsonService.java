@@ -3,7 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.remoteJson.JsonPathsRoot;
 import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
-import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
+import au.org.aodn.oceancurrent.model.RemoteJsonDataGroup;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -55,7 +55,7 @@ public class RemoteJsonService {
         }
     }
 
-    public List<ImageMetadataGroup> fetchJsonFromUrl(String url) {
+    public List<RemoteJsonDataGroup> fetchJsonFromUrl(String url) {
         try {
             log.info("Fetching JSON data for URL with path: {}", url);
 
@@ -65,7 +65,7 @@ public class RemoteJsonService {
                 throw new RemoteFileException("Received null response from remote server");
             }
 
-            List<ImageMetadataGroup> metadata = objectMapper.readValue(
+            List<RemoteJsonDataGroup> metadata = objectMapper.readValue(
                     jsonResponse,
                     new TypeReference<>() {}
             );
