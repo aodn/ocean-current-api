@@ -1,3 +1,14 @@
 spring:
   config:
     import: optional:file:.env.edge[.properties]
+
+app:
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:5000
+      - https://oceancurrent.edge.aodn.org.au
+    allowed-methods:
+      - GET
+      - OPTIONS
+    allow-credentials: true

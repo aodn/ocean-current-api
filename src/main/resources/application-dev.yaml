@@ -7,3 +7,12 @@ logging:
   level:
     root: info
     au.org.aodn.oceancurrent: debug
+
+app:
+  cors:
+    allowed-origins:
+      - "*"
+    allowed-methods:
+      - GET
+      - OPTIONS
+    allow-credentials: false
