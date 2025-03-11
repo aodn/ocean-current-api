@@ -72,6 +72,9 @@ public class IndexingService {
         }
     }
 
+    public void indexRemoteJsonFiles(boolean confirm) throws IOException {
+        indexRemoteJsonFiles(confirm, null);
+    }
     public void indexRemoteJsonFiles(boolean confirm, IndexingCallback callback) throws IOException {
         if (!confirm) {
             throw new IllegalArgumentException("Please confirm that you want to index all remote JSON files");
