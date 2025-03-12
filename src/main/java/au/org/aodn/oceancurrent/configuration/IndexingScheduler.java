@@ -7,6 +7,10 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Component
 @Slf4j
@@ -14,12 +18,21 @@ import java.io.IOException;
 public class IndexingScheduler {
     private final IndexingService indexingService;
 
+    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     @Scheduled(cron = "${elasticsearch.indexing.cron.expression:0 0 2 * * ?}")
     public void scheduledIndexing() {
-        log.info("Starting scheduled daily indexing");
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        log.info("Starting scheduled daily indexing at {}", timestamp);
+
         try {
+            Instant startTime = Instant.now();
             indexingService.indexRemoteJsonFiles(true);
-            log.info("Completed scheduled daily indexing");
+            Duration duration = Duration.between(startTime, Instant.now());
+
+            log.info("Completed scheduled daily indexing in {} minutes and {} seconds",
+                    duration.toMinutes(),
+                    duration.minusMinutes(duration.toMinutes()).getSeconds());
         } catch (IOException e) {
             log.error("Error during scheduled indexing", e);
         }

@@ -22,6 +22,7 @@ elasticsearch:
     cron:
       expression: 0 0 2 * * ?
 
+
 remote:
   json:
     base-url: ${REMOTE_JSON_BASE_URL}
