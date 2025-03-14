@@ -5,6 +5,8 @@ import au.org.aodn.oceancurrent.dto.product.ProductResponse;
 import au.org.aodn.oceancurrent.dto.product.ProductValidationResponse;
 import au.org.aodn.oceancurrent.model.Product;
 import au.org.aodn.oceancurrent.service.ProductService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,13 +21,15 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/products")
 @RequiredArgsConstructor
+@Tag(name = "Products", description = "API for products retrieval and validation")
 public class ProductController {
 
     private final ProductService productService;
 
-    /**
-     * Get the complete product hierarchy including product groups and leaf products
-     */
+    @Operation(
+            summary = "Get all products",
+            description = "Get the complete product hierarchy including product groups and leaf products"
+    )
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts() {
         List<Product> hierarchy = productService.getProductHierarchy();
@@ -37,9 +41,10 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get all leaf products (both standalone and those within product groups)
-     */
+    @Operation(
+            summary = "Get all leaf products",
+            description = "Get all standalone leaf products and those within product groups"
+    )
     @GetMapping("/leaf")
     public ResponseEntity<List<LeafProductResponse>> getAllLeafProducts() {
         Map<String, Product> leafProducts = productService.getLeafProducts();
@@ -51,9 +56,10 @@ public class ProductController {
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Get details of a specific product by ID
-     */
+    @Operation(
+            summary = "Get product by ID",
+            description = "Get details of a specific product by ID"
+    )
     @GetMapping("/{productId}")
     public ResponseEntity<ProductResponse> getProductById(@PathVariable String productId) {
         return productService.getById(productId)
@@ -62,9 +68,10 @@ public class ProductController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    /**
-     * Validate if a product ID exists (checks both leaf products and product groups)
-     */
+    @Operation(
+            summary = "Validate product ID",
+            description = "Validate if a product ID exists (checks both leaf products and product groups)"
+    )
     @GetMapping("/validate/{id}")
     public ResponseEntity<ProductValidationResponse> validateId(@PathVariable String id) {
         boolean isValid = productService.isValidId(id);
