@@ -2,7 +2,9 @@ spring:
   application:
     name: "Ocean Current API"
   config:
-    import: optional:file:.env[.properties]
+    import:
+      - optional:file:.env[.properties]
+      - classpath:/config/products.yaml
 
 server:
   port: 8080

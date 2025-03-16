@@ -1,0 +1,100 @@
+# Ocean Current Products Configuration
+ocean-current:
+  products:
+    # Standalone products (leaf nodes without parents)
+    - title: "Snapshot SST"
+      id: "snapshotSst"
+
+    - title: "Surface Waves"
+      id: "surfaceWaves"
+
+    - title: "Argo"
+      id: "argo"
+
+    - title: "Tidal Currents"
+      id: "tidalCurrents"
+
+    - title: "EAC Mooring Array"
+      id: "EACMooringArray"
+
+    # Product Groups with children
+    - title: "Four hour SST"
+      id: "fourHourSst"
+      type: "ProductGroup"
+      children:
+        - title: "SST Filled"
+          id: "fourHourSst-sstFilled"
+        - title: "SST"
+          id: "fourHourSst-sst"
+        - title: "SST Age"
+          id: "fourHourSst-sstAge"
+        - title: "Wind Speed"
+          id: "fourHourSst-windSpeed"
+
+    - title: "6-Day SST & Centiles"
+      id: "sixDaySst"
+      type: "ProductGroup"
+      children:
+        - title: "SST"
+          id: "sixDaySst-sst"
+        - title: "SST Anomaly"
+          id: "sixDaySst-sstAnomaly"
+        - title: "Centiles"
+          id: "sixDaySst-centiles"
+        - title: "Timeseries"
+          id: "sixDaySst-timeseries"
+
+    - title: "Chlorophyll-a Concentration"
+      id: "oceanColour"
+      type: "ProductGroup"
+      children:
+        - title: "Chl-A"
+          id: "oceanColour-chlA"
+        - title: "Chl-A Age"
+          id: "oceanColour-chlAAge"
+
+    - title: "Adjusted Sea Level Anom."
+      id: "adjustedSeaLevelAnomaly"
+      type: "ProductGroup"
+      children:
+        - title: "SLA"
+          id: "adjustedSeaLevelAnomaly-sla"
+        - title: "Centiles"
+          id: "adjustedSeaLevelAnomaly-centiles"
+        - title: "SLA + SST"
+          id: "adjustedSeaLevelAnomaly-sst"
+
+    - title: "Monthly Means"
+      id: "monthlyMeans"
+      type: "ProductGroup"
+      children:
+        - title: "Anomalies"
+          id: "monthlyMeans-anomalies"
+        - title: "OFAM3/SSTARS"
+          id: "monthlyMeans-CLIM_OFAM3_SSTAARS"
+        - title: "CNES MDT/CARS SST"
+          id: "monthlyMeans-CLIM_CNESCARS"
+
+    - title: "Climatology"
+      id: "climatology"
+      type: "ProductGroup"
+      children:
+        - title: "SST"
+          id: "climatology-sst"
+        - title: "Data Count"
+          id: "climatology-dataCount"
+
+    - title: "Current Meters"
+      id: "currentMeters"
+      type: "ProductGroup"
+      children:
+        - title: "Moored Instrument Array"
+          id: "currentMeters-mooredInstrumentArray"
+        - title: "Shelf"
+          id: "currentMeters-shelf"
+        - title: "Deep (ADCP)"
+          id: "currentMeters-deepADCP"
+        - title: "Deep (ADV)"
+          id: "currentMeters-deepADV"
+        - title: "Southern Ocean"
+          id: "currentMeters-southernOcean"
