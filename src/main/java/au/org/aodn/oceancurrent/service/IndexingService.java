@@ -168,8 +168,7 @@ public class IndexingService {
                 if (callback != null) {
                     callback.onProgress(
                             "Processed remote JSON metadata group: "
-                                    + group.getProduct() + " - "
-                                    + group.getSubProduct()
+                                    + group.getProductId()
                     );
                 }
             }
@@ -191,13 +190,10 @@ public class IndexingService {
     private ImageMetadataEntry createMetadataEntryFromJson(RemoteJsonDataGroup group, FileMetadata file) {
         ImageMetadataEntry doc = new ImageMetadataEntry();
 
-        String productId = (group.getSubProduct() != null) && !group.getSubProduct().isBlank()
-                ? group.getProduct() + "-" + group.getSubProduct()
-                : group.getProduct();
-
-        doc.setProductId(productId);
+        doc.setProductId(group.getProductId());
         doc.setRegion(group.getRegion());
         doc.setPath(group.getPath());
+        doc.setDepth(group.getDepth());
         doc.setFileName(file.getName());
         doc.setFilePath(file.getPath());
         return doc;

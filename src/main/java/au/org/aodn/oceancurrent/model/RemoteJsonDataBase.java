@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RemoteJsonDataBase {
     private String path;
-    private String product;
-    private String subProduct;
+    private String productId;
     private String region;
+    private String depth;
 }

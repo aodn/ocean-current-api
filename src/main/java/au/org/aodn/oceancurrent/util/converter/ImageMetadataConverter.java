@@ -21,6 +21,7 @@ public class ImageMetadataConverter {
         metadataGroup.setPath(firstResult.getPath());
         metadataGroup.setProductId(firstResult.getProductId());
         metadataGroup.setRegion(firstResult.getRegion());
+        metadataGroup.setDepth(firstResult.getDepth());
 
         List<FileMetadata> files = flatResults.stream()
                 .map(ImageMetadataConverter::toFileMetadata)

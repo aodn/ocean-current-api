@@ -7,6 +7,7 @@ import au.org.aodn.oceancurrent.util.converter.ImageMetadataConverter;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
+import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
@@ -35,6 +36,7 @@ public class SearchService {
     private static final String FIELD_PRODUCT_ID = "productId";
     private static final String FIELD_REGION = "region";
     private static final String FIELD_FILE_NAME = "fileName";
+    private static final String FIELD_DEPTH = "depth";
 
     private static final String AGG_LESS_THAN_TARGET = "less_than_target";
     private static final String AGG_TOP_LESS = "top_less";
@@ -206,12 +208,18 @@ public class SearchService {
         return ImageMetadataConverter.toGroup(sortedDocuments);
     }
 
-    public ImageMetadataGroup findAllImageList(String productId, String region) {
+    public ImageMetadataGroup findAllImageList(String productId, String region, String depth) {
         try {
-            Query query = QueryBuilders.bool()
+            BoolQuery.Builder boolQueryBuilder = QueryBuilders.bool()
                     .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
-                    .must(QueryBuilders.term(t -> t.field(FIELD_REGION).value(region)))
-                    .build()._toQuery();
+                    .must(QueryBuilders.term(t -> t.field(FIELD_REGION).value(region)));
+
+            // Only add the depth term if it's not null
+            if (depth != null && !depth.isEmpty()) {
+                boolQueryBuilder.must(QueryBuilders.term(t -> t.field(FIELD_DEPTH).value(depth)));
+            }
+
+            Query query = boolQueryBuilder.build()._toQuery();
 
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)

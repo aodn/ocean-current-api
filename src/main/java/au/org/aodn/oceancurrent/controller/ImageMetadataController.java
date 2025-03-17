@@ -57,10 +57,11 @@ public class ImageMetadataController {
             @Parameter(description = "Combined product id", example = "sixDaySst-sst")
             @PathVariable String productId,
             @Parameter(description = "Region name", example = "Au")
-            @PathVariable String region
+            @PathVariable String region,
+            @RequestParam(required = false) String depth
     ) {
-        log.info("Received request to search files for product: {}, region: {}", productId, region);
-        ImageMetadataGroup results = searchService.findAllImageList(productId, region);
+        log.info("Received request to search files for product: {}, region: {}, depth: {}", productId, region, depth);
+        ImageMetadataGroup results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);
     }
 
