@@ -11,4 +11,5 @@ public class ImageMetaDataBase {
     private String path;
     private String productId;
     private String region;
+    private String depth;
 }

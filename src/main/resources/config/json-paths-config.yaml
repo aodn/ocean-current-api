@@ -1,4 +1,4 @@
-version: "0.1"
+version: "0.2"
 products:
   - product: "SST"
     description: "Sea Surface Temperature daily products"
@@ -14,3 +14,9 @@ products:
       - /SST_4hr/SST_Filled/SST_Filled.json
       - /SST_4hr/SST_Age/SST_Age.json
       - /SST_4hr/Wind/Wind.json
+
+  - product: "Current Meters"
+    description: "Current Meters products including plots and time series"
+    paths:
+      - /timeseries/ANMN_P48/ANMN_P48.json
+      - /timeseries/ANMN_P49/ANMN_P49.json
