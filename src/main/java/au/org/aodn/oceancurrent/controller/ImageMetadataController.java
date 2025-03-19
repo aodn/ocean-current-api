@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/metadata")
@@ -48,20 +49,21 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/image-list/{productId}/{region}")
+    @GetMapping("/image-list/{productId}")
     @Operation(description = """
-            Search all image files list by `product id` and `region`, \n
-            e.g. `/metadata/image-list/sixDaySst-sst/Au`
+            Search all image files list by `product id` and filter by `region`, `depth` \n
+            e.g. `/metadata/image-list/sixDaySst-sst?region=Au`
             """)
-    public ResponseEntity<ImageMetadataGroup> getAllImageFilesList(
+    public ResponseEntity<List<ImageMetadataGroup>> getAllImageFilesList(
             @Parameter(description = "Combined product id", example = "sixDaySst-sst")
             @PathVariable String productId,
             @Parameter(description = "Region name", example = "Au")
-            @PathVariable String region,
+            @RequestParam(required = false) String region,
+            @Parameter(description = "Depth name", example = "xyz")
             @RequestParam(required = false) String depth
     ) {
         log.info("Received request to search files for product: {}, region: {}, depth: {}", productId, region, depth);
-        ImageMetadataGroup results = searchService.findAllImageList(productId, region, depth);
+        List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);
     }
 

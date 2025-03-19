@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.dto.product;
 
 import au.org.aodn.oceancurrent.model.Product;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -10,8 +11,10 @@ import java.util.List;
 public class ProductResponse {
     private String title;
     private String id;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String type;
-    private List<ProductResponse> children = new ArrayList<>();
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ProductResponse> children;
 
     /**
      * Create a ProductResponse from a Product model

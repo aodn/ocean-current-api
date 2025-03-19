@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class ImageMetadataEntry extends ImageMetaDataBase {
     private String fileName;
     private String filePath;
+    private String depth;
 }
