@@ -11,6 +11,7 @@ import java.util.List;
 public class ProductResponse {
     private String title;
     private String id;
+    private Boolean regionRequired;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String type;
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -23,6 +24,7 @@ public class ProductResponse {
         ProductResponse response = new ProductResponse();
         response.setTitle(product.getTitle());
         response.setId(product.getId());
+        response.setRegionRequired(product.isRegionRequired());
         response.setType(product.getType());
 
         if (product.getChildren() != null && !product.getChildren().isEmpty()) {

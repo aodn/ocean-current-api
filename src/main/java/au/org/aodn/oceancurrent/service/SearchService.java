@@ -211,31 +211,35 @@ public class SearchService {
 
     public List<ImageMetadataGroup> findAllImageList(String productId, String region, String depth) {
         try {
+            // Validate parameters
+            boolean isValidRegion = isValidParameter(region);
+            boolean isValidDepth = isValidParameter(depth);
             BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
                     .must(t -> t.term(f -> f.field(FIELD_PRODUCT_ID).value(productId)));
 
             // Add region filter if provided
-            if (region != null && !region.isEmpty()) {
+            if (isValidRegion) {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_REGION).value(region)));
             }
 
             // Add depth filter if provided
-            if (depth != null && !depth.isEmpty()) {
+            if (isValidDepth) {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_DEPTH).value(depth)));
             }
 
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)
-                            .size(10000)
+                            .size(20000)
                             .query(q -> q.bool(queryBuilder.build())),
                     ImageMetadataEntry.class
             );
 
             List<ImageMetadataEntry> entries = extractHits(response);
 
-            log.info("Found {} images for product '{}', region '{}'{}",
-                    entries.size(), productId, region,
-                    depth != null ? ", depth '" + depth + "'" : "");
+            log.info("Found {} images for product '{}'{} {}",
+                    entries.size(), productId,
+                    isValidRegion ? ", region '" + region + "'" : "",
+                    isValidDepth? ", depth '" + depth + "'" : "");
 
             return ImageMetadataConverter.createMetadataGroups(entries);
         } catch (Exception e) {
@@ -348,5 +352,9 @@ public class SearchService {
                 .stream()
                 .map(this::extractSourceFromAggregation)
                 .toList();
+    }
+
+    private boolean isValidParameter(String value) {
+        return value != null && !value.isBlank();
     }
 }

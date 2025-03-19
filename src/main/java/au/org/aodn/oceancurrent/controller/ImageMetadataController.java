@@ -1,6 +1,8 @@
 package au.org.aodn.oceancurrent.controller;
 
+import au.org.aodn.oceancurrent.exception.InvalidProductException;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
+import au.org.aodn.oceancurrent.service.ProductService;
 import au.org.aodn.oceancurrent.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -24,6 +26,7 @@ import java.util.List;
 @Tag(name = "Image Metadata", description = "API for searching image list metadata")
 public class ImageMetadataController {
     private final SearchService searchService;
+    private final ProductService productService;
 
     @GetMapping("/search")
     @Operation(description = """
@@ -63,6 +66,18 @@ public class ImageMetadataController {
             @RequestParam(required = false) String depth
     ) {
         log.info("Received request to search files for product: {}, region: {}, depth: {}", productId, region, depth);
+        if (!productService.isValidProductId(productId)) {
+            throw new InvalidProductException("Invalid product ID: " + productId);
+        }
+        if (productService.isRegionRequired(productId) && (region == null || region.isEmpty())) {
+            throw new InvalidProductException("Region is required for product ID: " + productId);
+        }
+        if (!productService.isRegionRequired(productId) && (region != null && !region.isEmpty())) {
+            throw new InvalidProductException("Region must not provided for product ID: " + productId);
+        }
+        if (!productService.isDepthRequired(productId) && (depth != null && !depth.isBlank())) {
+            throw new InvalidProductException("Depth must not provided for product ID: " + productId);
+        }
         List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);
     }
