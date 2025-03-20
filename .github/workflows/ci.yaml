@@ -39,4 +39,5 @@ jobs:
         run: ./gradlew clean build
 
       - name: See what we have
+        if: always()
         run: ls -lah; ls -lah app/.build
