@@ -30,22 +30,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@af1da67850ed9a4cedd57bfd976089dd991e2582
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Permit Gradle wrapper
         run: chmod +x gradlew
 
       - name: Test Gradle Wrapper
         run: gradle wrapper
 
-      - name: Show me what is here
-        run: ls -lah
-
       - name: Build with Gradle
-        run: sh gradlew clean build
-
-    #   - name: Setup Gradle
-    #     uses: gradle/actions/setup-gradle@v3
-
-    #   - name: Build with Gradle
-    #     run: ./gradlew build
-
-    
+        run: ./gradlew build
