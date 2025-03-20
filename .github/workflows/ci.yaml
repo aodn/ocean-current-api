@@ -32,14 +32,14 @@ jobs:
         with:
           gradle-version: "8.10"
 
-      - name: Show me what is here
-        run: ls -lah
-
       - name: Permit Gradle wrapper
         run: chmod +x gradlew
 
+      - name: Show me what is here
+        run: ls -lah
+
       - name: Build with Gradle
-        run: ./gradlew clean build
+        run: ./gradlew clean
 
     #   - name: Setup Gradle
     #     uses: gradle/actions/setup-gradle@v3
