@@ -32,6 +32,9 @@ jobs:
         with:
           gradle-version: "8.10"
 
+      - name: Show me what is here
+        run: ls -lah
+
       - name: Permit Gradle wrapper
         run: chmod +x gradlew
 
