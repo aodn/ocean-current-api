@@ -36,4 +36,7 @@ jobs:
         run: gradle wrapper
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew clean build
+
+      - name: See what we have
+        run: ls -lah; ls -lah app/.build
