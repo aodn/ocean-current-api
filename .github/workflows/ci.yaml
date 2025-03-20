@@ -39,7 +39,7 @@ jobs:
         run: ls -lah
 
       - name: Build with Gradle
-        run: ./gradlew clean
+        run: gradlew clean build
 
     #   - name: Setup Gradle
     #     uses: gradle/actions/setup-gradle@v3
