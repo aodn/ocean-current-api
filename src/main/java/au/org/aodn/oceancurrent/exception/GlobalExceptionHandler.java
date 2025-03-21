@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +50,28 @@ public class GlobalExceptionHandler {
         return new ErrorResponse(
                 HttpStatus.BAD_REQUEST.getReasonPhrase(),
                 errorMessages);
+    }
+
+    @ExceptionHandler(InvalidProductException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleInvalidProductException(InvalidProductException ex) {
+        log.info("Product validation failed: {}", ex.getMessage());
+
+        return new ErrorResponse(
+                "Product validation failed",
+                Collections.singletonList(ex.getMessage())
+        );
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleIllegalArgumentException(IllegalArgumentException ex) {
+        log.info("Illegal Argument: {}", ex.getMessage());
+
+        return new ErrorResponse(
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                List.of(ex.getMessage())
+        );
     }
 
     @ExceptionHandler(ElasticsearchConnectionException.class)

@@ -1,6 +1,8 @@
 package au.org.aodn.oceancurrent.controller;
 
+import au.org.aodn.oceancurrent.exception.InvalidProductException;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
+import au.org.aodn.oceancurrent.service.ProductService;
 import au.org.aodn.oceancurrent.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
+import java.util.List;
 
 @RestController
 @RequestMapping("/metadata")
@@ -23,6 +26,7 @@ import java.io.IOException;
 @Tag(name = "Image Metadata", description = "API for searching image list metadata")
 public class ImageMetadataController {
     private final SearchService searchService;
+    private final ProductService productService;
 
     @GetMapping("/search")
     @Operation(description = """
@@ -48,20 +52,39 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/image-list/{productId}/{region}")
+    @GetMapping("/image-list/{productId}")
     @Operation(description = """
-            Search all image files list by `product id` and `region`, \n
-            e.g. `/metadata/image-list/sixDaySst-sst/Au`
+            Search all image files list by `product id` and filter by `region`, `depth` \n
+            e.g. `/metadata/image-list/sixDaySst-sst?region=Au`,
+            `/metadata/image-list/currentMetersPlot-48?region=SAM4CY&depth=xyz`. \n
+            Valid product id list can be found in `/products/leaf` endpoint \n
             """)
-    public ResponseEntity<ImageMetadataGroup> getAllImageFilesList(
+    public ResponseEntity<List<ImageMetadataGroup>> getAllImageFilesList(
             @Parameter(description = "Combined product id", example = "sixDaySst-sst")
             @PathVariable String productId,
             @Parameter(description = "Region name", example = "Au")
-            @PathVariable String region,
+            @RequestParam(required = false) String region,
+            @Parameter(description = "Depth name. For example, use 'xyz' when search for`Current Meters Plot`")
             @RequestParam(required = false) String depth
     ) {
         log.info("Received request to search files for product: {}, region: {}, depth: {}", productId, region, depth);
-        ImageMetadataGroup results = searchService.findAllImageList(productId, region, depth);
+        if (!productService.isValidProductId(productId)) {
+            throw new InvalidProductException("Invalid product ID: " + productId);
+        }
+        if (productService.isRegionRequired(productId) && (region == null || region.isEmpty())) {
+            throw new InvalidProductException("Region is required for product ID: " + productId);
+        }
+        if (!productService.isRegionRequired(productId) && (region != null && !region.isEmpty())) {
+            throw new InvalidProductException(
+                    "This product does not have a Region parameter. Please remove it from product ID: "
+                            + productId);
+        }
+        if (!productService.isDepthRequired(productId) && (depth != null && !depth.isBlank())) {
+            throw new InvalidProductException(
+                    "This product does not have a Depth parameter. Please remove it from product ID: "
+                            + productId);
+        }
+        List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);
     }
 

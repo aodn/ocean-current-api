@@ -8,6 +8,7 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -17,6 +18,8 @@ public class Product {
     private String id;
     private String title;
     private String type;
+    private Boolean regionRequired;
+    private Boolean depthRequired;
 
     @ToString.Exclude
     private Product parent;
@@ -45,5 +48,13 @@ public class Product {
 
     public String getParentTitle() {
         return parent != null ? parent.getTitle() : null;
+    }
+
+    public boolean isRegionRequired() {
+        return Optional.ofNullable(regionRequired).orElse(true); // Default to true
+    }
+
+    public boolean isDepthRequired() {
+        return Optional.ofNullable(depthRequired).orElse(false); // Default to false
     }
 }
