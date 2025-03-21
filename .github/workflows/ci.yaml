@@ -16,6 +16,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+    environment: central
 
     steps:
       - name: Checkout code
@@ -41,3 +42,14 @@ jobs:
       - name: See what we have
         if: always()
         run: ls -lah
+
+      - name: Configure AWS Credentials for image push
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          audience: sts.amazonaws.com
+          aws-region: ap-southeast-2
+          role-to-assume: ${{ vars.AODN_CENTRAL_GITHUB_ACTIONS_ROLE }}
+
+      - name: Login to Amazon ECR Private
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
