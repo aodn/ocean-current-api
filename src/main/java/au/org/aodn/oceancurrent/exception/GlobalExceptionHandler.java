@@ -55,8 +55,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InvalidProductException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleInvalidProductException(InvalidProductException ex) {
-        // Create error response using your existing ErrorResponse class structure
         log.info("Product validation failed: {}", ex.getMessage());
+
         return new ErrorResponse(
                 "Product validation failed",
                 Collections.singletonList(ex.getMessage())
