@@ -54,7 +54,7 @@ jobs:
           aws-region: ap-southeast-2
           role-to-assume: ${{ vars.AODN_CENTRAL_GITHUB_ACTIONS_ROLE }}
 
-      - name: Login to Amazon ECR Private
+      - name: Login to ECR Central
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
