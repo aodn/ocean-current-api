@@ -53,3 +53,10 @@ jobs:
       - name: Login to Amazon ECR Private
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: resources/aws/lambda_functions
+          push: true
+          tags: ${{ vars.OCEANCURRENT_IMAGE_URI }}
