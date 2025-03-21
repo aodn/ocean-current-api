@@ -55,14 +55,16 @@ public class ImageMetadataController {
     @GetMapping("/image-list/{productId}")
     @Operation(description = """
             Search all image files list by `product id` and filter by `region`, `depth` \n
-            e.g. `/metadata/image-list/sixDaySst-sst?region=Au`
+            e.g. `/metadata/image-list/sixDaySst-sst?region=Au`,
+            `/metadata/image-list/currentMetersPlot-48?region=SAM4CY&depth=xyz`. \n
+            Valid product id list can be found in `/products/leaf` endpoint \n
             """)
     public ResponseEntity<List<ImageMetadataGroup>> getAllImageFilesList(
             @Parameter(description = "Combined product id", example = "sixDaySst-sst")
             @PathVariable String productId,
             @Parameter(description = "Region name", example = "Au")
             @RequestParam(required = false) String region,
-            @Parameter(description = "Depth name", example = "xyz")
+            @Parameter(description = "Depth name. For example, use 'xyz' when search for`Current Meters Plot`")
             @RequestParam(required = false) String depth
     ) {
         log.info("Received request to search files for product: {}, region: {}, depth: {}", productId, region, depth);
@@ -73,10 +75,14 @@ public class ImageMetadataController {
             throw new InvalidProductException("Region is required for product ID: " + productId);
         }
         if (!productService.isRegionRequired(productId) && (region != null && !region.isEmpty())) {
-            throw new InvalidProductException("Region must not provided for product ID: " + productId);
+            throw new InvalidProductException(
+                    "This product does not have a Region parameter. Please remove it from product ID: "
+                            + productId);
         }
         if (!productService.isDepthRequired(productId) && (depth != null && !depth.isBlank())) {
-            throw new InvalidProductException("Depth must not provided for product ID: " + productId);
+            throw new InvalidProductException(
+                    "This product does not have a Depth parameter. Please remove it from product ID: "
+                            + productId);
         }
         List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);

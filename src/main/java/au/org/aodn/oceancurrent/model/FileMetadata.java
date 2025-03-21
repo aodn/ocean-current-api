@@ -10,5 +10,4 @@ import lombok.NoArgsConstructor;
 public class FileMetadata {
     private String name;
     private String path;
-//    private String depth;
 }
