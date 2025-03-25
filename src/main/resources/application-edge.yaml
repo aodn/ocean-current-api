@@ -12,3 +12,18 @@ app:
       - GET
       - OPTIONS
     allow-credentials: true
+
+management:
+  info:
+    env:
+      enabled: true
+  endpoints:
+    web:
+      base-path: /manage
+      exposure:
+        include: "health,info,env,beans,logfile"
+
+springdoc:
+  swagger-ui:
+    server:
+      domain: https://oceancurrent.edge.aodn.org.au
