@@ -29,6 +29,7 @@ products:
     paths:
       - /STATE_daily/CHL/CHL.json
       - /STATE_daily/CHL_AGE/CHL_AGE.json
+      - /oceanColour-chlA.json
 
   - product: "Adjusted Sea Level Anomaly"
     description: "Adjusted Sea Level Anomaly products"
@@ -39,4 +40,4 @@ products:
   - product: "Adjusted Sea Level Anomaly and Sea Surface Temperature"
     description: "Adjusted Sea Level Anomaly and Sea Surface Temperature products"
     paths:
-      - /adjustedSLA-sst.json
+      - /adjustedSeaLevelAnomaly-sst.json
