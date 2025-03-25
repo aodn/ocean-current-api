@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class SearchService {
                 ImageMetadataEntry.class
         );
 
-        return ImageMetadataConverter.toGroup(extractHits(response));
+        return ImageMetadataConverter.toMetadataGroup(extractHits(response), productId, region);
     }
 
     public ImageMetadataGroup findByProductRegionAndDateRange(
@@ -107,7 +108,7 @@ public class SearchService {
                 .map(Hit::source)
                 .collect(Collectors.toList());
 
-        return ImageMetadataConverter.toGroup(flatResults);
+        return ImageMetadataConverter.toMetadataGroup(flatResults, productId, region);
     }
 
     public ImageMetadataGroup searchFilesAroundDate(
@@ -185,7 +186,7 @@ public class SearchService {
             log.info("Search operation completed - found {} results ({} before, {} after target date)",
                     combinedSortedResults.size(), beforeDateResults.size(), afterDateResults.size());
 
-            return ImageMetadataConverter.toGroup(combinedSortedResults);
+            return ImageMetadataConverter.toMetadataGroup(combinedSortedResults, productId, region);
         } catch (Exception e) {
             log.error("Search operation failed - product: {}, region: {}, date: {}",
                     productId, region, date);
@@ -205,37 +206,44 @@ public class SearchService {
                 .sorted(Comparator.comparing(ImageMetadataEntry::getFileName))
                 .collect(Collectors.toList());
 
-        return ImageMetadataConverter.toGroup(sortedDocuments);
+        return ImageMetadataConverter.toMetadataGroup(sortedDocuments, productId, region);
     }
 
-    public ImageMetadataGroup findAllImageList(String productId, String region, String depth) {
+    public List<ImageMetadataGroup> findAllImageList(String productId, String region, String depth) {
         try {
-            BoolQuery.Builder boolQueryBuilder = QueryBuilders.bool()
-                    .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
-                    .must(QueryBuilders.term(t -> t.field(FIELD_REGION).value(region)));
+            // Validate parameters
+            boolean isValidRegion = isValidParameter(region);
+            boolean isValidDepth = isValidParameter(depth);
+            BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
+                    .must(t -> t.term(f -> f.field(FIELD_PRODUCT_ID).value(productId)));
 
-            // Only add the depth term if it's not null
-            if (depth != null && !depth.isEmpty()) {
-                boolQueryBuilder.must(QueryBuilders.term(t -> t.field(FIELD_DEPTH).value(depth)));
+            // Add region filter if provided
+            if (isValidRegion) {
+                queryBuilder.must(t -> t.term(f -> f.field(FIELD_REGION).value(region)));
             }
 
-            Query query = boolQueryBuilder.build()._toQuery();
+            // Add depth filter if provided
+            if (isValidDepth) {
+                queryBuilder.must(t -> t.term(f -> f.field(FIELD_DEPTH).value(depth)));
+            }
 
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)
                             .size(20000)
-                            .query(query),
+                            .query(q -> q.bool(queryBuilder.build())),
                     ImageMetadataEntry.class
             );
 
-            List<ImageMetadataEntry> sortedDocuments = extractHits(response).stream()
-                    .sorted(Comparator.comparing(ImageMetadataEntry::getFileName))
-                    .toList();
+            List<ImageMetadataEntry> entries = extractHits(response);
 
-            log.debug("Found {} documents for product: {} and region: {}",
-                    response.hits().hits().size(), productId, region);
-            return ImageMetadataConverter.toGroup(sortedDocuments);
+            log.info("Found {} images for product '{}'{} {}",
+                    entries.size(), productId,
+                    isValidRegion ? ", region '" + region + "'" : "",
+                    isValidDepth? ", depth '" + depth + "'" : "");
+
+            return ImageMetadataConverter.createMetadataGroups(entries);
         } catch (Exception e) {
+            log.error("Error fetching image metadata", e);
             throw new RuntimeException(e);
         }
     }
@@ -314,6 +322,9 @@ public class SearchService {
         }
     }
     private List<ImageMetadataEntry> extractHits(SearchResponse<ImageMetadataEntry> response) {
+        if (response.hits().hits().isEmpty()) {
+            return Collections.emptyList();
+        }
         return response.hits().hits().stream()
                 .map(Hit::source)
                 .collect(Collectors.toList());
@@ -341,5 +352,9 @@ public class SearchService {
                 .stream()
                 .map(this::extractSourceFromAggregation)
                 .toList();
+    }
+
+    private boolean isValidParameter(String value) {
+        return value != null && !value.isBlank();
     }
 }

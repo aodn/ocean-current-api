@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -12,5 +13,5 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ImageMetadataGroup extends ImageMetaDataBase {
-    private List<FileMetadata> files;
+    private List<FileMetadata> files = new ArrayList<>();
 }

@@ -1,4 +1,4 @@
-version: "0.2"
+version: "0.3"
 products:
   - product: "SST"
     description: "Sea Surface Temperature daily products"
@@ -6,6 +6,9 @@ products:
       - /STATE_daily/SST/SST.json
       - /STATE_daily/SST_ANOM/SST_ANOM.json
       - /STATE_daily/pctiles/pctiles.json
+      - /DR_SST_daily/SST/SST.json
+      - /DR_SST_daily/SST_ANOM/SST_ANOM.json
+      - /DR_SST_daily/pctiles/pctiles.json
 
   - product: "SST 4 hour"
     description: "Sea Surface Temperature 4 hour products"
@@ -20,3 +23,21 @@ products:
     paths:
       - /timeseries/ANMN_P48/ANMN_P48.json
       - /timeseries/ANMN_P49/ANMN_P49.json
+
+  - product: "Ocean Colour"
+    description: "Ocean Colour products including chlorophyll-a concentration"
+    paths:
+      - /STATE_daily/CHL/CHL.json
+      - /STATE_daily/CHL_AGE/CHL_AGE.json
+      - /oceanColour-chlA.json
+
+  - product: "Adjusted Sea Level Anomaly"
+    description: "Adjusted Sea Level Anomaly products"
+    paths:
+      - /STATE_daily/SLA/SLA.json
+      - /STATE_daily/SLA_pctiles/SLA_pctiles.json
+
+  - product: "Adjusted Sea Level Anomaly and Sea Surface Temperature"
+    description: "Adjusted Sea Level Anomaly and Sea Surface Temperature products"
+    paths:
+      - /adjustedSeaLevelAnomaly-sst.json

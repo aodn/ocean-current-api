@@ -104,14 +104,20 @@ ocean-current:
         # Version 48
         - title: "Current Meters Plot version 48"
           id: "currentMetersPlot-48"
+          depthRequired: true
         - title: "Current Meters Calendar version 48"
           id: "currentMetersCalendar-48"
+          regionRequired: false
         - title: "Current Meters Region version 48"
           id: "currentMetersRegion-48"
+          regionRequired: false
         # Version 49
         - title: "Current MetersPlot version 49"
           id: "currentMetersPlot-49"
+          depthRequired: true
         - title: "Current Meters Calendar version 49"
           id: "currentMetersCalendar-49"
+          regionRequired: false
         - title: "Current Meters Region version 49"
           id: "currentMetersRegion-49"
+          regionRequired: false

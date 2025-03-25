@@ -33,6 +33,16 @@ public class ProductService {
         return allProductsMap.containsKey(id);
     }
 
+    public boolean isRegionRequired(String productId) {
+        return productMap.get(productId).isRegionRequired();
+    }
+
+    public boolean isDepthRequired(String productId) {
+        log.debug("isDepthRequired() called for productId: {} | {}", productId,productMap.get(productId).isDepthRequired());
+        return productMap.get(productId).isDepthRequired();
+    }
+
+
     public Optional<Product> getProductById(String productId) {
         return Optional.ofNullable(productMap.get(productId));
     }
