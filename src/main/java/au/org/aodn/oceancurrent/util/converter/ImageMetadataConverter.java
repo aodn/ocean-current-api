@@ -81,7 +81,6 @@ public class ImageMetadataConverter {
     public static FileMetadata toFileMetadata(ImageMetadataEntry flat) {
         FileMetadata FileMetadata = new FileMetadata();
         FileMetadata.setName(flat.getFileName());
-        FileMetadata.setPath(flat.getFilePath());
         return FileMetadata;
     }
 }

@@ -51,7 +51,6 @@ public class IndexingService {
                                     .properties("productId", p -> p.keyword(k -> k))
                                     .properties("region", p -> p.keyword(k -> k))
                                     .properties("fileName", p -> p.keyword(k -> k))
-                                    .properties("filePath", p -> p.keyword(k -> k))
                             )
             );
             esClient.indices().create(request);
@@ -195,7 +194,6 @@ public class IndexingService {
         doc.setPath(group.getPath());
         doc.setDepth(group.getDepth());
         doc.setFileName(file.getName());
-        doc.setFilePath(file.getPath());
         return doc;
     }
 
