@@ -38,7 +38,6 @@ public class ProductService {
     }
 
     public boolean isDepthRequired(String productId) {
-        log.debug("isDepthRequired() called for productId: {} | {}", productId,productMap.get(productId).isDepthRequired());
         return productMap.get(productId).isDepthRequired();
     }
 

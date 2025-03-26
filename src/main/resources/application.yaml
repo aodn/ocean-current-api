@@ -15,6 +15,11 @@ management:
   health:
     elasticsearch:
       enabled: false
+  endpoints:
+    web:
+      base-path: /manage
+      exposure:
+        include: "health,info,env,beans,logfile"
 
 elasticsearch:
   host: ${ES_HOST:placeholder}
@@ -28,4 +33,3 @@ elasticsearch:
 remote:
   json:
     base-url: ${REMOTE_JSON_BASE_URL}
-
