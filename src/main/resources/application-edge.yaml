@@ -17,11 +17,6 @@ management:
   info:
     env:
       enabled: true
-  endpoints:
-    web:
-      base-path: /manage
-      exposure:
-        include: "health,info,env,beans,logfile"
 
 springdoc:
   swagger-ui:
