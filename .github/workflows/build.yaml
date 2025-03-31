@@ -65,6 +65,7 @@ jobs:
           tags: ${{ vars.OCEANCURRENT_IMAGE_URI }}
 
   trigger_edge_deploy:
+    if: github.event_name == 'push'
     name: Deploy
     needs: [build_push]
     uses: ./.github/workflows/trigger_deploy.yaml
