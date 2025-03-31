@@ -2,31 +2,13 @@ name: Trigger Deploy
 run-name: Deploy to ${{ inputs.environment }}
 
 on:
-  workflow_dispatch:
-    inputs:
-      app_name:
-        required: true
-        description: The short-name of the app corresponding to the directory in appdeploy.
-        type: string
-      environment:
-        required: true
-        description: The environment to use for the deploy job.
-        type: choice
-        options:
-          - edge
-        #   - staging
-        #   - production
-      digest:
-        required: false
-        description: The image digest to pass to the deploy job.
-        type: string
   workflow_call:
     inputs:
       app_name:
         required: true
         type: string
       digest:
-        required: false
+        required: true
         type: string
       environment:
         required: true
