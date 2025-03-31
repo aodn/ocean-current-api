@@ -38,6 +38,7 @@ permissions:
 
 jobs:
   trigger_deploy:
+    name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     steps:
