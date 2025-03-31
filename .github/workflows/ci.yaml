@@ -67,7 +67,7 @@ jobs:
 
   trigger_edge_deploy:
     needs: [build_push]
-    uses: ./.github/workflows/trigger_deploy.yml
+    uses: ./.github/workflows/trigger_deploy.yaml
     with:
       app_name: oceancurrent
       environment: edge
