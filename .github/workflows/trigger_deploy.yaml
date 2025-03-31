@@ -1,11 +1,12 @@
 name: Trigger Deploy
+run-name: Deploy to ${{ inputs.environment }}
 
 on:
   workflow_dispatch:
     inputs:
       app_name:
         required: true
-        description: The short-name of the app corresponding to the folder in appdeploy.
+        description: The short-name of the app corresponding to the directory in appdeploy.
         type: string
       environment:
         required: true
@@ -47,7 +48,7 @@ jobs:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
 
-      - name: Push Image Digest to SSM
+      - name: Update Image Digest to SSM Parameter
         if: ${{ inputs.digest != '' }}
         run: |
           aws ssm put-parameter \
