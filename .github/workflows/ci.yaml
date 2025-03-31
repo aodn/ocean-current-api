@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build_push:
     name: Build
     runs-on: ubuntu-latest
     environment: central
@@ -64,3 +64,12 @@ jobs:
           context: .
           push: true
           tags: ${{ vars.OCEANCURRENT_IMAGE_URI }}
+
+  trigger_edge_deploy:
+    needs: [build_push]
+    uses: ./.github/workflows/trigger_deploy.yml
+    with:
+      app_name: oceancurrent
+      environment: edge
+      digest: ${{ needs.build_push.outputs.digest }}
+    secrets: inherit
