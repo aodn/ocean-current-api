@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 @Component
@@ -18,12 +19,13 @@ import java.time.format.DateTimeFormatter;
 public class IndexingScheduler {
     private final IndexingService indexingService;
 
-    private static final DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TIMESTAMP_FORMAT =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"));
 
-    @Scheduled(cron = "${elasticsearch.indexing.cron.expression:0 0 2 * * ?}")
+    @Scheduled(cron = "${elasticsearch.indexing.cron.expression:0 0 2 * * ?}", zone = "Australia/Hobart")
     public void scheduledIndexing() {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        log.info("Starting scheduled daily indexing at {}", timestamp);
+        log.info("Starting scheduled daily indexing at {} UTC (2 AM Australia/Hobart time)", timestamp);
 
         try {
             Instant startTime = Instant.now();
