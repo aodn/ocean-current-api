@@ -1,9 +1,7 @@
-name: Build and Deploy
+name: CD
 run-name: Deploy to Edge
 
 on:
-  push:
-    branches: ['6505-exclude-docker-build-from-ci-workflow']
   workflow_run:
     workflows: [CI]
     types: [completed]
