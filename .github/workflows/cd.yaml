@@ -1,4 +1,4 @@
-name: Trigger Deploy
+name: Build and Deploy
 run-name: Deploy to Edge
 
 on:
@@ -59,7 +59,7 @@ jobs:
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
-          name: yarn_build
+          name: gradle_build
           path: ./build
 
       - name: Configure AWS Credentials for image push
