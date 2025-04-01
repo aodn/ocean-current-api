@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gradle_build
-          path: ./build, Dockerfile
+          path: ./build, ./Dockerfile
           retention-days: 1
 
   build_docker:
@@ -60,7 +60,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gradle_build
-          path: ./build, Dockerfile
+          path: .
 
       - name: Configure AWS Credentials for image push
         uses: aws-actions/configure-aws-credentials@v4
