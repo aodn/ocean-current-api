@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gradle_build
-          path: ./build, ./Dockerfile
+          path: build
           retention-days: 1
 
   build_docker:
@@ -56,11 +56,17 @@ jobs:
       digest: ${{ steps.build_push_docker.outputs.digest }}
 
     steps:
+      - name: Checkout only Dockerfile
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: Dockerfile
+          sparse-checkout-cone-mode: false
+
       - name: Download build artifact
         uses: actions/download-artifact@v4
         with:
           name: gradle_build
-          path: .
+          path: build
 
       - name: Configure AWS Credentials for image push
         uses: aws-actions/configure-aws-credentials@v4
