@@ -1,4 +1,4 @@
-name: CD
+name: CD-Edge
 run-name: Deploy to Edge
 
 on:
@@ -83,8 +83,9 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ vars.OCEANCURRENT_IMAGE_URI }}
-
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest
 
   deploy_to_edge:
     name: Deploy to Edge
