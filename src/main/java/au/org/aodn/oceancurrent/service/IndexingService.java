@@ -2,6 +2,7 @@ package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
+import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
 import au.org.aodn.oceancurrent.model.FileMetadata;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
@@ -13,6 +14,7 @@ import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -74,6 +76,8 @@ public class IndexingService {
     public void indexRemoteJsonFiles(boolean confirm) throws IOException {
         indexRemoteJsonFiles(confirm, null);
     }
+
+    @CacheEvict(value = CacheNames.IMAGE_LIST, allEntries = true)
     public void indexRemoteJsonFiles(boolean confirm, IndexingCallback callback) throws IOException {
         if (!confirm) {
             throw new IllegalArgumentException("Please confirm that you want to index all remote JSON files");
