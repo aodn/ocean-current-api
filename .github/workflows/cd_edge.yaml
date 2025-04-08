@@ -1,4 +1,4 @@
-name: CD
+name: CD-Edge
 run-name: Deploy to Edge
 
 on:
@@ -78,13 +78,14 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
-        id  : build_push_docker
+        id: build_push_docker
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ vars.OCEANCURRENT_IMAGE_URI }}
-
+          tags: |
+            ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ vars.ECR_REGISTRY }}/${{ vars.ECR_REPOSITORY }}:latest
 
   deploy_to_edge:
     name: Deploy to Edge
