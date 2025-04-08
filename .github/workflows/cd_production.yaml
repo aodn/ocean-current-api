@@ -110,14 +110,13 @@ jobs:
         env:
           digest: ${{ needs.build_docker.outputs.digest }}
 
-      - name: Generate App Token
+      - name: Generate App Token for Current Repository
         uses: actions/create-github-app-token@v1
-        id: app-token
+        id: app-token-current-repo
         with:
           app-id: ${{ vars.DEPLOY_APP_ID }}
           private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
-          repositories: "appdeploy"
       
       - name: Upload Docker Metadata to Release
         run: |
@@ -125,12 +124,21 @@ jobs:
           echo "$json" > metadata.json
           gh release upload ${{ github.ref_name }} metadata.json
         env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_TOKEN: ${{ steps.app-token-current-repo.outputs.token }}
+
+      - name: Generate App Token for Appdeploy Repository
+        uses: actions/create-github-app-token@v1
+        id: app-token-appdeploy
+        with:
+          app-id: ${{ vars.DEPLOY_APP_ID }}
+          private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: "appdeploy"
 
       - name: Trigger Deploy Workflow
         uses: actions/github-script@v7
         with:
-          github-token: ${{ steps.app-token.outputs.token }}
+          github-token: ${{ steps.app-token-appdeploy.outputs.token }}
           retries: 3
           retry-exempt-status-codes: 204
           script: |
