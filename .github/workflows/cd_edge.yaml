@@ -78,7 +78,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build and push Docker image
-        id  : build_push_docker
+        id: build_push_docker
         uses: docker/build-push-action@v6
         with:
           context: .
