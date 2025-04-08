@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.AppConstants;
+import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.util.converter.ImageMetadataConverter;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -209,6 +211,7 @@ public class SearchService {
         return ImageMetadataConverter.toMetadataGroup(sortedDocuments, productId, region);
     }
 
+    @Cacheable(value = CacheNames.IMAGE_LIST, key = "{#productId, #region, #depth}")
     public List<ImageMetadataGroup> findAllImageList(String productId, String region, String depth) {
         try {
             // Validate parameters

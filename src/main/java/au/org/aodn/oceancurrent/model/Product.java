@@ -24,6 +24,7 @@ public class Product {
     @ToString.Exclude
     private Product parent;
 
+    @Builder.Default
     private List<Product> children = new ArrayList<>();
 
     public boolean isLeaf() {
