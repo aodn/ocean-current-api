@@ -14,6 +14,8 @@ import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,7 @@ public class IndexingService {
     private final ElasticsearchClient esClient;
     private final RemoteJsonService remoteJsonService;
     private final ElasticsearchProperties esProperties;
+    private final CacheManager cacheManager;
 
     public void createIndexIfNotExists() throws IOException {
         boolean exists = isIndexExists();
@@ -124,6 +127,15 @@ public class IndexingService {
                     callback.onComplete("Indexing completed successfully");
                 }
             });
+
+            log.info("Clearing cache '{}' after indexing", CacheNames.IMAGE_LIST);
+
+            Cache imageListCache = cacheManager.getCache(CacheNames.IMAGE_LIST);
+            if (imageListCache != null) {
+                imageListCache.clear();
+            } else {
+                log.warn("Cache {} not found", CacheNames.IMAGE_LIST);
+            }
 
         } catch (Exception e) {
             log.error("Failed to complete indexing", e);
