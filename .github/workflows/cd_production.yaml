@@ -151,7 +151,7 @@ jobs:
               workflow_id: 'deploy.yml',
               ref: 'main',
               inputs: {
-                app_name: 'oceancurrent',
+                app_name: 'oceancurrent/ecs',
                 environment: 'production'
               }
             })
