@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.controller;
 
+import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
 import au.org.aodn.oceancurrent.exception.InvalidProductException;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.service.ProductService;
@@ -32,7 +33,7 @@ public class ImageMetadataController {
     @Operation(description = """
             Search image files metadata by `product id`, `region`, `date` and `size`. \n
             e.g. `/metadata/search?product=sixDaySst-sst&region=Au&date=20221001&size=100`
-            
+
             Date is the center date to search around, result will be the past and future `size` "items".
             For example, if date format is day, and date is 20230701 and size is 100, the result will be from 20230323
              to 20231009 which is 100 items before and after 20230701.
@@ -49,6 +50,22 @@ public class ImageMetadataController {
                 productId, region, date, size);
         ImageMetadataGroup results = searchService.getImageMetadata(
                 productId, region, date, size);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/image-list/current-meters/{plotName}")
+    @Operation(description = """
+            Get current meters image files list by `plot name` \n
+            e.g. `/metadata/image-list/current-meters/BMP120` \n
+            It only returns the latest plot data if there are multiple versions of the same plot name. \n
+            """)
+    public ResponseEntity<CurrentMetersPlotResponse> getCurrentMetersImageFilesList(
+            @Parameter(description = "Plot name", example = "BMP120")
+            @PathVariable(required = false) String plotName
+    ) {
+        log.info("Received request to search current meters image files for plot: {},", plotName);
+
+        CurrentMetersPlotResponse results = searchService.findLatestCurrentMetersPlotByPlotName(plotName);
         return ResponseEntity.ok(results);
     }
 
