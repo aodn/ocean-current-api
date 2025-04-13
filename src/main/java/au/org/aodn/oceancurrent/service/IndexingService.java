@@ -56,6 +56,7 @@ public class IndexingService {
                                     .properties("productId", p -> p.keyword(k -> k))
                                     .properties("region", p -> p.keyword(k -> k))
                                     .properties("fileName", p -> p.keyword(k -> k))
+                                    .properties("depth", p -> p.keyword(k -> k))
                             )
             );
             esClient.indices().create(request);
