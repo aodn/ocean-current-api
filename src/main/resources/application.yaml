@@ -29,7 +29,6 @@ elasticsearch:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
 
-
 remote:
   json:
     base-url: ${REMOTE_JSON_BASE_URL}
