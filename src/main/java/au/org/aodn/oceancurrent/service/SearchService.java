@@ -256,6 +256,7 @@ public class SearchService {
         }
     }
 
+    @Cacheable(value = CacheNames.CURRENT_METERS_PLOT_LIST, key = "{#plotName}")
     public CurrentMetersPlotResponse findLatestCurrentMetersPlotByPlotName(String plotName) {
         try {
             BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
