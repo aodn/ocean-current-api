@@ -510,32 +510,5 @@ public class ImageMetadataConverterTest {
             assertEquals(1, depthNull.getFiles().size());
             assertEquals("image5.png", depthNull.getFiles().get(0));
         }
-
-        @Test
-        @DisplayName("Should sort filenames alphabetically")
-        public void testWithUnsortedFilenames() {
-            // Arrange - deliberately using filenames that would be sorted differently
-            ImageMetadataEntry entry1 = createEntry("/path1", "currentMetersPlot-48", "BMP120", "xyz", "cimage.png");
-            ImageMetadataEntry entry2 = createEntry("/path1", "currentMetersPlot-48", "BMP120", "xyz", "aimage.png");
-            ImageMetadataEntry entry3 = createEntry("/path1", "currentMetersPlot-48", "BMP120", "xyz", "bimage.png");
-            List<ImageMetadataEntry> entries = Arrays.asList(entry1, entry2, entry3);
-
-            // Act
-            CurrentMetersPlotResponse result = ImageMetadataConverter.createCurrentMetersPlotResponse(entries);
-
-            // Assert
-            assertNotNull(result);
-
-            List<CurrentMetersPlotResponse.DepthData> depthDataList = result.getDepthData();
-            assertEquals(1, depthDataList.size());
-
-            CurrentMetersPlotResponse.DepthData depthData = depthDataList.get(0);
-            assertEquals(3, depthData.getFiles().size());
-
-            // Check files are sorted alphabetically, not in the order they were added
-            assertEquals("aimage.png", depthData.getFiles().get(0));
-            assertEquals("bimage.png", depthData.getFiles().get(1));
-            assertEquals("cimage.png", depthData.getFiles().get(2));
-        }
     }
 }

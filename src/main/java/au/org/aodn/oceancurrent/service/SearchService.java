@@ -274,14 +274,14 @@ public class SearchService {
 
             if (allEntries.isEmpty()) {
                 log.info("No current meters plot data found with plot name: {}", plotName);
-                throw new ResourceNotFoundException("Current meters image metadata", "plot name = " + plotName);
+                throw new ResourceNotFoundException("Current meters image", "plot name = " + plotName);
             }
 
             Integer highestVersion = ProductIdUtils.findHighestVersionNumber(allEntries, PRODUCT_TYPE_CURRENT_METERS_PLOT);
 
             if (highestVersion == null) {
                 log.info("No valid current meters plot versions found with plot name: {}", plotName);
-                throw new ResourceNotFoundException("Valid current meters plot version", "plot name = " + plotName);
+                throw new ResourceNotFoundException("Current meters image", "plot name = " + plotName);
             }
 
             String highestVersionProductId = PRODUCT_TYPE_CURRENT_METERS_PLOT + "-" + highestVersion;

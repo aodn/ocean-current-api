@@ -117,10 +117,9 @@ public class ImageMetadataConverter {
                 depthData.setDepth(depthKey.equals("null") ? null : depthKey);
                 depthData.setPath(depthEntries.get(0).getPath());
 
-                // Extract just the filenames and sort them
+                // Extract just the filenames
                 List<String> fileNames = depthEntries.stream()
                         .map(ImageMetadataEntry::getFileName)
-                        .sorted()
                         .collect(Collectors.toList());
 
                 depthData.setFiles(fileNames);
