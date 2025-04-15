@@ -16,6 +16,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
@@ -26,6 +27,7 @@ import java.io.IOException;
  */
 @Configuration
 @Slf4j
+@Profile("!test")
 public class ElasticsearchConfig {
     private final ApplicationContext applicationContext;
     private final String host;

@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Profile;
 import java.util.List;
 
 @Configuration
-@Profile("!prod")
+@Profile("!prod && !test")
 public class OpenApiConfig {
 
     @Value("${springdoc.swagger-ui.server.domain:http://localhost:8080}")
