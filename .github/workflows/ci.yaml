@@ -3,13 +3,13 @@ run-name: CI
 
 on:
   push:
-    branches: ['main']
+    branches: ["main"]
   pull_request:
-    branches: ['main']
+    branches: ["main"]
 
 permissions:
   id-token: write
-  contents: read    #allow code checkout
+  contents: read #allow code checkout
 
 # Cancel currently running workflow from the same PR or branch
 concurrency:
@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build
+    name: Build and Test
     runs-on: ubuntu-latest
 
     steps:
@@ -28,7 +28,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: "temurin"
           java-version: 17
 
       - name: Setup Gradle
@@ -39,5 +39,8 @@ jobs:
       - name: Run Gradle Wrapper
         run: gradle wrapper
 
-      - name: Build with Gradle
-        run: ./gradlew clean build -x test
+      - name: Verify Docker is running
+        run: docker info
+
+      - name: Build and Test with Gradle
+        run: ./gradlew clean build

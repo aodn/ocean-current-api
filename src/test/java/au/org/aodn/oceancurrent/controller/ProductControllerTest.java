@@ -2,8 +2,9 @@ package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.model.Product;
 import au.org.aodn.oceancurrent.service.ProductService;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(ProductController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ProductControllerTest {
 
     @Autowired
@@ -38,7 +40,7 @@ public class ProductControllerTest {
     private Map<String, Product> mockLeafProducts;
     private Map<String, Product> mockAllProducts;
 
-    @BeforeEach
+    @BeforeAll
     public void setup() {
         // Setup test data
         mockProductHierarchy = new ArrayList<>();

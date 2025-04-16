@@ -40,11 +40,22 @@ dependencies {
 
 	testImplementation 'org.junit.jupiter:junit-jupiter-api'
 	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	testImplementation 'org.mockito:mockito-core'
 	testImplementation 'org.mockito:mockito-junit-jupiter'
+
+	testImplementation 'org.testcontainers:testcontainers'
+	testImplementation 'org.testcontainers:junit-jupiter'
+	testImplementation 'org.testcontainers:elasticsearch'
+
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
+	testLogging {
+		events = ["PASSED", "FAILED", "SKIPPED"]
+		showStandardStreams = true
+		exceptionFormat = "full"
+	}
 }

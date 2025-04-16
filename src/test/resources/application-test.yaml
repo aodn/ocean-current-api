@@ -1,0 +1,32 @@
+logging:
+  level:
+    root: info
+    au.org.aodn.oceancurrent: debug
+
+management:
+  endpoint:
+    health:
+      enabled: false
+  endpoints:
+    enabled-by-default: false
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+
+elasticsearch:
+  max-result-window: 20000
+  indexing:
+    cron:
+      expression: "0 0 0 * * ?" # Disabled for tests
+  docker:
+    elastic-version: 8.17.4 # Use the same version as in Elastic Cloud
+
+remote:
+  json:
+    base-url: "https://localhost:8080"
+
+
