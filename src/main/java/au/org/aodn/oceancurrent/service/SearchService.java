@@ -2,8 +2,11 @@ package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.constant.CacheNames;
+import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
+import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
+import au.org.aodn.oceancurrent.util.ProductIdUtils;
 import au.org.aodn.oceancurrent.util.converter.ImageMetadataConverter;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch._types.SortOrder;
@@ -45,6 +48,8 @@ public class SearchService {
     private static final String AGG_TOP_LESS = "top_less";
     private static final String AGG_GREATER_THAN_TARGET = "greater_than_target";
     private static final String AGG_TOP_GREATER = "top_greater";
+
+    private static final String PRODUCT_TYPE_CURRENT_METERS_PLOT = "currentMetersPlot";
 
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
@@ -248,6 +253,54 @@ public class SearchService {
         } catch (Exception e) {
             log.error("Error fetching image metadata", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    @Cacheable(value = CacheNames.CURRENT_METERS_PLOT_LIST, key = "{#plotName}")
+    public CurrentMetersPlotResponse findLatestCurrentMetersPlotByPlotName(String plotName) {
+        try {
+            BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
+                    .must(t -> t.prefix(f -> f.field(FIELD_PRODUCT_ID).value(PRODUCT_TYPE_CURRENT_METERS_PLOT)))
+                    .must(t -> t.term(f -> f.field(FIELD_REGION).value(plotName)));
+
+            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(20000)
+                            .query(q -> q.bool(queryBuilder.build())),
+                    ImageMetadataEntry.class
+            );
+
+            List<ImageMetadataEntry> allEntries = extractHits(response);
+
+            if (allEntries.isEmpty()) {
+                log.info("No current meters plot data found with plot name: {}", plotName);
+                throw new ResourceNotFoundException("Current meters image", "plot name = " + plotName);
+            }
+
+            Integer highestVersion = ProductIdUtils.findHighestVersionNumber(allEntries, PRODUCT_TYPE_CURRENT_METERS_PLOT);
+
+            if (highestVersion == null) {
+                log.info("No valid current meters plot versions found with plot name: {}", plotName);
+                throw new ResourceNotFoundException("Current meters image", "plot name = " + plotName);
+            }
+
+            String highestVersionProductId = PRODUCT_TYPE_CURRENT_METERS_PLOT + "-" + highestVersion;
+            List<ImageMetadataEntry> highestVersionEntries = allEntries.stream()
+                    .filter(entry -> highestVersionProductId.equals(entry.getProductId()))
+                    .collect(Collectors.toList());
+
+            log.info("Found {} images for the product '{}' with plot '{}'",
+                    highestVersionEntries.size(),
+                    highestVersionProductId,
+                    plotName);
+
+            return ImageMetadataConverter.createCurrentMetersPlotResponse(highestVersionEntries);
+
+        } catch (ResourceNotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("Error fetching current meters plot data", e);
+            throw new RuntimeException("Failed to retrieve current meters plot data", e);
         }
     }
 
