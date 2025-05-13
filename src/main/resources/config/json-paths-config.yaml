@@ -1,4 +1,7 @@
-version: "0.3"
+# This file is to configure the JSON paths from the AODN Data Services for indexing in Elasticsearch.
+# https://github.com/aodn/data-services/blob/master/ARGO/oceancurrent/README.md#supporting-products
+
+version: "0.4"
 products:
   - product: "SST"
     description: "Sea Surface Temperature daily products"
@@ -21,8 +24,12 @@ products:
   - product: "Current Meters"
     description: "Current Meters products including plots and time series"
     paths:
-      - /timeseries/ANMN_P48/ANMN_P48.json
-      - /timeseries/ANMN_P49/ANMN_P49.json
+      - /timeseries/currentMetersCalendar-48.json
+      - /timeseries/currentMetersCalendar-49.json
+      - /timeseries/currentMetersRegion-48.json
+      - /timeseries/currentMetersRegion-49.json
+      - /timeseries/currentMetersPlot-48.json
+      - /timeseries/currentMetersPlot-49.json
 
   - product: "Ocean Colour"
     description: "Ocean Colour products including chlorophyll-a concentration"
@@ -30,6 +37,7 @@ products:
       - /STATE_daily/CHL/CHL.json
       - /STATE_daily/CHL_AGE/CHL_AGE.json
       - /oceanColour-chlA.json
+      - /oceanColour-chlA-year.json
 
   - product: "Adjusted Sea Level Anomaly"
     description: "Adjusted Sea Level Anomaly products"
@@ -41,3 +49,4 @@ products:
     description: "Adjusted Sea Level Anomaly and Sea Surface Temperature products"
     paths:
       - /adjustedSeaLevelAnomaly-sst.json
+      - /adjustedSeaLevelAnomaly-sst-year.json

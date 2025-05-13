@@ -9,6 +9,7 @@ import lombok.experimental.UtilityClass;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -40,43 +41,40 @@ public class ImageMetadataConverter {
         if (entries.isEmpty()) {
             return Collections.emptyList();
         }
+        // Pre-size the HashMap to reduce rehashing
+        Map<String, ImageMetadataGroup> groupMap = new HashMap<>(Math.min(entries.size() / 4, 1000));
 
-        // Group entries by depth value (preserving null)
-        Map<String, List<ImageMetadataEntry>> entriesByDepth =
-                entries.stream().collect(Collectors.groupingBy(entry -> {
-                    String depth = entry.getDepth();
-                    // Use the string "null" as the map key for null values
-                    return depth == null ? "null" : depth;
-                }));
+        for (ImageMetadataEntry entry : entries) {
+            String depth = entry.getDepth();
+            String path = entry.getPath();
+            String key = (depth == null ? "" : depth) + "||" + (path == null ? "" : path);
 
-        List<ImageMetadataGroup> groups = new ArrayList<>();
+            ImageMetadataGroup group = groupMap.get(key);
+            if (group == null) {
+                group = new ImageMetadataGroup();
+                group.setPath(path);
+                group.setProductId(entry.getProductId());
+                group.setRegion(entry.getRegion());
+                group.setDepth(depth);
+                group.setFiles(new ArrayList<>());
+                groupMap.put(key, group);
+            }
 
-        for (Map.Entry<String, List<ImageMetadataEntry>> depthGroup : entriesByDepth.entrySet()) {
-            String depthKey = depthGroup.getKey();
-            List<ImageMetadataEntry> depthEntries = depthGroup.getValue();
+            FileMetadata fileMetadata = ImageMetadataConverter.toFileMetadata(entry);
+            group.getFiles().add(fileMetadata);
+        }
 
-            if (!depthEntries.isEmpty()) {
-                ImageMetadataGroup group = new ImageMetadataGroup();
-                ImageMetadataEntry firstEntry = depthEntries.get(0);
+        List<ImageMetadataGroup> result = new ArrayList<>(groupMap.values());
 
-                group.setPath(firstEntry.getPath());
-                group.setProductId(firstEntry.getProductId());
-                group.setRegion(firstEntry.getRegion());
-
-                // Convert "null" string back to actual null
-                group.setDepth(depthKey.equals("null") ? null : depthKey);
-
-                List<FileMetadata> files = depthEntries.stream()
-                        .map(ImageMetadataConverter::toFileMetadata)
-                        .sorted(Comparator.comparing(FileMetadata::getName))
-                        .collect(Collectors.toList());
-
-                group.setFiles(files);
-                groups.add(group);
+        // Sort files in each group by name
+        for (ImageMetadataGroup group : result) {
+            List<FileMetadata> files = group.getFiles();
+            if (files.size() > 1) {  // Only sort if there's more than one file
+                files.sort(Comparator.comparing(FileMetadata::getName));
             }
         }
 
-        return groups;
+        return result;
     }
 
     /**

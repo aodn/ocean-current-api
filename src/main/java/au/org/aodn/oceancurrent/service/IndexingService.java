@@ -206,7 +206,13 @@ public class IndexingService {
     private ImageMetadataEntry createMetadataEntryFromJson(RemoteJsonDataGroup group, FileMetadata file) {
         ImageMetadataEntry doc = new ImageMetadataEntry();
 
-        doc.setProductId(group.getProductId());
+        if ("oceanColour-chlA-year".equals(group.getProductId())) {
+            doc.setProductId("oceanColour-chlA");
+        } else if ("adjustedSeaLevelAnomaly-sst-year".equals(group.getProductId())) {
+            doc.setProductId("adjustedSeaLevelAnomaly-sst");
+        } else {
+            doc.setProductId(group.getProductId());
+        }
         doc.setRegion(group.getRegion());
         doc.setPath(group.getPath());
         doc.setDepth(group.getDepth());
