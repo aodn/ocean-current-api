@@ -230,7 +230,7 @@ public class SearchService {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_REGION).value(region)));
             }
 
-            // Add depth filter if provided
+            // Add a depth filter if provided
             if (isValidDepth) {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_DEPTH).value(depth)));
             }

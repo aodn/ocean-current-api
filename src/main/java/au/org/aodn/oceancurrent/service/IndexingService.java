@@ -26,6 +26,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPPINGS;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -206,7 +208,9 @@ public class IndexingService {
     private ImageMetadataEntry createMetadataEntryFromJson(RemoteJsonDataGroup group, FileMetadata file) {
         ImageMetadataEntry doc = new ImageMetadataEntry();
 
-        doc.setProductId(group.getProductId());
+        String productId = PRODUCT_ID_MAPPINGS.getOrDefault(group.getProductId(), group.getProductId());
+
+        doc.setProductId(productId);
         doc.setRegion(group.getRegion());
         doc.setPath(group.getPath());
         doc.setDepth(group.getDepth());
