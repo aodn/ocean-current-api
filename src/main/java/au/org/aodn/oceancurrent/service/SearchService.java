@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
+import au.org.aodn.oceancurrent.dto.RegionLatestFileResponse;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
@@ -43,11 +44,14 @@ public class SearchService {
     private static final String FIELD_REGION = "region";
     private static final String FIELD_FILE_NAME = "fileName";
     private static final String FIELD_DEPTH = "depth";
+    private static final String FIELD_PATH = "path";
 
     private static final String AGG_LESS_THAN_TARGET = "less_than_target";
     private static final String AGG_TOP_LESS = "top_less";
     private static final String AGG_GREATER_THAN_TARGET = "greater_than_target";
     private static final String AGG_TOP_GREATER = "top_greater";
+    private static final String AGG_LATEST_FILES = "latest_files";
+    private static final String AGG_TOP_HITS = "top_hits";
 
     private static final String PRODUCT_TYPE_CURRENT_METERS_PLOT = "currentMetersPlot";
 
@@ -253,6 +257,83 @@ public class SearchService {
         } catch (Exception e) {
             log.error("Error fetching image metadata", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    @Cacheable(value = CacheNames.LATEST_FILES, key = "#productId")
+    public List<RegionLatestFileResponse> findLatestFileNameByRegion(String productId) {
+        try {
+            SearchResponse<Void> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(0)
+                            .query(q -> q
+                                .bool(b -> b
+                                        .must(m -> m
+                                                .term(t -> t
+                                                        .field(FIELD_PRODUCT_ID)
+                                                        .value(productId)
+                                                )
+                                        )
+                                        .must(m -> m
+                                                .regexp(r -> r
+                                                        .field(FIELD_FILE_NAME)
+                                                        .value("\\d{8,14}\\.gif")
+                                                )
+                                        )
+                                )
+                        )
+                        .aggregations(AGG_LATEST_FILES, a -> a
+                                .terms(t -> t
+                                        .field(FIELD_REGION)
+                                        .size(1000)
+                                )
+                                .aggregations(AGG_TOP_HITS, a2 -> a2
+                                        .topHits(th -> th
+                                                .size(1)
+                                                .sort(srt -> srt
+                                                        .field(f -> f
+                                                                .field(FIELD_FILE_NAME)
+                                                                .order(SortOrder.Desc)
+                                                        )
+                                                )
+                                        )
+                                )
+                        ),
+                Void.class
+        );
+
+        List<RegionLatestFileResponse> result = new ArrayList<>();
+
+        response.aggregations()
+                .get(AGG_LATEST_FILES)
+                .sterms()
+                .buckets()
+                .array()
+                .forEach(bucket -> {
+                    String region = bucket.key().stringValue();
+                    JsonData source = bucket.aggregations()
+                            .get(AGG_TOP_HITS)
+                            .topHits()
+                            .hits()
+                            .hits()
+                            .get(0)
+                            .source();
+                    if (source == null) {
+                        log.warn("No source found for region: {}", region);
+                        return;
+                    }
+                    String latestFileName = source.toJson().asJsonObject().getString(FIELD_FILE_NAME);
+                    String path = source.toJson().asJsonObject().getString(FIELD_PATH);
+                    String sourceProductId = source.toJson().asJsonObject().getString(FIELD_PRODUCT_ID);
+                    result.add(new RegionLatestFileResponse(sourceProductId, region, latestFileName, path));
+                });
+
+            log.info("Found {} latest files for product: {}", result.size(), productId);
+
+            return result;
+        } catch (Exception e) {
+            log.error("Error fetching latest files", e);
+            throw new RuntimeException("Failed to retrieve latest files", e);
         }
     }
 
