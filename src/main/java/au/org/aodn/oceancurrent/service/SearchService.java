@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
+import au.org.aodn.oceancurrent.dto.RegionLatestFile;
 import au.org.aodn.oceancurrent.dto.RegionLatestFileResponse;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
@@ -261,7 +262,7 @@ public class SearchService {
     }
 
     @Cacheable(value = CacheNames.LATEST_FILES, key = "#productId")
-    public List<RegionLatestFileResponse> findLatestFileNameByRegion(String productId) {
+    public RegionLatestFileResponse findLatestFileNameByRegion(String productId) {
         try {
             SearchResponse<Void> response = esClient.search(s -> s
                             .index(indexName)
@@ -302,7 +303,7 @@ public class SearchService {
                 Void.class
         );
 
-        List<RegionLatestFileResponse> result = new ArrayList<>();
+        List<RegionLatestFile> latestFiles = new ArrayList<>();
 
         response.aggregations()
                 .get(AGG_LATEST_FILES)
@@ -324,13 +325,12 @@ public class SearchService {
                     }
                     String latestFileName = source.toJson().asJsonObject().getString(FIELD_FILE_NAME);
                     String path = source.toJson().asJsonObject().getString(FIELD_PATH);
-                    String sourceProductId = source.toJson().asJsonObject().getString(FIELD_PRODUCT_ID);
-                    result.add(new RegionLatestFileResponse(sourceProductId, region, latestFileName, path));
+                    latestFiles.add(new RegionLatestFile(region, latestFileName, path));
                 });
 
-            log.info("Found {} latest files for product: {}", result.size(), productId);
+            log.info("Found {} latest files for product: {}", latestFiles.size(), productId);
 
-            return result;
+            return new RegionLatestFileResponse(productId, latestFiles);
         } catch (Exception e) {
             log.error("Error fetching latest files", e);
             throw new RuntimeException("Failed to retrieve latest files", e);

@@ -3,12 +3,12 @@ package au.org.aodn.oceancurrent.dto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegionLatestFileResponse {
-    private String productId;
-    private List<RegionLatestFile> latestFiles;
+public class RegionLatestFile {
+    private String region;
+    private String latestFileName;
+    private String path;
 }
