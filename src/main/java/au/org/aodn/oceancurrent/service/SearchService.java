@@ -3,6 +3,8 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
+import au.org.aodn.oceancurrent.dto.RegionLatestDate;
+import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
@@ -43,13 +45,18 @@ public class SearchService {
     private static final String FIELD_REGION = "region";
     private static final String FIELD_FILE_NAME = "fileName";
     private static final String FIELD_DEPTH = "depth";
+    private static final String FIELD_PATH = "path";
 
     private static final String AGG_LESS_THAN_TARGET = "less_than_target";
     private static final String AGG_TOP_LESS = "top_less";
     private static final String AGG_GREATER_THAN_TARGET = "greater_than_target";
     private static final String AGG_TOP_GREATER = "top_greater";
+    private static final String AGG_LATEST_FILES = "latest_files";
+    private static final String AGG_TOP_HITS = "top_hits";
 
     private static final String PRODUCT_TYPE_CURRENT_METERS_PLOT = "currentMetersPlot";
+
+    private static final int REGION_COUNT = 100;
 
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
@@ -256,6 +263,74 @@ public class SearchService {
         }
     }
 
+    @Cacheable(value = CacheNames.LATEST_FILES, key = "#productId")
+    public RegionLatestDateResponse findLatestRegionDatesByProductId(String productId) {
+        try {
+            SearchResponse<Void> response = esClient.search(s -> s
+                            .index(indexName)
+                            .size(0)
+                            .query(q -> q
+                                .bool(b -> b
+                                        .must(m -> m
+                                                .term(t -> t
+                                                        .field(FIELD_PRODUCT_ID)
+                                                        .value(productId)
+                                                )
+                                        )
+                                        .must(m -> m
+                                                .regexp(r -> r
+                                                        .field(FIELD_FILE_NAME)
+                                                        .value("\\d{8,14}\\.gif")
+                                                )
+                                        )
+                                )
+                        )
+                        .aggregations(AGG_LATEST_FILES, a -> a
+                                .terms(t -> t
+                                        .field(FIELD_REGION)
+                                        .size(REGION_COUNT)
+                                )
+                                .aggregations(AGG_TOP_HITS, a2 -> a2
+                                        .topHits(th -> th
+                                                .size(1)
+                                                .sort(srt -> srt
+                                                        .field(f -> f
+                                                                .field(FIELD_FILE_NAME)
+                                                                .order(SortOrder.Desc)
+                                                        )
+                                                )
+                                        )
+                                )
+                        ),
+                Void.class
+        );
+
+        List<RegionLatestDate> latestFiles = new ArrayList<>();
+
+        response.aggregations()
+                .get(AGG_LATEST_FILES)
+                .sterms()
+                .buckets()
+                .array()
+                .forEach(bucket -> {
+                    String region = bucket.key().stringValue();
+                    RegionLatestDate regionLatestDate = extractRegionLatestFileFromBucket(region, bucket.aggregations());
+                    if (regionLatestDate == null) {
+                        log.warn("No latest file found for region: {}", region);
+                        return;
+                    }
+                    latestFiles.add(regionLatestDate);
+                });
+
+            log.info("Found {} latest files for product: {}", latestFiles.size(), productId);
+
+            return new RegionLatestDateResponse(productId, latestFiles);
+        } catch (Exception e) {
+            log.error("Error fetching latest files", e);
+            throw new RuntimeException("Failed to retrieve latest files", e);
+        }
+    }
+
     @Cacheable(value = CacheNames.CURRENT_METERS_PLOT_LIST, key = "{#plotName}")
     public CurrentMetersPlotResponse findLatestCurrentMetersPlotByPlotName(String plotName) {
         try {
@@ -377,6 +452,7 @@ public class SearchService {
             throw new RuntimeException(e);
         }
     }
+
     private List<ImageMetadataEntry> extractHits(SearchResponse<ImageMetadataEntry> response) {
         if (response.hits().hits().isEmpty()) {
             return Collections.emptyList();
@@ -412,5 +488,26 @@ public class SearchService {
 
     private boolean isValidParameter(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private RegionLatestDate extractRegionLatestFileFromBucket(String region, Map<String, Aggregate> aggregations) {
+        List<Hit<JsonData>> hits = aggregations.get(AGG_TOP_HITS)
+                .topHits()
+                .hits()
+                .hits();
+        if (hits.isEmpty() || hits.get(0).source() == null) {
+            return null;
+        }
+        ImageMetadataEntry entry = extractSourceFromAggregation(hits.get(0));
+
+        String latestDate = extractDateFromFileName(entry.getFileName());
+        return new RegionLatestDate(region, latestDate, entry.getPath());
+    }
+
+    private String extractDateFromFileName(String fileName) {
+        if (fileName != null && fileName.endsWith(".gif")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        return fileName;
     }
 }

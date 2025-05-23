@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
+import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
 import au.org.aodn.oceancurrent.exception.InvalidProductException;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.service.ProductService;
@@ -103,6 +104,27 @@ public class ImageMetadataController {
         }
         List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/latest-dates/{productId}")
+    @Operation(description = """
+            Get the latest dates for each region by `product id` \n
+            e.g. `/metadata/latest-dates/sixDaySst-sst` \n
+            Returns an array of objects containing region, latestFileName, and path for each region.
+            """)
+    public ResponseEntity<RegionLatestDateResponse> getLatestRegionDatesByProductId(
+            @Parameter(description = "Combined product id", example = "sixDaySst-sst")
+            @PathVariable String productId
+    ) {
+        log.info("Received request to get latest dates by region for product: {}", productId);
+
+        if (!productService.isValidProductId(productId)) {
+            throw new InvalidProductException("Invalid product ID: " + productId);
+        }
+
+        RegionLatestDateResponse results = searchService.findLatestRegionDatesByProductId(productId);
+        return ResponseEntity.ok(results);
+
     }
 
     @GetMapping("/product/{productId}/region/{region}")
