@@ -3,8 +3,8 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
-import au.org.aodn.oceancurrent.dto.RegionLatestFile;
-import au.org.aodn.oceancurrent.dto.RegionLatestFileResponse;
+import au.org.aodn.oceancurrent.dto.RegionLatestDate;
+import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
@@ -264,7 +264,7 @@ public class SearchService {
     }
 
     @Cacheable(value = CacheNames.LATEST_FILES, key = "#productId")
-    public RegionLatestFileResponse findLatestFileNameByRegion(String productId) {
+    public RegionLatestDateResponse findLatestRegionDatesByProductId(String productId) {
         try {
             SearchResponse<Void> response = esClient.search(s -> s
                             .index(indexName)
@@ -305,7 +305,7 @@ public class SearchService {
                 Void.class
         );
 
-        List<RegionLatestFile> latestFiles = new ArrayList<>();
+        List<RegionLatestDate> latestFiles = new ArrayList<>();
 
         response.aggregations()
                 .get(AGG_LATEST_FILES)
@@ -314,17 +314,17 @@ public class SearchService {
                 .array()
                 .forEach(bucket -> {
                     String region = bucket.key().stringValue();
-                    RegionLatestFile regionLatestFile = extractRegionLatestFileFromBucket(region, bucket.aggregations());
-                    if (regionLatestFile == null) {
+                    RegionLatestDate regionLatestDate = extractRegionLatestFileFromBucket(region, bucket.aggregations());
+                    if (regionLatestDate == null) {
                         log.warn("No latest file found for region: {}", region);
                         return;
                     }
-                    latestFiles.add(regionLatestFile);
+                    latestFiles.add(regionLatestDate);
                 });
 
             log.info("Found {} latest files for product: {}", latestFiles.size(), productId);
 
-            return new RegionLatestFileResponse(productId, latestFiles);
+            return new RegionLatestDateResponse(productId, latestFiles);
         } catch (Exception e) {
             log.error("Error fetching latest files", e);
             throw new RuntimeException("Failed to retrieve latest files", e);
@@ -452,6 +452,7 @@ public class SearchService {
             throw new RuntimeException(e);
         }
     }
+
     private List<ImageMetadataEntry> extractHits(SearchResponse<ImageMetadataEntry> response) {
         if (response.hits().hits().isEmpty()) {
             return Collections.emptyList();
@@ -489,7 +490,7 @@ public class SearchService {
         return value != null && !value.isBlank();
     }
 
-    private RegionLatestFile extractRegionLatestFileFromBucket(String region, Map<String, Aggregate> aggregations) {
+    private RegionLatestDate extractRegionLatestFileFromBucket(String region, Map<String, Aggregate> aggregations) {
         List<Hit<JsonData>> hits = aggregations.get(AGG_TOP_HITS)
                 .topHits()
                 .hits()
@@ -498,6 +499,15 @@ public class SearchService {
             return null;
         }
         ImageMetadataEntry entry = extractSourceFromAggregation(hits.get(0));
-        return new RegionLatestFile(region, entry.getFileName(), entry.getPath());
+
+        String latestDate = extractDateFromFileName(entry.getFileName());
+        return new RegionLatestDate(region, latestDate, entry.getPath());
+    }
+
+    private String extractDateFromFileName(String fileName) {
+        if (fileName != null && fileName.endsWith(".gif")) {
+            return fileName.substring(0, fileName.length() - 4);
+        }
+        return fileName;
     }
 }

@@ -7,8 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegionLatestFile {
+public class RegionLatestDate {
     private String region;
-    private String latestFileName;
+    private String latestDate;
     private String path;
 }

@@ -8,7 +8,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegionLatestFileResponse {
+public class RegionLatestDateResponse {
     private String productId;
-    private List<RegionLatestFile> latestFiles;
+    private List<RegionLatestDate> regionLatestDates;
 }
