@@ -106,13 +106,13 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/latest-file/{productId}")
+    @GetMapping("/latest-files/{productId}")
     @Operation(description = """
             Get the latest file for each region by `product id` \n
             e.g. `/metadata/latest-file/sixDaySst-sst` \n
             Returns an array of objects containing region, latestFileName, and path for each region.
             """)
-    public ResponseEntity<List<RegionLatestFileResponse>> getLatestFilesByRegion(
+    public ResponseEntity<RegionLatestFileResponse> getLatestFilesByRegion(
             @Parameter(description = "Combined product id", example = "sixDaySst-sst")
             @PathVariable String productId
     ) {
@@ -122,7 +122,7 @@ public class ImageMetadataController {
             throw new InvalidProductException("Invalid product ID: " + productId);
         }
 
-        List<RegionLatestFileResponse> results = searchService.findLatestFileNameByRegion(productId);
+        RegionLatestFileResponse results = searchService.findLatestFileNameByRegion(productId);
         return ResponseEntity.ok(results);
 
     }

@@ -56,6 +56,8 @@ public class SearchService {
 
     private static final String PRODUCT_TYPE_CURRENT_METERS_PLOT = "currentMetersPlot";
 
+    private static final int REGION_COUNT = 100;
+
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
 
@@ -286,7 +288,7 @@ public class SearchService {
                         .aggregations(AGG_LATEST_FILES, a -> a
                                 .terms(t -> t
                                         .field(FIELD_REGION)
-                                        .size(1000)
+                                        .size(REGION_COUNT)
                                 )
                                 .aggregations(AGG_TOP_HITS, a2 -> a2
                                         .topHits(th -> th
@@ -312,20 +314,12 @@ public class SearchService {
                 .array()
                 .forEach(bucket -> {
                     String region = bucket.key().stringValue();
-                    JsonData source = bucket.aggregations()
-                            .get(AGG_TOP_HITS)
-                            .topHits()
-                            .hits()
-                            .hits()
-                            .get(0)
-                            .source();
-                    if (source == null) {
-                        log.warn("No source found for region: {}", region);
+                    RegionLatestFile regionLatestFile = extractRegionLatestFileFromBucket(region, bucket.aggregations());
+                    if (regionLatestFile == null) {
+                        log.warn("No latest file found for region: {}", region);
                         return;
                     }
-                    String latestFileName = source.toJson().asJsonObject().getString(FIELD_FILE_NAME);
-                    String path = source.toJson().asJsonObject().getString(FIELD_PATH);
-                    latestFiles.add(new RegionLatestFile(region, latestFileName, path));
+                    latestFiles.add(regionLatestFile);
                 });
 
             log.info("Found {} latest files for product: {}", latestFiles.size(), productId);
@@ -493,5 +487,17 @@ public class SearchService {
 
     private boolean isValidParameter(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private RegionLatestFile extractRegionLatestFileFromBucket(String region, Map<String, Aggregate> aggregations) {
+        List<Hit<JsonData>> hits = aggregations.get(AGG_TOP_HITS)
+                .topHits()
+                .hits()
+                .hits();
+        if (hits.isEmpty() || hits.get(0).source() == null) {
+            return null;
+        }
+        ImageMetadataEntry entry = extractSourceFromAggregation(hits.get(0));
+        return new RegionLatestFile(region, entry.getFileName(), entry.getPath());
     }
 }
