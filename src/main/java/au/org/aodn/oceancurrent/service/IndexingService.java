@@ -12,6 +12,7 @@ import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
@@ -32,14 +33,17 @@ import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPP
 @Slf4j
 @RequiredArgsConstructor
 public class IndexingService {
-    private final String indexName = AppConstants.INDEX_NAME;
+    @Getter
+    private final String indexName = "oceancurrent-images";
     private static final int BATCH_SIZE = 100000;
     private static final int THREAD_POOL_SIZE = 2;
 
+    @Getter
     private final ElasticsearchClient esClient;
     private final RemoteJsonService remoteJsonService;
     private final ElasticsearchProperties esProperties;
     private final CacheManager cacheManager;
+    private final S3Service s3Service;
 
     public void createIndexIfNotExists() throws IOException {
         boolean exists = isIndexExists();
@@ -105,6 +109,9 @@ public class IndexingService {
                 callback.onProgress("Recreated index, starting indexing");
             }
 
+            // Index S3 waves files
+            indexS3WavesFiles(bulkRequestProcessor, callback);
+
             // Fetch and process URLs in parallel
             List<String> urls = remoteJsonService.getFullUrls();
             log.info("Found {} URLs to process", urls.size());
@@ -149,6 +156,32 @@ public class IndexingService {
         } finally {
             executor.shutdown();
         }
+    }
+
+    /**
+     * Index waves files from S3 bucket into Elasticsearch.
+     * This method can be called independently to index only S3 waves files.
+     *
+     * @param bulkRequestProcessor The processor to handle bulk indexing
+     * @param callback Optional callback to report progress
+     * @return The number of files indexed
+     */
+    public int indexS3WavesFiles(BulkRequestProcessor bulkRequestProcessor, IndexingCallback callback) {
+        if (callback != null) {
+            callback.onProgress("Starting to index S3 waves files");
+        }
+
+        List<ImageMetadataEntry> wavesEntries = s3Service.listWavesFiles();
+        for (ImageMetadataEntry entry : wavesEntries) {
+            bulkRequestProcessor.addDocument(entry);
+        }
+
+        if (callback != null) {
+            callback.onProgress("Indexed " + wavesEntries.size() + " waves files from S3");
+        }
+
+        log.info("Indexed {} waves files from S3", wavesEntries.size());
+        return wavesEntries.size();
     }
 
     private void submitUrlProcessingTask(

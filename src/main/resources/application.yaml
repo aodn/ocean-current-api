@@ -32,3 +32,11 @@ elasticsearch:
 remote:
   json:
     base-url: ${REMOTE_JSON_BASE_URL}
+
+aws:
+  region: ${AWS_REGION:ap-southeast-2}
+  access-key: ${AWS_ACCESS_KEY_ID:placeholder}
+  secret-key: ${AWS_SECRET_ACCESS_KEY:placeholder}
+  s3:
+    bucket-name: ${AWS_S3_BUCKET:placeholder}
+    waves-prefix: WAVES/

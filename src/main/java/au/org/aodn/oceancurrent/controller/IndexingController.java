@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.service.IndexingService;
+import au.org.aodn.oceancurrent.util.elasticsearch.BulkRequestProcessor;
 import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @Profile("dev")
@@ -22,6 +24,7 @@ import java.io.IOException;
 @Tag(name = "Indexing", description = "The Indexing API. Only available in development profile.")
 public class IndexingController {
     private final IndexingService indexingService;
+    private static final int BATCH_SIZE = 100000;
 
     @GetMapping
     public ResponseEntity<String> getIndexingStatus() {
@@ -63,7 +66,6 @@ public class IndexingController {
         return emitter;
     }
 
-
     @DeleteMapping
     @Operation(description = "Delete the index")
     public ResponseEntity<String> deleteIndex() {
@@ -76,6 +78,62 @@ public class IndexingController {
             return ResponseEntity.internalServerError()
                     .body("Error during index deletion: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/s3")
+    @Operation(description = "Trigger S3 waves files indexing")
+    public ResponseEntity<String> triggerS3Indexing() {
+        log.info("Received request to trigger S3 waves files indexing");
+
+        // Run indexing asynchronously
+        CompletableFuture.runAsync(() -> {
+            try {
+                BulkRequestProcessor processor = new BulkRequestProcessor(BATCH_SIZE, indexingService.getIndexName(), indexingService.getEsClient());
+                IndexingCallback callback = new IndexingCallback() {
+                    @Override
+                    public void onProgress(String message) {
+                        log.info("S3 Indexing Progress: {}", message);
+                    }
+
+                    @Override
+                    public void onComplete(String message) {
+                        log.info("S3 Indexing Complete: {}", message);
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        log.error("S3 Indexing Error: {}", error);
+                    }
+                };
+
+                int indexedCount = indexingService.indexS3WavesFiles(processor, callback);
+                log.info("Successfully indexed {} waves files from S3", indexedCount);
+            } catch (Exception e) {
+                log.error("Failed to index S3 waves files", e);
+            }
+        });
+
+        return ResponseEntity.accepted().body("S3 waves files indexing started");
+    }
+
+    @PostMapping("/s3/async")
+    @Operation(description = "Index S3 waves files with real-time progress updates via Server-Sent Events")
+    public SseEmitter indexS3WavesAsync() {
+        log.info("Received S3 waves indexing request with async progress updates");
+        final SseEmitter emitter = new SseEmitter(0L); // No timeout
+        final IndexingCallback callback = createCallback(emitter);
+
+        new Thread(() -> {
+            try {
+                BulkRequestProcessor processor = new BulkRequestProcessor(BATCH_SIZE, indexingService.getIndexName(), indexingService.getEsClient());
+                int indexedCount = indexingService.indexS3WavesFiles(processor, callback);
+                log.info("Successfully indexed {} waves files from S3", indexedCount);
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+                log.error("Error during S3 waves indexing", e);
+            }
+        }).start();
+        return emitter;
     }
 
     protected IndexingCallback createCallback(SseEmitter emitter) {
