@@ -158,6 +158,16 @@ public class IndexingService {
         BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, indexName, esClient);
 
         try {
+            // Validate S3 access before starting
+            if (!s3Service.isBucketAccessible()) {
+                String errorMsg = "S3 bucket is not accessible. Please check bucket configuration and permissions.";
+                log.error(errorMsg);
+                if (callback != null) {
+                    callback.onError(errorMsg);
+                }
+                throw new RuntimeException(errorMsg);
+            }
+
             createIndexIfNotExists();
             if (callback != null) {
                 callback.onProgress("Index ready, starting S3 indexing");
@@ -198,7 +208,7 @@ public class IndexingService {
         } catch (Exception e) {
             log.error("Failed to complete S3 indexing", e);
             if (callback != null) {
-                callback.onError("Failed to complete S3 indexing, please check logs for details");
+                callback.onError("Failed to complete S3 indexing: " + e.getMessage());
             }
             throw new RuntimeException("S3 indexing failed", e);
         }

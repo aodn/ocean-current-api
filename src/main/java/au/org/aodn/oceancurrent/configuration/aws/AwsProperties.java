@@ -17,5 +17,6 @@ public class AwsProperties {
     public static class S3 {
         private String bucketName;
         private String wavesPrefix = "WAVES/";
+        private int maxKeysPerRequest = 1000;
     }
 }

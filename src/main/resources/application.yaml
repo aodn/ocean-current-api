@@ -43,5 +43,4 @@ aws:
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME}
     waves-prefix: WAVES/
-
-
+    max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
