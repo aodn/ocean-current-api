@@ -297,6 +297,7 @@ public class IndexingService {
         Cache imageListCache = cacheManager.getCache(CacheNames.IMAGE_LIST);
         if (imageListCache != null) {
             imageListCache.clear();
+            log.info("Cache '{}' cleared successfully", CacheNames.IMAGE_LIST);
         } else {
             log.warn("Cache {} not found", CacheNames.IMAGE_LIST);
         }

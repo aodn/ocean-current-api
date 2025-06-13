@@ -10,5 +10,5 @@ import org.springframework.context.annotation.Configuration;
 public class ElasticsearchProperties {
     private String host;
     private String apiKey;
-    private int maxResultWindow = 20000;
+    private int maxResultWindow = 50000;
 }

@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.aws.AwsProperties;
 import au.org.aodn.oceancurrent.exception.S3ServiceException;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
+import au.org.aodn.oceancurrent.util.WaveFileValidator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,7 +14,6 @@ import software.amazon.awssdk.services.s3.model.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -25,7 +25,6 @@ public class S3Service {
 
     private static final String WAVES_REGION = "Au";
     private static final String WAVES_PRODUCT_ID = "surfaceWaves";
-    private static final Pattern WAVES_FILE_PATTERN = Pattern.compile("y\\d{4}/m\\d{2}/\\d{10}\\.gif");
 
     /**
      * Lists and converts S3 surface waves files with the given prefix
@@ -61,7 +60,8 @@ public class S3Service {
                 for (S3Object s3Object : response.contents()) {
                     String key = s3Object.key();
 
-                    if (WAVES_FILE_PATTERN.matcher(key).find()) {
+                    // Use the utility class for validation
+                    if (WaveFileValidator.isValidWaveFile(key)) {
                         ImageMetadataEntry entry = createMetadataEntry(key);
                         entries.add(entry);
                     }
