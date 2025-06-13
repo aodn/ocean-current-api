@@ -55,8 +55,7 @@ public class IndexingController {
         new Thread(() -> {
             try {
                 indexingService.indexRemoteJsonFiles(confirm, callback);
-            } catch (Exception e) {
-                log.error("Error during indexing", e);
+            } catch (IOException e) {
                 emitter.completeWithError(e);
                 log.error("Error during indexing", e);
             }

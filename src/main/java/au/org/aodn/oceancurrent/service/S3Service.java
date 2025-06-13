@@ -60,7 +60,6 @@ public class S3Service {
                 for (S3Object s3Object : response.contents()) {
                     String key = s3Object.key();
 
-                    // Use the utility class for validation
                     if (WaveFileValidator.isValidWaveFile(key)) {
                         ImageMetadataEntry entry = createMetadataEntry(key);
                         entries.add(entry);
@@ -92,19 +91,10 @@ public class S3Service {
         return entries;
     }
 
-    /**
-     * Lists all surface waves files using the configured waves prefix
-     *
-     * @return List of ImageMetadataEntry objects
-     * @throws S3ServiceException if S3 operations fail
-     */
     public List<ImageMetadataEntry> listAllSurfaceWaves() {
         return listAndConvertSurfaceWavesFiles(awsProperties.getS3().getWavesPrefix());
     }
 
-    /**
-     * Validates input parameters
-     */
     private void validateInputs(String prefix) {
         String bucketName = awsProperties.getS3().getBucketName();
 
@@ -117,27 +107,18 @@ public class S3Service {
         }
     }
 
-    /**
-     * Creates an ImageMetadataEntry from S3 object key
-     */
     private ImageMetadataEntry createMetadataEntry(String key) {
         ImageMetadataEntry entry = new ImageMetadataEntry();
         entry.setProductId(WAVES_PRODUCT_ID);
         entry.setPath(awsProperties.getS3().getWavesPrefix());
         entry.setRegion(WAVES_REGION);
 
-        // Extract filename from the key
         String fileName = key.substring(key.lastIndexOf('/') + 1);
         entry.setFileName(fileName);
 
         return entry;
     }
 
-    /**
-     * Checks if the S3 bucket exists and is accessible
-     *
-     * @return true if bucket exists and is accessible
-     */
     public boolean isBucketAccessible() {
         try {
             String bucketName = awsProperties.getS3().getBucketName();
