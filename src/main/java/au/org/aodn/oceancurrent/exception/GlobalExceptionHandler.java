@@ -74,6 +74,17 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(S3ServiceException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleS3ServiceException(S3ServiceException ex) {
+        log.error("S3 Service Error: {}", ex.getMessage(), ex);
+
+        return new ErrorResponse(
+                "S3 Service Unavailable",
+                List.of("S3 service is currently unavailable. Please try again later.")
+        );
+    }
+
     @ExceptionHandler(ElasticsearchConnectionException.class)
     public ErrorResponse handleElasticsearchConnectionException(ElasticsearchConnectionException ex, HttpServletRequest request) {
         String message = String.format(

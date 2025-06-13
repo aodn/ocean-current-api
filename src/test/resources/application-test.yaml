@@ -21,7 +21,11 @@ elasticsearch:
   max-result-window: 20000
   indexing:
     cron:
-      expression: "0 0 0 * * ?" # Disabled for tests
+      expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
+    s3:
+      cron:
+        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
+
   docker:
     elastic-version: 8.17.4 # Use the same version as in Elastic Cloud
 
@@ -29,4 +33,12 @@ remote:
   json:
     base-url: "https://localhost:8080"
 
+aws:
+  region: ${AWS_S3_REGION:ap-southeast-2}
+  access-key-id: ${AWS_ACCESS_KEY_ID}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+  s3:
+    bucket-name: ${AWS_S3_BUCKET_NAME}
+    waves-prefix: WAVES/
+    max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 

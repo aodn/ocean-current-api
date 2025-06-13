@@ -38,6 +38,7 @@ public class IndexingService {
 
     private final ElasticsearchClient esClient;
     private final RemoteJsonService remoteJsonService;
+    private final S3Service s3Service;
     private final ElasticsearchProperties esProperties;
     private final CacheManager cacheManager;
 
@@ -131,14 +132,7 @@ public class IndexingService {
                 }
             });
 
-            log.info("Clearing cache '{}' after indexing", CacheNames.IMAGE_LIST);
-
-            Cache imageListCache = cacheManager.getCache(CacheNames.IMAGE_LIST);
-            if (imageListCache != null) {
-                imageListCache.clear();
-            } else {
-                log.warn("Cache {} not found", CacheNames.IMAGE_LIST);
-            }
+            clearImageListCache();
 
         } catch (Exception e) {
             log.error("Failed to complete indexing", e);
@@ -149,6 +143,79 @@ public class IndexingService {
         } finally {
             executor.shutdown();
         }
+    }
+
+    public void indexS3SurfaceWavesFiles(boolean confirm, IndexingCallback callback) throws IOException {
+        if (!confirm) {
+            if (callback != null) {
+                callback.onError("Please confirm that you want to index all S3 files");
+            }
+            throw new IllegalArgumentException("Confirmation required to index S3 files");
+        }
+
+        log.info("Starting S3 indexing process");
+
+        BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, indexName, esClient);
+
+        try {
+            // Validate S3 access before starting
+            if (!s3Service.isBucketAccessible()) {
+                String errorMsg = "S3 bucket is not accessible. Please check bucket configuration and permissions.";
+                log.error(errorMsg);
+                if (callback != null) {
+                    callback.onError(errorMsg);
+                }
+                throw new RuntimeException(errorMsg);
+            }
+
+            createIndexIfNotExists();
+            if (callback != null) {
+                callback.onProgress("Index ready, starting S3 indexing");
+            }
+
+            log.info("Listing all S3 objects for indexing");
+
+            List<ImageMetadataEntry> s3Entries = s3Service.listAllSurfaceWaves();
+            if (s3Entries.isEmpty()) {
+                log.warn("No S3 objects found to index");
+                if (callback != null) {
+                    callback.onComplete("No S3 files found to index");
+                }
+                return;
+            }
+
+            log.info("Found {} S3 objects to index", s3Entries.size());
+
+            if (callback != null) {
+                callback.onProgress("Starting to process " + s3Entries.size() + " S3 files");
+            }
+
+            for (ImageMetadataEntry entry : s3Entries) {
+                bulkRequestProcessor.addDocument(entry);
+            }
+
+            // Flush any remaining documents
+            Optional<BulkResponse> finalResponse = bulkRequestProcessor.flush();
+            log.info("S3 indexing completed successfully for index: {}", indexName);
+            finalResponse.ifPresent(response -> {
+                if (callback != null) {
+                    callback.onComplete("S3 indexing completed successfully");
+                }
+            });
+
+            clearImageListCache();
+
+        } catch (Exception e) {
+            log.error("Failed to complete S3 indexing", e);
+            if (callback != null) {
+                callback.onError("Failed to complete S3 indexing: " + e.getMessage());
+            }
+            throw new RuntimeException("S3 indexing failed", e);
+        }
+    }
+
+    public void indexS3SurfaceWavesFiles(boolean confirm) throws IOException {
+        indexS3SurfaceWavesFiles(confirm, null);
     }
 
     private void submitUrlProcessingTask(
@@ -222,5 +289,17 @@ public class IndexingService {
         return esClient.indices()
                 .exists(c -> c.index(indexName))
                 .value();
+    }
+
+    private void clearImageListCache() {
+        log.info("Clearing cache '{}' after indexing", CacheNames.IMAGE_LIST);
+
+        Cache imageListCache = cacheManager.getCache(CacheNames.IMAGE_LIST);
+        if (imageListCache != null) {
+            imageListCache.clear();
+            log.info("Cache '{}' cleared successfully", CacheNames.IMAGE_LIST);
+        } else {
+            log.warn("Cache {} not found", CacheNames.IMAGE_LIST);
+        }
     }
 }

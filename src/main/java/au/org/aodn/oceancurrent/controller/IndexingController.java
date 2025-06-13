@@ -15,11 +15,11 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
 
 @RestController
-@Profile("dev")
+@Profile({"dev", "edge"})
 @RequestMapping("/indexing")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Indexing", description = "The Indexing API. Only available in development profile.")
+@Tag(name = "Indexing", description = "The Indexing API. Only available in development and edge environment.")
 public class IndexingController {
     private final IndexingService indexingService;
 
@@ -63,6 +63,40 @@ public class IndexingController {
         return emitter;
     }
 
+    @PostMapping(path = "/s3")
+    @Operation(description = "Trigger indexing of S3 files")
+    public ResponseEntity<String> triggerS3Indexing() {
+        log.info("Received S3 indexing request");
+        try {
+            indexingService.indexS3SurfaceWavesFiles(true);
+            log.info("S3 indexing request completed");
+            return ResponseEntity.ok("S3 indexing completed");
+        } catch (IOException e) {
+            log.error("Error during S3 indexing", e);
+            return ResponseEntity.internalServerError()
+                    .body("Error during S3 indexing: " + e.getMessage());
+        }
+    }
+
+    @PostMapping(path = "/s3/async")
+    @Operation(description = "Index all S3 files with real-time progress updates via Server-Sent Events")
+    public SseEmitter indexS3FilesAsync(
+            @Parameter(description = "Flag to confirm the S3 indexing operation")
+            @RequestParam(value = "confirm", defaultValue = "false") Boolean confirm) {
+        log.info("Received S3 indexing request with async progress updates. Acknowledgement: {}", confirm);
+        final SseEmitter emitter = new SseEmitter(0L); // No timeout
+        final IndexingCallback callback = createCallback(emitter);
+
+        new Thread(() -> {
+            try {
+                indexingService.indexS3SurfaceWavesFiles(confirm, callback);
+            } catch (IOException e) {
+                emitter.completeWithError(e);
+                log.error("Error during S3 indexing", e);
+            }
+        }).start();
+        return emitter;
+    }
 
     @DeleteMapping
     @Operation(description = "Delete the index")

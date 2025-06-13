@@ -39,4 +39,22 @@ public class IndexingScheduler {
             log.error("Error during scheduled indexing", e);
         }
     }
+
+    @Scheduled(cron = "${elasticsearch.indexing.s3.cron.expression:0 30 2 * * ?}", zone = "Australia/Hobart")
+    public void scheduledS3Indexing() {
+        String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
+        log.info("Starting scheduled daily S3 indexing at {} UTC (2:30 AM Australia/Hobart time)", timestamp);
+
+        try {
+            Instant startTime = Instant.now();
+            indexingService.indexS3SurfaceWavesFiles(true);
+            Duration duration = Duration.between(startTime, Instant.now());
+
+            log.info("Completed scheduled daily S3 indexing in {} minutes and {} seconds",
+                    duration.toMinutes(),
+                    duration.minusMinutes(duration.toMinutes()).getSeconds());
+        } catch (IOException e) {
+            log.error("Error during scheduled S3 indexing", e);
+        }
+    }
 }
