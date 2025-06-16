@@ -35,10 +35,10 @@ remote:
 
 aws:
   region: ${AWS_S3_REGION:ap-southeast-2}
-  access-key-id: ${AWS_ACCESS_KEY_ID}
-  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+  access-key-id: ${AWS_ACCESS_KEY_ID:placeholder-for-test}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:placeholder-for-test}
   s3:
-    bucket-name: ${AWS_S3_BUCKET_NAME}
+    bucket-name: ${AWS_S3_BUCKET_NAME:placeholder-for-test}
     waves-prefix: WAVES/
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 

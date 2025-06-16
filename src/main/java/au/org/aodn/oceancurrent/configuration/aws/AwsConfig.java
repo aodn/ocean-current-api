@@ -152,11 +152,13 @@ public class AwsConfig {
         String ecsAuthTokenFile = System.getenv("AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE");
 
         if (ecsCredentialsUri != null || ecsCredentialsFullUri != null) {
+            String relativeUriStatus = ecsCredentialsUri != null ? "present" : "null";
+            String fullUriStatus = ecsCredentialsFullUri != null ? "present" : "null";
+            String authTokenStatus = ecsAuthToken != null ? "present" : "null";
+            String authTokenFileStatus = ecsAuthTokenFile != null ? "present" : "null";
+
             log.debug("ECS container credentials detected - RelativeURI: {}, FullURI: {}, AuthToken: {}, AuthTokenFile: {}",
-                     ecsCredentialsUri != null ? "present" : "null",
-                     ecsCredentialsFullUri != null ? "present" : "null",
-                     ecsAuthToken != null ? "present" : "null",
-                     ecsAuthTokenFile != null ? "present" : "null");
+                     relativeUriStatus, fullUriStatus, authTokenStatus, authTokenFileStatus);
             return Optional.of("Amazon ECS container credentials (ContainerCredentialsProvider)");
         }
         return Optional.empty();
