@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.util.elasticsearch;
 
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
+import au.org.aodn.oceancurrent.util.DocumentIdGenerator;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
@@ -44,9 +45,11 @@ public class BulkRequestProcessor {
         BulkRequest.Builder bulkRequest = new BulkRequest.Builder();
 
         for (ImageMetadataEntry doc : currentBatch) {
+            String documentId = DocumentIdGenerator.generateDocumentId(doc);
             bulkRequest.operations(op -> op
                     .index(idx -> idx
                             .index(indexName)
+                            .id(documentId)
                             .document(doc)
                     )
             );
