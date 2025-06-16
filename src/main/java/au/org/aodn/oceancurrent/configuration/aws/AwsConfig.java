@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.configuration.aws;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -60,6 +61,18 @@ public class AwsConfig {
 
         log.info("AWS S3 Client configuration completed successfully");
         return clientBuilder.build();
+    }
+
+    @PostConstruct
+    private void runTestToListS3Buckets() {
+        try (S3Client s3Client = s3Client()) {
+            s3Client.listBuckets().buckets().forEach(bucket ->
+                log.info("Found S3 bucket: {}", bucket.name()));
+        } catch (SdkClientException e) {
+            log.error("Error listing S3 buckets:", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during S3 bucket listing:", e);
+        }
     }
 
     private boolean isValidCredential(String credential) {
