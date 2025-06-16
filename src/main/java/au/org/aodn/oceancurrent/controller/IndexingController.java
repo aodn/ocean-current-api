@@ -5,12 +5,15 @@ import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import software.amazon.awssdk.core.exception.SdkClientException;
+import software.amazon.awssdk.services.s3.S3Client;
 
 import java.io.IOException;
 
@@ -22,6 +25,7 @@ import java.io.IOException;
 @Tag(name = "Indexing", description = "The Indexing API. Only available in development and edge environment.")
 public class IndexingController {
     private final IndexingService indexingService;
+    private final S3Client s3Client;
 
     @GetMapping
     public ResponseEntity<String> getIndexingStatus() {
@@ -96,6 +100,18 @@ public class IndexingController {
             }
         }).start();
         return emitter;
+    }
+
+    @GetMapping("test")
+    public void runTestToListS3Buckets() {
+        try {
+            s3Client.listBuckets().buckets().forEach(bucket ->
+                    log.info("Found S3 bucket: {}", bucket.name()));
+        } catch (SdkClientException e) {
+            log.error("Error listing S3 buckets:", e);
+        } catch (Exception e) {
+            log.error("Unexpected error during S3 bucket listing:", e);
+        }
     }
 
     @DeleteMapping

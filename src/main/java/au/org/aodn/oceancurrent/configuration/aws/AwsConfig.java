@@ -63,18 +63,6 @@ public class AwsConfig {
         return clientBuilder.build();
     }
 
-    @PostConstruct
-    private void runTestToListS3Buckets() {
-        try (S3Client s3Client = s3Client()) {
-            s3Client.listBuckets().buckets().forEach(bucket ->
-                log.info("Found S3 bucket: {}", bucket.name()));
-        } catch (SdkClientException e) {
-            log.error("Error listing S3 buckets:", e);
-        } catch (Exception e) {
-            log.error("Unexpected error during S3 bucket listing:", e);
-        }
-    }
-
     private boolean isValidCredential(String credential) {
         return credential != null &&
                !credential.isEmpty() &&
