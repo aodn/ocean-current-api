@@ -14,6 +14,8 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
+import java.util.Optional;
+
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -29,13 +31,10 @@ public class AwsConfig {
                 .region(Region.of(awsProperties.getRegion()));
 
         // Use provided credentials if available, otherwise fall back to default provider chain
-        if (awsProperties.getAccessKeyId() != null && !awsProperties.getAccessKeyId().isEmpty() &&
-            awsProperties.getSecretAccessKey() != null && !awsProperties.getSecretAccessKey().isEmpty()) {
+        if (isValidCredential(awsProperties.getAccessKeyId()) && isValidCredential(awsProperties.getSecretAccessKey())) {
 
-            log.info("Using static AWS credentials - Access Key ID: {}***",
-                    awsProperties.getAccessKeyId().substring(0, Math.min(4, awsProperties.getAccessKeyId().length())));
-            log.debug("Static credentials configured with access key starting with: {}",
-                    awsProperties.getAccessKeyId().substring(0, Math.min(8, awsProperties.getAccessKeyId().length())));
+            log.info("Using static AWS credentials from configuration");
+            log.debug("Static credentials configured - credential source: application properties");
 
             AwsCredentials credentials = AwsBasicCredentials.create(
                     awsProperties.getAccessKeyId(),
@@ -63,49 +62,71 @@ public class AwsConfig {
         return clientBuilder.build();
     }
 
+    private boolean isValidCredential(String credential) {
+        return credential != null &&
+               !credential.isEmpty() &&
+               !credential.startsWith("${") &&
+               !credential.endsWith("}");
+    }
+
     private void detectAndLogCredentialSource(AwsCredentialsProvider credentialsProvider) {
         try {
             AwsCredentials credentials = credentialsProvider.resolveCredentials();
             String accessKeyId = credentials.accessKeyId();
 
-            log.info("Successfully resolved AWS credentials - Access Key ID: {}***",
-                    accessKeyId.substring(0, Math.min(4, accessKeyId.length())));
+            log.info("Successfully resolved AWS credentials from DefaultCredentialsProvider");
 
             // Try to determine the source by checking environment and system properties
             String credentialSource = determineCredentialSource(accessKeyId);
             log.info("Detected credential source: {}", credentialSource);
 
         } catch (SdkClientException e) {
-            log.error("Failed to resolve AWS credentials from DefaultCredentialsProvider: {}", e.getMessage());
+            log.error("Failed to resolve AWS credentials from DefaultCredentialsProvider:", e);
             throw e;
         }
     }
 
     private String determineCredentialSource(String accessKeyId) {
-        // 1. Check Java system properties (first in chain)
+        // Check credential sources in AWS SDK default chain order
+        return checkSystemProperties(accessKeyId)
+                .orElse(checkEnvironmentVariables(accessKeyId)
+                .orElse(checkWebIdentityToken()
+                .orElse(checkSharedCredentialsFiles()
+                .orElse(checkEcsContainerCredentials()
+                .orElse(checkEc2InstanceProfile(accessKeyId)
+                .orElse(determineUnknownSource(accessKeyId)))))));
+    }
+
+    private Optional<String> checkSystemProperties(String accessKeyId) {
         String sysPropAccessKey = System.getProperty("aws.accessKeyId");
         if (sysPropAccessKey != null && sysPropAccessKey.equals(accessKeyId)) {
             log.debug("Credentials match Java system property aws.accessKeyId");
-            return "Java System Properties (aws.accessKeyId, aws.secretAccessKey, aws.sessionToken)";
+            return Optional.of("Java System Properties (aws.accessKeyId, aws.secretAccessKey, aws.sessionToken)");
         }
+        return Optional.empty();
+    }
 
-        // 2. Check environment variables (second in chain)
+    private Optional<String> checkEnvironmentVariables(String accessKeyId) {
         String envAccessKey = System.getenv("AWS_ACCESS_KEY_ID");
         if (envAccessKey != null && envAccessKey.equals(accessKeyId)) {
             log.debug("Credentials match environment variable AWS_ACCESS_KEY_ID");
-            return "Environment Variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)";
+            return Optional.of("Environment Variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN)");
         }
+        return Optional.empty();
+    }
 
-        // 3. Check for Web Identity Token (third in chain)
+    private Optional<String> checkWebIdentityToken() {
         String webIdentityTokenFile = System.getenv("AWS_WEB_IDENTITY_TOKEN_FILE");
         String roleArn = System.getenv("AWS_ROLE_ARN");
         if (webIdentityTokenFile != null && roleArn != null) {
             log.debug("Web Identity Token file and role ARN detected: tokenFile={}, roleArn={}",
                      webIdentityTokenFile, roleArn);
-            return "Web Identity Token from AWS STS (WebIdentityTokenFileCredentialsProvider)";
+            return Optional.of("Web Identity Token from AWS STS (WebIdentityTokenFileCredentialsProvider)");
         }
+        return Optional.empty();
+    }
 
-        // 4. Check for shared credentials and config files (fourth in chain)
+    private Optional<String> checkSharedCredentialsFiles() {
         String awsCredentialsFile = System.getenv("AWS_SHARED_CREDENTIALS_FILE");
         String awsConfigFile = System.getenv("AWS_CONFIG_FILE");
         String homeDir = System.getProperty("user.home");
@@ -119,10 +140,12 @@ public class AwsConfig {
         if (hasCredentialsFile || hasConfigFile) {
             String profile = profileName != null ? profileName : "default";
             log.debug("AWS shared credentials/config files detected, using profile: {}", profile);
-            return "Shared credentials and config files (ProfileCredentialsProvider) - Profile: " + profile;
+            return Optional.of("Shared credentials and config files (ProfileCredentialsProvider) - Profile: " + profile);
         }
+        return Optional.empty();
+    }
 
-        // 5. Check for ECS container credentials (fifth in chain)
+    private Optional<String> checkEcsContainerCredentials() {
         String ecsCredentialsUri = System.getenv("AWS_CONTAINER_CREDENTIALS_RELATIVE_URI");
         String ecsCredentialsFullUri = System.getenv("AWS_CONTAINER_CREDENTIALS_FULL_URI");
         String ecsAuthToken = System.getenv("AWS_CONTAINER_AUTHORIZATION_TOKEN");
@@ -134,23 +157,24 @@ public class AwsConfig {
                      ecsCredentialsFullUri != null ? "present" : "null",
                      ecsAuthToken != null ? "present" : "null",
                      ecsAuthTokenFile != null ? "present" : "null");
-            return "Amazon ECS container credentials (ContainerCredentialsProvider)";
+            return Optional.of("Amazon ECS container credentials (ContainerCredentialsProvider)");
         }
+        return Optional.empty();
+    }
 
-        // 6. EC2 instance profile is last in chain - if we get here and have credentials, it's likely EC2
-        // Temporary credentials from STS/EC2 typically start with "ASIA"
+    private Optional<String> checkEc2InstanceProfile(String accessKeyId) {
         if (accessKeyId.startsWith("ASIA")) {
             log.debug("Access key starts with ASIA, indicating temporary credentials from EC2 instance profile or STS");
-            return "Amazon EC2 instance IAM role credentials (InstanceProfileCredentialsProvider)";
+            return Optional.of("Amazon EC2 instance IAM role credentials (InstanceProfileCredentialsProvider)");
         }
+        return Optional.empty();
+    }
 
-        // If we have long-term credentials (starting with "AKIA") but couldn't match them to env vars or system props,
-        // they might be from credentials file that we couldn't detect properly
+    private String determineUnknownSource(String accessKeyId) {
         if (accessKeyId.startsWith("AKIA")) {
             log.debug("Access key starts with AKIA (long-term credentials) but source couldn't be determined precisely");
             return "Unknown source - likely from shared credentials file or other configuration";
         }
-
         return "Unknown credential source - credentials resolved but source could not be determined";
     }
 }

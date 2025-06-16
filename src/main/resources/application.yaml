@@ -38,8 +38,8 @@ remote:
 
 aws:
   region: ${AWS_S3_REGION:ap-southeast-2}
-  access-key-id: ${AWS_ACCESS_KEY_ID}
-  secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+  access-key-id: ${AWS_ACCESS_KEY_ID:}
+  secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
     bucket-name: ${AWS_S3_BUCKET_NAME}
     waves-prefix: WAVES/
