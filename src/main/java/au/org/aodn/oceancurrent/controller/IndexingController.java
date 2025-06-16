@@ -106,6 +106,13 @@ public class IndexingController {
         try {
             s3Client.listBuckets().buckets().forEach(bucket ->
                     log.info("Found S3 bucket: {}", bucket.name()));
+
+            s3Client.listObjectsV2(
+                    builder -> builder.bucket("oceancurrent-testing") // Replace with your bucket name
+                            .maxKeys(10) // Limit to 10 objects for testing
+            ).contents().forEach(s3Object ->
+                    log.info("Found S3 object: {} in bucket: {}", s3Object.key(), "oceancurrent-testing") // Replace with your bucket name
+            );
         } catch (SdkClientException e) {
             log.error("Error listing S3 buckets:", e);
         } catch (Exception e) {
