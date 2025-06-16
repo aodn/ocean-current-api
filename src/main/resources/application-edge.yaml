@@ -13,6 +13,10 @@ app:
       - OPTIONS
     allow-credentials: true
 
+logging:
+  level:
+    au.org.aodn.oceancurrent.configuration.aws: DEBUG
+
 management:
   info:
     env:
