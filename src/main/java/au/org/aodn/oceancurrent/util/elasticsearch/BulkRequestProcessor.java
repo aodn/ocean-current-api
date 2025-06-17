@@ -44,9 +44,11 @@ public class BulkRequestProcessor {
         BulkRequest.Builder bulkRequest = new BulkRequest.Builder();
 
         for (ImageMetadataEntry doc : currentBatch) {
+            String documentId = DocumentIdGenerator.generateDocumentId(doc);
             bulkRequest.operations(op -> op
                     .index(idx -> idx
                             .index(indexName)
+                            .id(documentId)
                             .document(doc)
                     )
             );
