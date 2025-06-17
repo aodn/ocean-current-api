@@ -1,7 +1,6 @@
 package au.org.aodn.oceancurrent.util.elasticsearch;
 
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
-import au.org.aodn.oceancurrent.util.DocumentIdGenerator;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;

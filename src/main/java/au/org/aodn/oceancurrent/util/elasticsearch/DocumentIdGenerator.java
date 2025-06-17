@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.util;
+package au.org.aodn.oceancurrent.util.elasticsearch;
 
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 
@@ -22,6 +22,8 @@ public class DocumentIdGenerator {
                     .replaceAll("[^a-zA-Z0-9_-]", "_")
                     .toLowerCase();
         }
+
+        // Let Elasticsearch auto-generate it
         return null;
     }
 }
