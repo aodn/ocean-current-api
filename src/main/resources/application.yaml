@@ -34,13 +34,13 @@ elasticsearch:
 
 remote:
   json:
-    base-url: ${REMOTE_JSON_BASE_URL}
+    base-url: ${REMOTE_JSON_BASE_URL:}
 
 aws:
   region: ${AWS_S3_REGION:ap-southeast-2}
   access-key-id: ${AWS_ACCESS_KEY_ID:}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
-    bucket-name: ${AWS_S3_BUCKET_NAME:oceancurrent-testing}
+    bucket-name: ${AWS_S3_BUCKET_NAME:}
     waves-prefix: WAVES/
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}

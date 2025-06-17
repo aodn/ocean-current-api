@@ -15,7 +15,8 @@ app:
 
 logging:
   level:
-    au.org.aodn.oceancurrent.configuration.aws: DEBUG
+    au.org.aodn.oceancurrent: debug
+    au.org.aodn.oceancurrent.configuration.aws: debug
 
 management:
   info:

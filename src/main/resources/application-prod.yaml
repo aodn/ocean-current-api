@@ -3,3 +3,7 @@ springdoc:
     enabled: false
   api-docs:
     enabled: false
+
+logging:
+  level:
+    au.org.aodn.oceancurrent: info
