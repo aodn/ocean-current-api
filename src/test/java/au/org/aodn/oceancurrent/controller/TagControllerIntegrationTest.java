@@ -1,13 +1,11 @@
 package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.service.tags.TagService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
-// import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import au.org.aodn.oceancurrent.dto.WaveTagResponse;
@@ -15,7 +13,6 @@ import au.org.aodn.oceancurrent.dto.WaveTagResponse;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -28,9 +25,6 @@ class TagControllerIntegrationTest {
 
     @MockBean
     private TagService tagService;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Test
     void testGetTagsByTagFile_Success() throws Exception {

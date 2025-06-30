@@ -30,7 +30,7 @@ public class SqliteStartupHandler implements ApplicationRunner {
     }
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
         try {
             ensureSqliteDirectoryExists();
             ensureSqliteFileExists();
@@ -124,7 +124,7 @@ public class SqliteStartupHandler implements ApplicationRunner {
             // Check if database has data
             boolean hasData = false;
             try {
-                hasData = tagService.isDataAvailable("surface-waves") && tagService.getAllTagFiles("surface-waves").size() > 0;
+                hasData = tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty();
             } catch (Exception e) {
                 log.debug("Error checking database data: {}", e.getMessage());
             }

@@ -30,8 +30,8 @@ The main `TagService` acts as a coordinator that:
 
 - Auto-discovers all `ProductTagService` implementations
 - Routes requests to the appropriate product service
-- Provides backward compatibility for existing surface waves endpoints
-- Offers new generic endpoints for all product types
+- Provides a unified interface for all product types
+- Manages product service lifecycle and routing
 
 ### 3. Product-Specific Implementations
 
@@ -52,43 +52,19 @@ Each product type has its own service implementation with complete freedom to:
 - **Response Type**: `WaveTagResponse`
 - **Status**: ✅ Fully implemented
 
-### 2. Sea Level (`SeaLevelTagService`)
-
-- **Data Source**: REST API
-- **Date Format**: `YYYYMMDD` (8 digits)
-- **Tag File Format**: `sealevel/{YYYY}/{MM}/{YYYYMMDD}_sealevel.json`
-- **Response Type**: `GenericTagResponse`
-- **Status**: 📝 Example implementation (configurable via properties)
-
-### 3. Temperature (`TemperatureTagService`)
-
-- **Data Source**: NetCDF files from file system
-- **Date Format**: `YYYYMMDDHH` (10 digits)
-- **Tag File Format**: `temperature/{YYYY}/{MM}/{DD}/{YYYYMMDDHH}_temperature.nc`
-- **Response Type**: `GenericTagResponse`
-- **Status**: 📝 Example implementation
-
-### 4. Current Meters (`CurrentMeterTagService`)
-
-- **Data Source**: PostgreSQL database
-- **Date Format**: `YYYYMMDDHH` (10 digits)
-- **Tag File Format**: `currentmeters/{YYYY}/{MM}/{YYYYMMDDHH}_deployment_{ID}_{SITE}.json`
-- **Response Type**: `GenericTagResponse`
-- **Status**: 🔧 Stub implementation (requires database setup)
-
-### 5. Ocean Color (`OceanColorTagService`)
+### 2. Argo (`ArgoTagService`)
 
 - **Data Source**: To be determined
 - **Date Format**: `YYYYMMDD` (8 digits)
-- **Tag File Format**: `oceancolor/{YYYY}/{MM}/{YYYYMMDD}_oceancolor.nc`
+- **Tag File Format**: `{YYYYMMDD}.txt`
 - **Response Type**: `GenericTagResponse`
 - **Status**: 🔧 Stub implementation
 
 ## API Endpoints
 
-### Legacy Endpoints (Surface Waves)
+### Surface Waves Endpoints
 
-These endpoints remain unchanged for backward compatibility:
+These endpoints maintain the existing surface waves API (now using the generic architecture internally):
 
 - `GET /tags/surface-waves/by-date/{dateTime}`
 - `GET /tags/surface-waves/by-tag-file?tagFile={tagFile}`
@@ -96,7 +72,7 @@ These endpoints remain unchanged for backward compatibility:
 - `POST /tags/surface-waves/download`
 - `GET /tags/surface-waves/status`
 
-### New Generic Endpoints
+### Generic Endpoints
 
 These work with any product type:
 
@@ -122,22 +98,6 @@ public class SurfaceWavesTagService implements ProductTagService {
 }
 ```
 
-### REST API (Sea Level)
-
-```java
-@Service
-public class SeaLevelTagService implements ProductTagService {
-    private final RestTemplate restTemplate;
-
-    @Override
-    public boolean isDataAvailable() {
-        String healthUrl = baseApiUrl + "/health";
-        restTemplate.getForObject(healthUrl, String.class);
-        return true;
-    }
-}
-```
-
 ### File System (Temperature)
 
 ```java
@@ -148,7 +108,7 @@ public class TemperatureTagService implements ProductTagService {
     public List<String> getAllTagFiles() {
         Path dataDir = Paths.get(dataPath);
         try (Stream<Path> files = Files.find(dataDir, 10,
-                (path, attrs) -> path.toString().endsWith(".nc"))) {
+                (path, attrs) -> path.toString().endsWith(".txt"))) {
             // Process NetCDF files...
         }
     }
@@ -248,7 +208,7 @@ ocean-current:
 1. **Separation of Concerns**: Each product has its own service with specific logic
 2. **Extensibility**: Adding new products requires no changes to existing code
 3. **Flexibility**: Each product can use any data source and format
-4. **Backward Compatibility**: Existing endpoints continue to work
+4. **Clean Architecture**: All endpoints use the unified generic architecture
 5. **Type Safety**: Product-specific implementations can return appropriate types
 6. **Spring Integration**: Auto-discovery via dependency injection
 7. **Configuration Driven**: Products can be enabled/disabled via properties
@@ -261,34 +221,12 @@ Products can return their own response types (like `WaveTagResponse` for surface
 
 ### Generic Response
 
-For new products, use the `GenericTagResponse`:
-
-```java
-public class GenericTagResponse {
-    private String productType;
-    private String tagFile;
-    private List<Map<String, Object>> tags;
-    private int count;
-}
-```
+For new products, use the `GenericTagResponse`
 
 This allows maximum flexibility while maintaining a consistent API structure.
 
 ## Testing
 
-Each product service can be tested independently:
-
-```java
-@Test
-public void testMyProductService() {
-    MyProductTagService service = new MyProductTagService();
-
-    // Test product-specific logic
-    assertTrue(service.isValidDateFormat("20231215"));
-    assertEquals("my-product", service.getProductType());
-
-    // Mock external dependencies as needed
-}
-```
+Each product service can be tested independently
 
 The coordinator can be tested with mocked product services to verify routing logic.
