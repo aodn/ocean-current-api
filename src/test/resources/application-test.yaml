@@ -16,7 +16,6 @@ springdoc:
   swagger-ui:
     enabled: false
 
-
 elasticsearch:
   max-result-window: 20000
   indexing:
@@ -42,3 +41,11 @@ aws:
     waves-prefix: WAVES/
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 
+sqlite:
+  remote-url: ${SURFACE_WAVES_SQLITE_REMOTE_URL:https://test.example.com/test-index.db}
+  local-path: data/sqlite/test-index.db
+  download:
+    cron:
+      expression: "*/30 * * * * ?" # every 30 seconds for testing
+    connect-timeout: 5000
+    read-timeout: 10000
