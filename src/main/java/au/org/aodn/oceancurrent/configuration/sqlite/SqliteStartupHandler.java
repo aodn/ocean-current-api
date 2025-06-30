@@ -1,6 +1,6 @@
 package au.org.aodn.oceancurrent.configuration.sqlite;
 
-import au.org.aodn.oceancurrent.service.TagService;
+import au.org.aodn.oceancurrent.service.tags.TagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -124,14 +124,14 @@ public class SqliteStartupHandler implements ApplicationRunner {
             // Check if database has data
             boolean hasData = false;
             try {
-                hasData = tagService.isDatabaseAvailable() && tagService.getAllTagFiles().size() > 0;
+                hasData = tagService.isDataAvailable("surface-waves") && tagService.getAllTagFiles("surface-waves").size() > 0;
             } catch (Exception e) {
                 log.debug("Error checking database data: {}", e.getMessage());
             }
 
             if (!hasData) {
                 log.info("No data found in database, automatically downloading surface wave data...");
-                boolean success = tagService.downloadSqliteDatabase();
+                boolean success = tagService.downloadData("surface-waves");
                 if (success) {
                     log.info("Surface wave data downloaded successfully on startup");
                 } else {

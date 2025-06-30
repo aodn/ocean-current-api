@@ -2,7 +2,7 @@ package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.dto.ErrorResponse;
 import au.org.aodn.oceancurrent.dto.WaveTagResponse;
-import au.org.aodn.oceancurrent.service.TagService;
+import au.org.aodn.oceancurrent.service.tags.TagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -52,12 +52,12 @@ public class TagController {
             String tagFile = tagService.constructTagFilePath("surface-waves", dateTime);
             log.info("Constructed tag file path for date {}: {}", dateTime, tagFile);
 
-            if (!tagService.tagFileExists(tagFile)) {
+            if (!tagService.tagFileExists("surface-waves", tagFile)) {
                 log.warn("Tag file {} does not exist for date {}", tagFile, dateTime);
 
                 // Help debug by showing available tag files for this date pattern
                 try {
-                    List<String> allTagFiles = tagService.getAllTagFiles();
+                    List<String> allTagFiles = tagService.getAllTagFiles("surface-waves");
                     String datePrefix = tagFile.substring(0, tagFile.lastIndexOf("/") + 1); // e.g., "y2021/m01/"
                     List<String> similarTagFiles = allTagFiles.stream()
                             .filter(tf -> tf.startsWith(datePrefix))
@@ -77,7 +77,7 @@ public class TagController {
                         .body(new ErrorResponse("No data found for date '" + dateTime + "'. Expected tag file: " + tagFile));
             }
 
-            Object responseObj = tagService.getTagsByTagFile(tagFile);
+            Object responseObj = tagService.getTagsByTagFile("surface-waves", tagFile);
             if (responseObj instanceof WaveTagResponse response) {
                 return ResponseEntity.ok(response);
             } else {
@@ -113,13 +113,13 @@ public class TagController {
                         .body(new ErrorResponse("Surface wave data is temporarily unavailable. Please try again in a moment."));
             }
 
-            if (!tagService.tagFileExists(tagFile)) {
+            if (!tagService.tagFileExists("surface-waves", tagFile)) {
                 log.warn("Tag file {} not found in database", tagFile);
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(new ErrorResponse("Tag file '" + tagFile + "' not found in database"));
             }
 
-            Object responseObj = tagService.getTagsByTagFile(tagFile);
+            Object responseObj = tagService.getTagsByTagFile("surface-waves", tagFile);
             if (responseObj instanceof WaveTagResponse response) {
                 return ResponseEntity.ok(response);
             } else {
@@ -151,7 +151,7 @@ public class TagController {
                         .body(new ErrorResponse("Surface wave data is temporarily unavailable. Please try again in a moment."));
             }
 
-            List<String> tagFiles = tagService.getAllTagFiles();
+            List<String> tagFiles = tagService.getAllTagFiles("surface-waves");
             return ResponseEntity.ok(Map.of("tagfiles", tagFiles, "count", tagFiles.size()));
 
         } catch (Exception e) {
@@ -172,12 +172,12 @@ public class TagController {
         try {
             log.info("Manual download trigger requested");
 
-            boolean success = tagService.downloadSqliteDatabase();
+            boolean success = tagService.downloadData("surface-waves");
 
             if (success) {
                 int tagFileCount = 0;
                 try {
-                    tagFileCount = tagService.getAllTagFiles().size();
+                    tagFileCount = tagService.getAllTagFiles("surface-waves").size();
                 } catch (Exception e) {
                     log.debug("Error getting tag file count after download: {}", e.getMessage());
                 }
@@ -207,13 +207,13 @@ public class TagController {
     })
     public ResponseEntity<?> getDatabaseStatus() {
         try {
-            boolean available = tagService.isDatabaseAvailable();
+            boolean available = tagService.isDataAvailable("surface-waves");
             int tagFileCount = 0;
             String lastUpdate = "unknown";
 
             if (available) {
                 try {
-                    tagFileCount = tagService.getAllTagFiles().size();
+                    tagFileCount = tagService.getAllTagFiles("surface-waves").size();
                     lastUpdate = "recently"; // You could add timestamp tracking in the future
                 } catch (Exception e) {
                     log.debug("Error getting tag file count: {}", e.getMessage());
@@ -423,18 +423,18 @@ public class TagController {
     private boolean ensureDataAvailable() {
         try {
             // Quick check if data is already available
-            if (tagService.isDatabaseAvailable() && !tagService.getAllTagFiles().isEmpty()) {
+            if (tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty()) {
                 return true;
             }
 
             // Check if database file exists but has no data (cache issue)
-            if (tagService.isDatabaseAvailable() && tagService.getAllTagFiles().isEmpty()) {
+            if (tagService.isDataAvailable("surface-waves") && tagService.getAllTagFiles("surface-waves").isEmpty()) {
                 log.info("Database file exists but shows no data - possible cache issue, attempting download...");
             } else {
                 log.info("Database not available, attempting automatic download...");
             }
 
-            boolean downloadSuccess = tagService.downloadSqliteDatabase();
+            boolean downloadSuccess = tagService.downloadData("surface-waves");
 
             if (downloadSuccess) {
                 log.info("Automatic download completed successfully");
@@ -443,7 +443,7 @@ public class TagController {
                 Thread.sleep(2000);
 
                 // Double-check that data is now available
-                boolean dataAvailable = tagService.isDatabaseAvailable() && !tagService.getAllTagFiles().isEmpty();
+                boolean dataAvailable = tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty();
                 if (!dataAvailable) {
                     log.warn("Download succeeded but data still not available - may need service restart");
                 }

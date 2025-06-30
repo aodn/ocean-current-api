@@ -1,6 +1,6 @@
 package au.org.aodn.oceancurrent.controller;
 
-import au.org.aodn.oceancurrent.service.TagService;
+import au.org.aodn.oceancurrent.service.tags.TagService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,9 +40,9 @@ class TagControllerIntegrationTest {
         WaveTagResponse.TagData tagData2 = new WaveTagResponse.TagData(160, 210, 15, "Title 2", "http://url2.com");
         WaveTagResponse response = new WaveTagResponse(tagFile, Arrays.asList(tagData1, tagData2));
 
-        when(tagService.isDatabaseAvailable()).thenReturn(true);
-        when(tagService.tagFileExists(tagFile)).thenReturn(true);
-        when(tagService.getTagsByTagFile(tagFile)).thenReturn(response);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(true);
+        when(tagService.tagFileExists("surface-waves", tagFile)).thenReturn(true);
+        when(tagService.getTagsByTagFile("surface-waves", tagFile)).thenReturn(response);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/by-tagfile")
@@ -63,8 +63,8 @@ class TagControllerIntegrationTest {
     void testGetTagsByTagFile_DatabaseNotAvailable() throws Exception {
         // Given
         String tagFile = "test_tagfile";
-        when(tagService.isDatabaseAvailable()).thenReturn(false);
-        when(tagService.downloadSqliteDatabase()).thenReturn(true);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(false);
+        when(tagService.downloadData("surface-waves")).thenReturn(true);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/by-tagfile")
@@ -77,8 +77,8 @@ class TagControllerIntegrationTest {
     void testGetTagsByTagFile_TagFileNotFound() throws Exception {
         // Given
         String tagFile = "nonexistent_tagfile";
-        when(tagService.isDatabaseAvailable()).thenReturn(true);
-        when(tagService.tagFileExists(tagFile)).thenReturn(false);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(true);
+        when(tagService.tagFileExists("surface-waves", tagFile)).thenReturn(false);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/by-tagfile")
@@ -92,8 +92,8 @@ class TagControllerIntegrationTest {
     void testGetAllTagFiles_Success() throws Exception {
         // Given
         List<String> tagFiles = Arrays.asList("tagfile1", "tagfile2", "tagfile3");
-        when(tagService.isDatabaseAvailable()).thenReturn(true);
-        when(tagService.getAllTagFiles()).thenReturn(tagFiles);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(true);
+        when(tagService.getAllTagFiles("surface-waves")).thenReturn(tagFiles);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/tagfiles")
@@ -110,7 +110,7 @@ class TagControllerIntegrationTest {
     @Test
     void testTriggerDownload_Success() throws Exception {
         // Given
-        when(tagService.downloadSqliteDatabase()).thenReturn(true);
+        when(tagService.downloadData("surface-waves")).thenReturn(true);
 
         // When & Then
         mockMvc.perform(post("/tags/surface-waves/download")
@@ -123,7 +123,7 @@ class TagControllerIntegrationTest {
     @Test
     void testTriggerDownload_Failed() throws Exception {
         // Given
-        when(tagService.downloadSqliteDatabase()).thenReturn(false);
+        when(tagService.downloadData("surface-waves")).thenReturn(false);
 
         // When & Then
         mockMvc.perform(post("/tags/surface-waves/download")
@@ -135,7 +135,7 @@ class TagControllerIntegrationTest {
     @Test
     void testGetDatabaseStatus_Available() throws Exception {
         // Given
-        when(tagService.isDatabaseAvailable()).thenReturn(true);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(true);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/status")
@@ -148,7 +148,7 @@ class TagControllerIntegrationTest {
     @Test
     void testGetDatabaseStatus_NotAvailable() throws Exception {
         // Given
-        when(tagService.isDatabaseAvailable()).thenReturn(false);
+        when(tagService.isDataAvailable("surface-waves")).thenReturn(false);
 
         // When & Then
         mockMvc.perform(get("/tags/surface-waves/status")

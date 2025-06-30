@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.service;
+package au.org.aodn.oceancurrent.service.tags;
 
 import au.org.aodn.oceancurrent.dto.GenericTagResponse;
 import lombok.extern.slf4j.Slf4j;
@@ -17,9 +17,9 @@ import java.util.Map;
  */
 @Slf4j
 @Service
-public class OceanColorTagService implements ProductTagService {
+public class ArgoTagService implements ProductTagService {
 
-    private static final String PRODUCT_TYPE = "ocean-color";
+    private static final String PRODUCT_TYPE = "argo";
 
     @Override
     public String getProductType() {
@@ -28,49 +28,49 @@ public class OceanColorTagService implements ProductTagService {
 
     @Override
     public boolean downloadData() {
-        log.info("Ocean color data download not yet implemented");
+        log.info("Argo tags download not yet implemented");
         // TODO: Implement actual download logic for ocean color data
         return false;
     }
 
     @Override
     public boolean isDataAvailable() {
-        log.debug("Ocean color data availability check not yet implemented");
+        log.debug("Argo tags data availability check not yet implemented");
         // TODO: Implement actual data availability check
         return false;
     }
 
     @Override
     public boolean hasData() {
-        log.debug("Ocean color data presence check not yet implemented");
+        log.debug("Argo tags data presence check not yet implemented");
         // TODO: Implement actual data presence check
         return false;
     }
 
     @Override
     public List<String> getAllTagFiles() {
-        log.debug("Getting all ocean color tag files (stub implementation)");
+        log.debug("Getting all argo tag files (stub implementation)");
         // TODO: Implement actual tag file retrieval
         return new ArrayList<>();
     }
 
     @Override
     public boolean tagFileExists(String tagFile) {
-        log.debug("Checking if ocean color tag file {} exists (stub implementation)", tagFile);
+        log.debug("Checking if argo tag file {} exists (stub implementation)", tagFile);
         // TODO: Implement actual tag file existence check
         return false;
     }
 
     @Override
     public Object getTagsByTagFile(String tagFile) {
-        log.debug("Getting ocean color tags for tag file {} (stub implementation)", tagFile);
+        log.debug("Getting argo tags for tag file {} (stub implementation)", tagFile);
 
         // TODO: Implement actual tag retrieval logic
         // For now, return a stub response
         List<Map<String, Object>> stubTags = new ArrayList<>();
         Map<String, Object> stubTag = new HashMap<>();
-        stubTag.put("type", "ocean-color");
-        stubTag.put("message", "Ocean color tag service not yet implemented");
+        stubTag.put("type", "argo");
+        stubTag.put("message", "Argo tag service not yet implemented");
         stubTags.add(stubTag);
 
         return new GenericTagResponse(PRODUCT_TYPE, tagFile, stubTags);
@@ -92,7 +92,7 @@ public class OceanColorTagService implements ProductTagService {
 
     @Override
     public boolean isValidDateFormat(String dateTime) {
-        // Ocean color might use a different date format (YYYYMMDD instead of YYYYMMDDHH)
+        // Argo tag use a different date format (YYYYMMDD instead of YYYYMMDDHH)
         return dateTime != null && dateTime.length() == 8 && dateTime.matches("\\d{8}");
     }
 }

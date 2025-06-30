@@ -1,7 +1,7 @@
 package au.org.aodn.oceancurrent.configuration;
 
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
-import au.org.aodn.oceancurrent.service.TagService;
+import au.org.aodn.oceancurrent.service.tags.TagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -27,7 +27,7 @@ public class SqliteDownloadScheduler {
         log.info("Starting scheduled SQLite database download");
 
         try {
-            boolean success = tagService.downloadSqliteDatabase();
+            boolean success = tagService.downloadData("surface-waves");
             if (success) {
                 log.info("Scheduled SQLite database download completed successfully");
             } else {

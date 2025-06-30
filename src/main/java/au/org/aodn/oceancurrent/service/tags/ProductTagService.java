@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.service;
+package au.org.aodn.oceancurrent.service.tags;
 
 import java.util.List;
 

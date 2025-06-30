@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.service;
+package au.org.aodn.oceancurrent.service.tags;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -143,53 +143,5 @@ public class TagService {
         }
     }
 
-    // Backward compatibility methods for surface waves (to minimize controller changes)
 
-    /**
-     * @deprecated Use downloadData("surface-waves") instead
-     */
-    @Deprecated
-    public boolean downloadSqliteDatabase() {
-        return downloadData("surface-waves");
-    }
-
-    /**
-     * @deprecated Use getAllTagFiles("surface-waves") instead
-     */
-    @Deprecated
-    public List<String> getAllTagFiles() {
-        return getAllTagFiles("surface-waves");
-    }
-
-    /**
-     * @deprecated Use isDataAvailable("surface-waves") instead
-     */
-    @Deprecated
-    public boolean isDatabaseAvailable() {
-        return isDataAvailable("surface-waves");
-    }
-
-    /**
-     * @deprecated Use tagFileExists("surface-waves", tagFile) instead
-     */
-    @Deprecated
-    public boolean tagFileExists(String tagFile) {
-        return tagFileExists("surface-waves", tagFile);
-    }
-
-    /**
-     * @deprecated Use hasData("surface-waves") instead
-     */
-    @Deprecated
-    public boolean hasData() {
-        return hasData("surface-waves");
-    }
-
-    /**
-     * @deprecated Use getTagsByTagFile("surface-waves", tagFile) instead
-     */
-    @Deprecated
-    public Object getTagsByTagFile(String tagFile) {
-        return getTagsByTagFile("surface-waves", tagFile);
-    }
 }

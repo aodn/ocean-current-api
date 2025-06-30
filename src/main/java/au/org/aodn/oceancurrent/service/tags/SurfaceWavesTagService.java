@@ -1,4 +1,4 @@
-package au.org.aodn.oceancurrent.service;
+package au.org.aodn.oceancurrent.service.tags;
 
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
 import au.org.aodn.oceancurrent.dto.WaveTagResponse;
