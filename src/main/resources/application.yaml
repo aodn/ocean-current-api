@@ -5,6 +5,21 @@ spring:
     import:
       - optional:file:.env[.properties]
       - classpath:/config/products.yaml
+  datasource:
+    url: jdbc:sqlite:data/sqlite/index.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        hbm2ddl:
+          halt_on_error: false
+        jdbc:
+          batch_size: 20
 
 server:
   port: 8080
@@ -44,3 +59,12 @@ aws:
     bucket-name: ${AWS_S3_BUCKET_NAME:}
     waves-prefix: WAVES/
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
+
+sqlite:
+  remote-url: ${SURFACE_WAVES_SQLITE_REMOTE_URL:https://oceancurrent.aodn.org.au/waves/index.db}
+  local-path: data/sqlite/index.db
+  download:
+    cron:
+      expression: 0 0 */2 * * ? # every 2 hours
+    connect-timeout: 30000
+    read-timeout: 60000

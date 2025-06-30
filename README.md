@@ -22,6 +22,7 @@ elasticsearch.apiKey="your elasticsearch api key"
 elasticsearch.maxResultWindow=20000
 remote.json.baseURL="the remote json file server URL"
 ```
+
 - Or create a .env file in the root directory of the project.
 
 ```text
@@ -68,3 +69,10 @@ REMOTE_JSON_BASE_URL="the remote json file server URL"
   ```shell
   ./gradlew clean build
   ```
+
+## Documentation
+
+For detailed documentation, see the `docs/` directory:
+
+- **[SQLite Integration](docs/SQLITE_INTEGRATION.md)** - Complete guide to the SQLite wave tags integration, including API endpoints, configuration, and usage examples
+- **[Product Tag Architecture](docs/PRODUCT_TAG_ARCHITECTURE.md)** - Technical architecture documentation for the extensible product tag service system

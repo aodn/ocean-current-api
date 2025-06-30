@@ -35,10 +35,12 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.17.0'
 	implementation platform('software.amazon.awssdk:bom:2.21.29')
 	implementation 'software.amazon.awssdk:s3'
+	implementation 'org.xerial:sqlite-jdbc:3.47.1.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+	testImplementation 'org.springframework.security:spring-security-test'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter-api'
 	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine'
