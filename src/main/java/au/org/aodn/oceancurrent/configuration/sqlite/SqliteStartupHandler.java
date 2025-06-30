@@ -124,7 +124,7 @@ public class SqliteStartupHandler implements ApplicationRunner {
             // Check if database has data
             boolean hasData = false;
             try {
-                hasData = tagService.isDatabaseAvailable() && tagService.getAllTagfiles().size() > 0;
+                hasData = tagService.isDatabaseAvailable() && tagService.getAllTagFiles().size() > 0;
             } catch (Exception e) {
                 log.debug("Error checking database data: {}", e.getMessage());
             }

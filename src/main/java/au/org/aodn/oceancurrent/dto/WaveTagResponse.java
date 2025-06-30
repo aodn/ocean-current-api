@@ -11,7 +11,7 @@ import java.util.List;
 @AllArgsConstructor
 public class WaveTagResponse {
 
-    private String tagfile;
+    private String tagFile;
     private List<TagData> tags; // Ordered by the 'order' field
 
     @Data

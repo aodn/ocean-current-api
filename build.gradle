@@ -29,7 +29,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-security'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 	implementation 'co.elastic.clients:elasticsearch-java:8.17.0'
@@ -37,7 +36,6 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.21.29')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'org.xerial:sqlite-jdbc:3.47.1.0'
-	implementation 'org.hibernate.orm:hibernate-community-dialects:6.4.1.Final'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
