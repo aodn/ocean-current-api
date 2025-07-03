@@ -52,7 +52,7 @@ remote:
     base-url: ${REMOTE_JSON_BASE_URL:}
 
 aws:
-  region: ${AWS_S3_REGION:ap-southeast-2}
+  region: ${AWS_REGION:ap-southeast-2}
   access-key-id: ${AWS_ACCESS_KEY_ID:}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
