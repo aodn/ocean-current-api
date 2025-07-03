@@ -86,3 +86,41 @@ For detailed documentation, see the `docs/` directory:
 
 - **[SQLite Integration](docs/SQLITE_INTEGRATION.md)** - Complete guide to the SQLite wave tags integration, including API endpoints, configuration, and usage examples
 - **[Product Tag Architecture](docs/PRODUCT_TAG_ARCHITECTURE.md)** - Technical architecture documentation for the extensible product tag service system
+
+
+## Simple Architecture Diagram ( at 04/07/2025 )
+
+```mermaid
+graph TD
+
+    2["User<br>External Actor"]
+    3["AWS S3<br>Cloud Storage"]
+    4["Elasticsearch<br>Search Engine"]
+    5["Remote JSON Sources<br>External API"]
+    6["SQLite Database<br>Embedded DB"]
+    subgraph 1["Ocean Current API<br>Spring Boot / Java"]
+        10["Application Configuration<br>Spring Config"]
+        11["Background Schedulers<br>Spring Scheduling"]
+        12["Global Exception Handler<br>Spring ControllerAdvice"]
+        13["Data Models &amp; DTOs<br>Java POJO"]
+        14["Utility Classes<br>Java"]
+        7["OceanCurrentApplication<br>Spring Boot"]
+        8["API Controllers<br>Spring Web"]
+        9["Business Services<br>Spring Service"]
+        %% Edges at this level (grouped by source)
+        8["API Controllers<br>Spring Web"] -->|calls| 9["Business Services<br>Spring Service"]
+        8["API Controllers<br>Spring Web"] -->|handles errors via| 12["Global Exception Handler<br>Spring ControllerAdvice"]
+        10["Application Configuration<br>Spring Config"] -->|configures| 9["Business Services<br>Spring Service"]
+        10["Application Configuration<br>Spring Config"] -->|configures| 11["Background Schedulers<br>Spring Scheduling"]
+        11["Background Schedulers<br>Spring Scheduling"] -->|triggers| 9["Business Services<br>Spring Service"]
+        7["OceanCurrentApplication<br>Spring Boot"] -->|initializes| 10["Application Configuration<br>Spring Config"]
+        9["Business Services<br>Spring Service"] -->|uses| 13["Data Models &amp; DTOs<br>Java POJO"]
+        9["Business Services<br>Spring Service"] -->|uses| 14["Utility Classes<br>Java"]
+    end
+    %% Edges at this level (grouped by source)
+    2["User<br>External Actor"] -->|makes requests to| 1["Ocean Current API<br>Spring Boot / Java"]
+    1["Ocean Current API<br>Spring Boot / Java"] -->|interacts with| 3["AWS S3<br>Cloud Storage"]
+    1["Ocean Current API<br>Spring Boot / Java"] -->|interacts with| 4["Elasticsearch<br>Search Engine"]
+    1["Ocean Current API<br>Spring Boot / Java"] -->|fetches data from| 5["Remote JSON Sources<br>External API"]
+    1["Ocean Current API<br>Spring Boot / Java"] -->|accesses| 6["SQLite Database<br>Embedded DB"]
+```
