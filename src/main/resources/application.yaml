@@ -52,7 +52,7 @@ remote:
     base-url: ${REMOTE_JSON_BASE_URL:}
 
 aws:
-  region: ${AWS_S3_REGION:ap-southeast-2}
+  region: ${AWS_REGION:ap-southeast-2}
   access-key-id: ${AWS_ACCESS_KEY_ID:}
   secret-access-key: ${AWS_SECRET_ACCESS_KEY:}
   s3:
@@ -61,7 +61,7 @@ aws:
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 
 sqlite:
-  remote-url: ${SURFACE_WAVES_SQLITE_REMOTE_URL:https://oceancurrent.aodn.org.au/waves/index.db}
+  remote-url: ${SQLITE_REMOTE_URL:}
   local-path: data/sqlite/index.db
   download:
     cron:
