@@ -21,6 +21,10 @@ elasticsearch.host="your elasticsearch host"
 elasticsearch.apiKey="your elasticsearch api key"
 elasticsearch.maxResultWindow=20000
 remote.json.baseURL="the remote json file server URL"
+sqlite.remoteUrl="the sqlite db file URL"
+aws.s3.bucket="the-bucket-name"
+aws.accessKeyId="aws-access-key-id"
+aws.secretAccessKey="aws-secret-access-key"
 ```
 
 - Or create a .env file in the root directory of the project.
@@ -30,6 +34,10 @@ ES_HOST="your elasticsearch host"
 ES_API_KEY="your elasticsearch api key"
 ES_MAX_RESULT_WINDOW=20000
 REMOTE_JSON_BASE_URL="the remote json file server URL"
+SQLITE_REMOTE_URL="the sqlite db file URL"
+AWS_S3_BUCKET="the-bucket-name"
+AWS_ACCESS_KEY_ID="aws-access-key-id"
+AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
 ```
 
 ### Run
