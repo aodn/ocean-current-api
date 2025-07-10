@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -16,8 +17,6 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -26,13 +25,14 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 @Slf4j
 @RequiredArgsConstructor
+@Getter
 public abstract class SqliteBaseService {
 
     // Static lock to prevent concurrent downloads
     private static final ReentrantLock downloadLock = new ReentrantLock();
 
     // Flag to track if download is in progress
-    private static boolean downloadInProgress = false;
+    private boolean downloadInProgress = false;
 
     protected final SqliteProperties sqliteProperties;
 
@@ -77,6 +77,58 @@ public abstract class SqliteBaseService {
             return false;
         } catch (Exception e) {
             log.debug("Database connectivity test failed: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if required data is available in the database
+     *
+     * @return true if data is available, false otherwise
+     */
+    public boolean isDataAvailable() {
+        // First check if the database file exists
+        if (!isDatabaseAvailable()) {
+            return false;
+        }
+
+        // Then check if required tables have data
+        try {
+            return hasRequiredData();
+        } catch (Exception e) {
+            log.debug("Error checking if database has required data: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Ensure data is available in the database, download if needed
+     * This method will always attempt to download if data is not available
+     *
+     * @return true if data is available or was successfully downloaded, false only if download failed
+     */
+    public boolean ensureDataAvailability() {
+        // Check if data is already available
+        if (isDataAvailable()) {
+            log.info("SQLite database is available and contains required data");
+            return true;
+        }
+
+        // Data is not available, attempt to download
+        log.info("Required data not available in SQLite database, downloading now");
+        boolean downloadSuccess = downloadSqliteDatabase();
+
+        if (downloadSuccess) {
+            // Verify again that we now have the required data
+            boolean hasData = isDataAvailable();
+            if (hasData) {
+                log.info("SQLite database now contains required data after download");
+            } else {
+                log.warn("SQLite database was downloaded but still does not contain required data");
+            }
+            return hasData;
+        } else {
+            log.error("Failed to download SQLite database");
             return false;
         }
     }
@@ -250,11 +302,12 @@ public abstract class SqliteBaseService {
     }
 
     /**
-     * Check if a download is currently in progress
+     * Check if the database has the required data
+     * Subclasses should implement this method to check for their specific data requirements
+     *
+     * @return true if required data is available, false otherwise
      */
-    public static boolean isDownloadInProgress() {
-        return downloadInProgress;
-    }
+    protected abstract boolean hasRequiredData();
 
     /**
      * Perform additional verification specific to a subclass

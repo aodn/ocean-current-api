@@ -50,8 +50,10 @@ public class ElasticsearchConfig {
         }
         try {
             log.info("Initializing Elasticsearch client");
+            log.info("Elasticsearch connection host: {}", UrlUtils.maskSensitiveUrl(host));
+
             if (log.isDebugEnabled()) {
-                log.debug("Elasticsearch connection host: {}", UrlUtils.maskSensitiveUrl(host));
+                log.debug("Elasticsearch index name: {}", elasticsearchProperties.getIndexName());
             }
 
             restClient = RestClient.builder(

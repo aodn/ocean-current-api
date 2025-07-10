@@ -38,13 +38,10 @@ public class BuoyTimeSeriesService extends SqliteBaseService {
     public List<ImageMetadataGroup> findAllBuoyTimeSeriesByRegion(String region) {
         log.info("Finding buoy time series image files for region: {}", region);
 
-        // Check if the database is available, if not try to download it
-        if (!isDatabaseAvailable()) {
-            log.info("SQLite database not available, attempting to download");
-            if (!downloadSqliteDatabase()) {
-                log.error("Failed to download SQLite database, cannot retrieve buoy time series data");
-                return List.of();
-            }
+        // Ensure data is available, download if needed
+        if (!ensureDataAvailability()) {
+            log.error("Failed to ensure data availability for buoy time series");
+            return List.of();
         }
 
         try {
@@ -75,7 +72,7 @@ public class BuoyTimeSeriesService extends SqliteBaseService {
                                 // Extract date from the file name or date field and format it
                                 String simplifiedFileName = extractSimpleDateFromFileName(fileName, date);
 
-                                // Create the path as requested
+                                // Create path as requested
                                 String path = "WAVES_TS";
 
                                 // Create ImageMetadataEntry
@@ -105,14 +102,64 @@ public class BuoyTimeSeriesService extends SqliteBaseService {
     }
 
     /**
-     * Extract a simplified date string from a file name or date field
+     * Check if the database has the required buoy time series data
+     */
+    @Override
+    protected boolean hasRequiredData() {
+        try {
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                // Check if region_product table has tsimage entries
+                try {
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM region_product WHERE product = 'tsimage'");
+                    if (rs.next()) {
+                        int count = rs.getInt("count");
+                        if (count == 0) {
+                            log.debug("No tsimage entries found in region_product table");
+                            return false;
+                        }
+                    }
+                } catch (SQLException e) {
+                    log.debug("region_product table does not exist or cannot be queried: {}", e.getMessage());
+                    return false;
+                }
+
+                // Check if files table has data for any tsimage rpid
+                try {
+                    ResultSet rs = stmt.executeQuery("""
+                            SELECT COUNT(*) as count FROM files
+                            WHERE rpid IN (SELECT rpid FROM region_product WHERE product = 'tsimage')
+                            """);
+                    if (rs.next()) {
+                        int count = rs.getInt("count");
+                        if (count == 0) {
+                            log.debug("No files found for tsimage product");
+                            return false;
+                        }
+                        return true;
+                    }
+                } catch (SQLException e) {
+                    log.debug("files table does not exist or cannot be queried: {}", e.getMessage());
+                    return false;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.debug("Error checking if database has required data: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Extract a simplified date string from file name or date field
      * Format should be like "2024060100.png"
      */
     private String extractSimpleDateFromFileName(String fileName, String date) {
         // Log the input for debugging
         log.debug("Extracting date from fileName: {} and date: {}", fileName, date);
 
-        // Try to extract the date from fileName first
+        // Try to extract date from fileName first
         if (fileName != null && !fileName.isEmpty()) {
             // Check for patterns like "Gold Coast/y2024/m06/20240601T0000_BuoyTS.png"
             if (fileName.matches(".*/y\\d{4}/m\\d{2}/\\d{8}T\\d{4}_BuoyTS\\.png")) {

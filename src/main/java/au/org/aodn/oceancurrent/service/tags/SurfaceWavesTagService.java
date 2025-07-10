@@ -40,11 +40,45 @@ public class SurfaceWavesTagService extends SqliteBaseService implements Product
     }
 
     @Override
+    public boolean ensureDataAvailability() {
+        return super.ensureDataAvailability();
+    }
+
+    @Override
     public boolean hasData() {
         try {
             return !getAllTagFiles().isEmpty();
         } catch (Exception e) {
             log.debug("Error checking if database has data: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Check if the database has the required surface waves tag data
+     */
+    @Override
+    protected boolean hasRequiredData() {
+        try {
+            // Check if the tags table exists and has data
+            try (Connection conn = getConnection();
+                 Statement stmt = conn.createStatement()) {
+
+                // Check if tags table exists
+                try {
+                    ResultSet rs = stmt.executeQuery("SELECT COUNT(*) as count FROM tags");
+                    if (rs.next()) {
+                        int count = rs.getInt("count");
+                        return count > 0; // Table exists and has data
+                    }
+                } catch (SQLException e) {
+                    log.debug("Tags table does not exist or cannot be queried: {}", e.getMessage());
+                    return false;
+                }
+            }
+            return false;
+        } catch (Exception e) {
+            log.debug("Error checking if database has required data: {}", e.getMessage());
             return false;
         }
     }

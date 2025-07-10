@@ -33,41 +33,44 @@ public class SqliteStartupHandler implements ApplicationRunner {
     /**
      * Initialize the shared SQLite database
      * This database contains both surface waves and buoy time series data
+     * If the database is not available or doesn't contain required data, it will be downloaded immediately
      */
     private void initializeSqliteDatabase() {
         try {
-            log.info("Initializing SQLite database...");
+            log.info("Initializing SQLite database at startup - will download if needed");
 
-            // Check if the database is available using any service (they all use the same file)
-            if (!buoyTimeSeriesService.isDatabaseAvailable()) {
-                log.info("SQLite database not available, will be created on first API call");
+            // Since both services share the same database file, we only need to download once
+            // First check if either service already has the data available
+            boolean buoyDataAvailable = buoyTimeSeriesService.isDataAvailable();
+            boolean surfaceWavesDataAvailable = tagService.isDataAvailable("surface-waves");
+
+            if (buoyDataAvailable && surfaceWavesDataAvailable) {
+                log.info("SQLite database is already available for all services");
                 return;
             }
 
-            log.info("SQLite database file is available");
+            // If data is not available for any service, download using the buoy service
+            log.info("SQLite database needs to be downloaded - downloading now");
+            boolean success = buoyTimeSeriesService.ensureDataAvailability();
 
-            // Check if surface waves data is available
-            boolean hasSurfaceWavesData = false;
-            try {
-                hasSurfaceWavesData = !tagService.getAllTagFiles("surface-waves").isEmpty();
-                log.info("Surface waves data is {}", hasSurfaceWavesData ? "available" : "not available");
-            } catch (Exception e) {
-                log.debug("Error checking surface waves data: {}", e.getMessage());
-            }
+            if (success) {
+                log.info("SQLite database initialization completed successfully - database is ready for use");
 
-            // Download the database if no surface waves data
-            if (!hasSurfaceWavesData) {
-                log.info("No surface waves data found, automatically downloading database...");
-                boolean success = tagService.downloadData("surface-waves");
-                if (success) {
-                    log.info("SQLite database downloaded successfully on startup");
-                } else {
-                    log.warn("Failed to download SQLite database on startup - will retry on API calls");
+                // Double-check that both services can access the data
+                buoyDataAvailable = buoyTimeSeriesService.isDataAvailable();
+                surfaceWavesDataAvailable = tagService.isDataAvailable("surface-waves");
+
+                if (!buoyDataAvailable || !surfaceWavesDataAvailable) {
+                    log.warn("SQLite database was downloaded but not all services can access it properly");
                 }
+            } else {
+                log.error("SQLite database initialization failed despite download attempt");
+                log.warn("The application will attempt to download the database again when needed");
             }
 
         } catch (Exception e) {
-            log.warn("Error initializing SQLite database: {}. Will retry on API calls.", e.getMessage());
+            log.error("Error initializing SQLite database: {}", e.getMessage());
+            log.warn("The application will attempt to download the database again when needed");
         }
     }
 }
