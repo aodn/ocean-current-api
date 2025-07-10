@@ -54,6 +54,21 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping("/image-list/buoy-timeseries")
+    @Operation(description = """
+            Get buoy time series image files list by `region` \n
+            e.g. `/metadata/image-list/buoy-timeseries?region=Gold_Coast` \n
+            """)
+    public ResponseEntity<List<ImageMetadataGroup>> getBuoyTimeSeriesImageFilesList(
+            @Parameter(description = "Region name", example = "Gold_Coast")
+            @RequestParam String region
+    ) {
+        log.info("Received request to search buoy time series image files for region: {}", region);
+
+        List<ImageMetadataGroup> results = searchService.findAllBuoyTimeSeriesByRegion(region);
+        return ResponseEntity.ok(results);
+    }
+
     @GetMapping("/image-list/current-meters/{plotName}")
     @Operation(description = """
             Get current meters image files list by `plot name` \n

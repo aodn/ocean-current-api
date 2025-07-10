@@ -1,6 +1,5 @@
 package au.org.aodn.oceancurrent.service;
 
-import au.org.aodn.oceancurrent.configuration.AppConstants;
 import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
@@ -12,7 +11,6 @@ import au.org.aodn.oceancurrent.util.elasticsearch.IndexingCallback;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
 import co.elastic.clients.elasticsearch.indices.CreateIndexRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -30,9 +28,8 @@ import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPP
 
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class IndexingService {
-    private final String indexName = AppConstants.INDEX_NAME;
+    private final String indexName;
     private static final int BATCH_SIZE = 100000;
     private static final int THREAD_POOL_SIZE = 2;
 
@@ -41,6 +38,19 @@ public class IndexingService {
     private final S3Service s3Service;
     private final ElasticsearchProperties esProperties;
     private final CacheManager cacheManager;
+
+    public IndexingService(ElasticsearchClient esClient,
+                           RemoteJsonService remoteJsonService,
+                           S3Service s3Service,
+                           ElasticsearchProperties esProperties,
+                           CacheManager cacheManager) {
+        this.esClient = esClient;
+        this.remoteJsonService = remoteJsonService;
+        this.s3Service = s3Service;
+        this.esProperties = esProperties;
+        this.indexName = esProperties.getIndexName();
+        this.cacheManager = cacheManager;
+    }
 
     public void createIndexIfNotExists() throws IOException {
         boolean exists = isIndexExists();

@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.configuration.sqlite;
 
+import au.org.aodn.oceancurrent.service.BuoyTimeSeriesService;
 import au.org.aodn.oceancurrent.service.tags.TagService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,141 +8,69 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
-
+/**
+ * Handles SQLite database initialization at application startup
+ * All services share the same SQLite database file
+ */
 @Slf4j
 @Component
 public class SqliteStartupHandler implements ApplicationRunner {
 
-    private final SqliteProperties sqliteProperties;
     private final TagService tagService;
+    private final BuoyTimeSeriesService buoyTimeSeriesService;
 
     @Autowired
-    public SqliteStartupHandler(SqliteProperties sqliteProperties, TagService tagService) {
-        this.sqliteProperties = sqliteProperties;
+    public SqliteStartupHandler(TagService tagService, BuoyTimeSeriesService buoyTimeSeriesService) {
         this.tagService = tagService;
+        this.buoyTimeSeriesService = buoyTimeSeriesService;
     }
 
     @Override
     public void run(ApplicationArguments args) {
-        try {
-            ensureSqliteDirectoryExists();
-            ensureSqliteFileExists();
-
-            // Check if database has data, auto-download if needed
-            ensureDataIsAvailable();
-
-            log.info("SQLite database initialization completed successfully");
-        } catch (Exception e) {
-            log.warn("SQLite database initialization failed: {}. Will retry download on API calls.", e.getMessage());
-        }
+        initializeSqliteDatabase();
     }
 
-    private void ensureSqliteDirectoryExists() throws IOException {
-        String localPath = sqliteProperties.getLocalPath();
-        log.info("Ensuring SQLite directory exists for path: {}", localPath);
+    /**
+     * Initialize the shared SQLite database
+     * This database contains both surface waves and buoy time series data
+     * If the database is not available or doesn't contain required data, it will be downloaded immediately
+     */
+    private void initializeSqliteDatabase() {
+        try {
+            log.info("Initializing SQLite database at startup - will download if needed");
 
-        Path dbPath = Paths.get(localPath).toAbsolutePath();
-        Path parentDir = dbPath.getParent();
+            // Since both services share the same database file, we only need to download once
+            // First check if either service already has the data available
+            boolean buoyDataAvailable = buoyTimeSeriesService.isDataAvailable();
+            boolean surfaceWavesDataAvailable = tagService.isDataAvailable("surface-waves");
 
-        if (parentDir != null) {
-            if (!Files.exists(parentDir)) {
-                try {
-                    Files.createDirectories(parentDir);
-                    log.info("Created SQLite directory: {}", parentDir.toAbsolutePath());
-                } catch (IOException e) {
-                    log.error("Failed to create SQLite directory {}: {}", parentDir.toAbsolutePath(), e.getMessage());
-                    throw e;
+            if (buoyDataAvailable && surfaceWavesDataAvailable) {
+                log.info("SQLite database is already available for all services");
+                return;
+            }
+
+            // If data is not available for any service, download using the buoy service
+            log.info("SQLite database needs to be downloaded - downloading now");
+            boolean success = buoyTimeSeriesService.ensureDataAvailability();
+
+            if (success) {
+                log.info("SQLite database initialization completed successfully - database is ready for use");
+
+                // Double-check that both services can access the data
+                buoyDataAvailable = buoyTimeSeriesService.isDataAvailable();
+                surfaceWavesDataAvailable = tagService.isDataAvailable("surface-waves");
+
+                if (!buoyDataAvailable || !surfaceWavesDataAvailable) {
+                    log.warn("SQLite database was downloaded but not all services can access it properly");
                 }
             } else {
-                log.info("SQLite directory already exists: {}", parentDir.toAbsolutePath());
-            }
-        } else {
-            log.warn("Parent directory is null for path: {}", dbPath.toAbsolutePath());
-        }
-    }
-
-    private void ensureSqliteFileExists() throws SQLException {
-        String localPath = sqliteProperties.getLocalPath();
-        Path dbPath = Paths.get(localPath).toAbsolutePath();
-
-        log.info("Checking if SQLite database file exists: {}", dbPath);
-
-        if (!Files.exists(dbPath)) {
-            try {
-                // Create empty SQLite database with basic structure
-                createEmptyDatabase(dbPath.toString());
-                log.info("Created empty SQLite database: {}", dbPath);
-            } catch (SQLException e) {
-                log.error("Failed to create SQLite database {}: {}", dbPath, e.getMessage());
-                throw e;
-            }
-        } else {
-            log.info("SQLite database file already exists: {}", dbPath);
-        }
-    }
-
-    private void createEmptyDatabase(String dbPath) throws SQLException {
-        String url = "jdbc:sqlite:" + dbPath;
-
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement stmt = conn.createStatement()) {
-
-            // Create the tags table structure (will be empty until first download)
-            String createTableSql = """
-                CREATE TABLE IF NOT EXISTS tags (
-                    tagfile TEXT NOT NULL,
-                    "order" SMALLINT NOT NULL,
-                    x SMALLINT NOT NULL,
-                    y SMALLINT NOT NULL,
-                    sz SMALLINT NOT NULL,
-                    title TEXT,
-                    url TEXT,
-                    PRIMARY KEY (tagfile, "order")
-                );
-                """;
-
-            String createIndexSql = """
-                CREATE INDEX IF NOT EXISTS ix_tags_tagfile ON tags (tagfile);
-                """;
-
-            stmt.execute(createTableSql);
-            stmt.execute(createIndexSql);
-
-            log.debug("Created empty tags table structure");
-        }
-    }
-
-    private void ensureDataIsAvailable() {
-        try {
-            // Check if database has data
-            boolean hasData = false;
-            try {
-                hasData = tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty();
-            } catch (Exception e) {
-                log.debug("Error checking database data: {}", e.getMessage());
+                log.error("SQLite database initialization failed despite download attempt");
+                log.warn("The application will attempt to download the database again when needed");
             }
 
-            if (!hasData) {
-                log.info("No data found in database, automatically downloading surface wave data...");
-                boolean success = tagService.downloadData("surface-waves");
-                if (success) {
-                    log.info("Surface wave data downloaded successfully on startup");
-                } else {
-                    log.warn("Failed to download surface wave data on startup - will retry on API calls");
-                }
-            } else {
-                log.info("Surface wave data is available in database");
-            }
         } catch (Exception e) {
-            log.warn("Error ensuring data availability on startup: {}. Will retry on API calls.", e.getMessage());
+            log.error("Error initializing SQLite database: {}", e.getMessage());
+            log.warn("The application will attempt to download the database again when needed");
         }
     }
 }

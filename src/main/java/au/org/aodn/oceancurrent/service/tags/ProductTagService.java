@@ -24,6 +24,12 @@ public interface ProductTagService {
     boolean isDataAvailable();
 
     /**
+     * Ensure data is available for this product, download if needed
+     * @return true if data is available or was successfully downloaded, false otherwise
+     */
+    boolean ensureDataAvailability();
+
+    /**
      * Check if the data source has any data
      */
     boolean hasData();

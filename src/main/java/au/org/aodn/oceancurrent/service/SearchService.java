@@ -1,6 +1,6 @@
 package au.org.aodn.oceancurrent.service;
 
-import au.org.aodn.oceancurrent.configuration.AppConstants;
+import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.CurrentMetersPlotResponse;
 import au.org.aodn.oceancurrent.dto.RegionLatestDate;
@@ -21,7 +21,6 @@ import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -37,9 +36,8 @@ import java.util.stream.Stream;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SearchService {
-    private final String indexName = AppConstants.INDEX_NAME;
+    private final String indexName;
 
     private static final String FIELD_PRODUCT_ID = "productId";
     private static final String FIELD_REGION = "region";
@@ -60,6 +58,19 @@ public class SearchService {
 
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
+    private final BuoyTimeSeriesService buoyTimeSeriesService;
+
+    public SearchService(ElasticsearchClient esClient,
+                         ObjectMapper objectMapper,
+                         BuoyTimeSeriesService buoyTimeSeriesService,
+                         ElasticsearchProperties esProperties) {
+        this.esClient = esClient;
+        this.objectMapper = objectMapper;
+        this.buoyTimeSeriesService = buoyTimeSeriesService;
+        this.indexName = esProperties.getIndexName();
+    }
+
+
 
     public ImageMetadataGroup findByProductAndRegion(String productId, String region) throws IOException {
         Query query = QueryBuilders.bool()
@@ -377,6 +388,13 @@ public class SearchService {
             log.error("Error fetching current meters plot data", e);
             throw new RuntimeException("Failed to retrieve current meters plot data", e);
         }
+    }
+
+    /**
+     * Delegates to BuoyTimeSeriesService to find all buoy time series by region
+     */
+    public List<ImageMetadataGroup> findAllBuoyTimeSeriesByRegion(String region) {
+        return buoyTimeSeriesService.findAllBuoyTimeSeriesByRegion(region);
     }
 
     private List<ImageMetadataEntry> getDocumentsBeforeDate(String productId, String region, String date, int size) {

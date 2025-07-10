@@ -11,4 +11,5 @@ public class ElasticsearchProperties {
     private String host;
     private String apiKey;
     private int maxResultWindow = 50000;
+    private String indexName = "ocean-current-files";
 }

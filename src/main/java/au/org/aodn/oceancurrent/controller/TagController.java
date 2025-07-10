@@ -261,18 +261,18 @@ public class TagController {
     }
 
     @GetMapping("/{productType}/by-date/{dateTime}")
-    @Operation(summary = "Get tags by date for any product type",
-            description = "Retrieve tag data for a specific date and product type")
+    @Operation(summary = "Get tags for any product type by date",
+            description = "Retrieve tag data for any supported product type by date")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved tags"),
-            @ApiResponse(responseCode = "404", description = "Date or product not found"),
             @ApiResponse(responseCode = "400", description = "Invalid product type or date format"),
+            @ApiResponse(responseCode = "404", description = "Date not found"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<?> getTagsByDate(
-            @Parameter(description = "Product type (e.g., surface-waves)", required = true)
+    public ResponseEntity<?> getGenericTagsByDate(
+            @Parameter(description = "Product type (e.g., surface-waves, argo)", required = true)
             @PathVariable String productType,
-            @Parameter(description = "Date (format depends on product type)", required = true)
+            @Parameter(description = "Date in format specific to the product type", required = true)
             @PathVariable String dateTime) {
 
         try {
@@ -290,14 +290,10 @@ public class TagController {
                         .body(new ErrorResponse("Invalid date format for product type " + productType + ": " + dateTime));
             }
 
-            // Ensure data is available
-            if (!tagService.isDataAvailable(productType) || !tagService.hasData(productType)) {
-                // Try to download data
-                boolean downloadSuccess = tagService.downloadData(productType);
-                if (!downloadSuccess || !tagService.isDataAvailable(productType)) {
-                    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                            .body(new ErrorResponse("Data for product " + productType + " is temporarily unavailable. Please try again in a moment."));
-                }
+            // Ensure data is available (auto-download if needed)
+            if (!tagService.ensureDataAvailability(productType)) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(new ErrorResponse("Data for product " + productType + " is temporarily unavailable. Please try again in a moment."));
             }
 
             // Construct tag file path
@@ -310,8 +306,8 @@ public class TagController {
                         .body(new ErrorResponse("No data found for product '" + productType + "' and date '" + dateTime + "'. Expected tag file: " + tagFile));
             }
 
-            Object response = tagService.getTagsByTagFile(productType, tagFile);
-            return ResponseEntity.ok(response);
+            Object responseObj = tagService.getTagsByTagFile(productType, tagFile);
+            return ResponseEntity.ok(responseObj);
 
         } catch (Exception e) {
             log.error("Error retrieving tags for product {} and date {}: {}", productType, dateTime, e.getMessage(), e);
@@ -321,15 +317,15 @@ public class TagController {
     }
 
     @GetMapping("/{productType}/tag-files")
-    @Operation(summary = "Get all tag files for a product type",
-            description = "Retrieve all available tag files for a specific product type")
+    @Operation(summary = "Get all available tag files for any product type",
+            description = "Retrieve a list of all available tag files for any supported product type")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved tag files"),
             @ApiResponse(responseCode = "400", description = "Invalid product type"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public ResponseEntity<?> getTagFiles(
-            @Parameter(description = "Product type (e.g., surface-waves)", required = true)
+    public ResponseEntity<?> getGenericTagFiles(
+            @Parameter(description = "Product type (e.g., surface-waves, argo)", required = true)
             @PathVariable String productType) {
 
         try {
@@ -341,14 +337,10 @@ public class TagController {
                         .body(new ErrorResponse("Unsupported product type: " + productType));
             }
 
-            // Ensure data is available
-            if (!tagService.isDataAvailable(productType) || !tagService.hasData(productType)) {
-                // Try to download data
-                boolean downloadSuccess = tagService.downloadData(productType);
-                if (!downloadSuccess || !tagService.isDataAvailable(productType)) {
-                    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                            .body(new ErrorResponse("Data for product " + productType + " is temporarily unavailable. Please try again in a moment."));
-                }
+            // Ensure data is available (auto-download if needed)
+            if (!tagService.ensureDataAvailability(productType)) {
+                return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                        .body(new ErrorResponse("Data for product " + productType + " is temporarily unavailable. Please try again in a moment."));
             }
 
             List<String> tagFiles = tagService.getAllTagFiles(productType);
@@ -421,34 +413,14 @@ public class TagController {
      */
     private boolean ensureDataAvailable() {
         try {
-            // Quick check if data is already available
-            if (tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty()) {
+            // Use the TagService's ensureDataAvailability method which handles all the logic
+            boolean success = tagService.ensureDataAvailability("surface-waves");
+
+            if (success) {
+                log.info("Surface waves data is available and ready for use");
                 return true;
-            }
-
-            // Check if database file exists but has no data (cache issue)
-            if (tagService.isDataAvailable("surface-waves") && tagService.getAllTagFiles("surface-waves").isEmpty()) {
-                log.info("Database file exists but shows no data - possible cache issue, attempting download...");
             } else {
-                log.info("Database not available, attempting automatic download...");
-            }
-
-            boolean downloadSuccess = tagService.downloadData("surface-waves");
-
-            if (downloadSuccess) {
-                log.info("Automatic download completed successfully");
-
-                // Give a moment for the cache refresh to take effect
-                Thread.sleep(2000);
-
-                // Double-check that data is now available
-                boolean dataAvailable = tagService.isDataAvailable("surface-waves") && !tagService.getAllTagFiles("surface-waves").isEmpty();
-                if (!dataAvailable) {
-                    log.warn("Download succeeded but data still not available - may need service restart");
-                }
-                return dataAvailable;
-            } else {
-                log.warn("Automatic download failed");
+                log.warn("Surface waves data is not available despite download attempt");
                 return false;
             }
         } catch (Exception e) {
