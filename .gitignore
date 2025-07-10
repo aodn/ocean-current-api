@@ -61,3 +61,7 @@ out/
 data/
 *.db
 *.sqlite
+
+# AI files
+CLAUDE.md
+*.php

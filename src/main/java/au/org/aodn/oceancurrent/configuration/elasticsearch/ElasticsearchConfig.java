@@ -30,12 +30,14 @@ import java.io.IOException;
 @Profile("!test")
 public class ElasticsearchConfig {
     private final ApplicationContext applicationContext;
+    private final ElasticsearchProperties elasticsearchProperties;
     private final String host;
     private final String apiKey;
     private RestClient restClient;
 
     public ElasticsearchConfig(ApplicationContext applicationContext, ElasticsearchProperties elasticsearchProperties) {
         this.applicationContext = applicationContext;
+        this.elasticsearchProperties = elasticsearchProperties;
         this.host = elasticsearchProperties.getHost();
         this.apiKey = elasticsearchProperties.getApiKey();
     }
