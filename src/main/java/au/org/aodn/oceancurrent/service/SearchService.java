@@ -27,6 +27,10 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -60,6 +64,7 @@ public class SearchService {
 
     private final ElasticsearchClient esClient;
     private final ObjectMapper objectMapper;
+    private final BuoyTimeSeriesService buoyTimeSeriesService;
 
     public ImageMetadataGroup findByProductAndRegion(String productId, String region) throws IOException {
         Query query = QueryBuilders.bool()
@@ -377,6 +382,13 @@ public class SearchService {
             log.error("Error fetching current meters plot data", e);
             throw new RuntimeException("Failed to retrieve current meters plot data", e);
         }
+    }
+
+    /**
+     * Delegates to BuoyTimeSeriesService to find all buoy time series by region
+     */
+    public List<ImageMetadataGroup> findAllBuoyTimeSeriesByRegion(String region) {
+        return buoyTimeSeriesService.findAllBuoyTimeSeriesByRegion(region);
     }
 
     private List<ImageMetadataEntry> getDocumentsBeforeDate(String productId, String region, String date, int size) {
