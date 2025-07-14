@@ -18,6 +18,7 @@ springdoc:
 
 elasticsearch:
   max-result-window: 20000
+  index-name: ocean-current-files-test
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
@@ -42,10 +43,10 @@ aws:
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 
 sqlite:
-  remote-url: ${SURFACE_WAVES_SQLITE_REMOTE_URL:https://test.example.com/test-index.db}
+  remote-url: ${SQLITE_REMOTE_URL:https://test.example.com/test-index.db}
   local-path: data/sqlite/test-index.db
   download:
     cron:
       expression: "*/30 * * * * ?" # every 30 seconds for testing
-    connect-timeout: 5000
-    read-timeout: 10000
+    connect-timeout: 30000
+    read-timeout: 60000
