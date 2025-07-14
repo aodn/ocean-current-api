@@ -30,12 +30,14 @@ import java.io.IOException;
 @Profile("!test")
 public class ElasticsearchConfig {
     private final ApplicationContext applicationContext;
+    private final ElasticsearchProperties elasticsearchProperties;
     private final String host;
     private final String apiKey;
     private RestClient restClient;
 
     public ElasticsearchConfig(ApplicationContext applicationContext, ElasticsearchProperties elasticsearchProperties) {
         this.applicationContext = applicationContext;
+        this.elasticsearchProperties = elasticsearchProperties;
         this.host = elasticsearchProperties.getHost();
         this.apiKey = elasticsearchProperties.getApiKey();
     }
@@ -48,8 +50,10 @@ public class ElasticsearchConfig {
         }
         try {
             log.info("Initializing Elasticsearch client");
+            log.info("Elasticsearch connection host: {}", UrlUtils.maskSensitiveUrl(host));
+
             if (log.isDebugEnabled()) {
-                log.debug("Elasticsearch connection host: {}", UrlUtils.maskSensitiveUrl(host));
+                log.debug("Elasticsearch index name: {}", elasticsearchProperties.getIndexName());
             }
 
             restClient = RestClient.builder(

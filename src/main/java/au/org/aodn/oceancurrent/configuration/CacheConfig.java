@@ -33,7 +33,8 @@ public class CacheConfig {
         cacheManager.setCacheNames(List.of(
                 CacheNames.IMAGE_LIST,
                 CacheNames.CURRENT_METERS_PLOT_LIST,
-                CacheNames.LATEST_FILES
+                CacheNames.LATEST_FILES,
+                CacheNames.BUOY_TIME_SERIES
         ));
 
         return cacheManager;

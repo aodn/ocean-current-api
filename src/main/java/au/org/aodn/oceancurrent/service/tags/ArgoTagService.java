@@ -5,14 +5,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Example stub implementation for ocean color tag service.
  * This demonstrates how easy it is to add new product types to the system.
- *
  * TODO: Implement actual ocean color data source integration
  */
 @Slf4j
@@ -41,6 +39,13 @@ public class ArgoTagService implements ProductTagService {
     }
 
     @Override
+    public boolean ensureDataAvailability() {
+        log.debug("Argo tags data availability enforcement not yet implemented");
+        // TODO: Implement logic to ensure data is available
+        return false;
+    }
+
+    @Override
     public boolean hasData() {
         log.debug("Argo tags data presence check not yet implemented");
         // TODO: Implement actual data presence check
@@ -63,36 +68,23 @@ public class ArgoTagService implements ProductTagService {
 
     @Override
     public Object getTagsByTagFile(String tagFile) {
-        log.debug("Getting argo tags for tag file {} (stub implementation)", tagFile);
-
-        // TODO: Implement actual tag retrieval logic
-        // For now, return a stub response
-        List<Map<String, Object>> stubTags = new ArrayList<>();
-        Map<String, Object> stubTag = new HashMap<>();
-        stubTag.put("type", "argo");
-        stubTag.put("message", "Argo tag service not yet implemented");
-        stubTags.add(stubTag);
-
-        return new GenericTagResponse(PRODUCT_TYPE, tagFile, stubTags);
+        log.debug("Getting tags for argo tag file {} (stub implementation)", tagFile);
+        // TODO: Implement actual tag retrieval
+        List<Map<String, Object>> emptyTags = new ArrayList<>();
+        return new GenericTagResponse(PRODUCT_TYPE, tagFile, emptyTags);
     }
 
     @Override
     public String constructTagFilePath(String dateTime) {
         if (!isValidDateFormat(dateTime)) {
-            throw new IllegalArgumentException("Ocean color date must be in format YYYYMMDD (8 digits)");
+            throw new IllegalArgumentException("Date must be in format YYYYMMDD (8 digits)");
         }
-
-        // TODO: Implement actual ocean color tag file path construction
-        // Example format might be: oceancolor/YYYY/MM/YYYYMMDD_oceancolor.nc
-        String year = dateTime.substring(0, 4);
-        String month = dateTime.substring(4, 6);
-
-        return String.format("oceancolor/%s/%s/%s_oceancolor.nc", year, month, dateTime);
+        // Simple format for demonstration: YYYYMMDD.txt
+        return dateTime + ".txt";
     }
 
     @Override
     public boolean isValidDateFormat(String dateTime) {
-        // Argo tag use a different date format (YYYYMMDD instead of YYYYMMDDHH)
         return dateTime != null && dateTime.length() == 8 && dateTime.matches("\\d{8}");
     }
 }

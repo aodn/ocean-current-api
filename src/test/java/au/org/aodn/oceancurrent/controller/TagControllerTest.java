@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.service.tags.TagService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,15 @@ class TagControllerTest {
 
     @MockBean
     private TagService tagService;
+
+    @BeforeEach
+    void setUp() {
+        // Default mock for ensureDataAvailability to avoid 503 errors
+        when(tagService.ensureDataAvailability("surface-waves")).thenReturn(true);
+
+        // Add common mocks that are needed by most tests
+        when(tagService.getSupportedProductTypes()).thenReturn(Arrays.asList("surface-waves", "argo"));
+    }
 
     @Test
     void testGetWaveTagsByDate_Success() throws Exception {
@@ -85,6 +95,9 @@ class TagControllerTest {
     void testGetWaveTagsByDate_DatabaseUnavailableDownloadFails() throws Exception {
         // Given
         String dateTime = "2021010100";
+
+        // Override the default mock to simulate download failure
+        when(tagService.ensureDataAvailability("surface-waves")).thenReturn(false);
 
         // Mock ensureDataAvailable() flow where download fails
         when(tagService.isDataAvailable("surface-waves")).thenReturn(false);
@@ -177,6 +190,9 @@ class TagControllerTest {
         // Given
         String tagFile = "test_tagfile";
 
+        // Override the default mock to simulate download failure
+        when(tagService.ensureDataAvailability("surface-waves")).thenReturn(false);
+
         // Mock ensureDataAvailable() flow where download fails
         when(tagService.isDataAvailable("surface-waves")).thenReturn(false);
         when(tagService.getAllTagFiles("surface-waves")).thenReturn(List.of());
@@ -213,6 +229,9 @@ class TagControllerTest {
     @Test
     void testGetAllTagFiles_DatabaseUnavailableDownloadFails() throws Exception {
         // Given
+        // Override the default mock to simulate download failure
+        when(tagService.ensureDataAvailability("surface-waves")).thenReturn(false);
+
         // Mock ensureDataAvailable() flow where download fails
         when(tagService.isDataAvailable("surface-waves")).thenReturn(false);
         when(tagService.getAllTagFiles("surface-waves")).thenReturn(List.of());
@@ -313,6 +332,9 @@ class TagControllerTest {
         WaveTagResponse.TagData tagData = new WaveTagResponse.TagData(150, 200, 12, "Title 1", "http://url1.com");
         WaveTagResponse response = new WaveTagResponse(expectedTagFile, List.of(tagData));
 
+        // Mock for ensureDataAvailability for this product type
+        when(tagService.ensureDataAvailability(productType)).thenReturn(true);
+
         when(tagService.getSupportedProductTypes()).thenReturn(List.of(productType));
         when(tagService.isValidDateFormat(productType, dateTime)).thenReturn(true);
         when(tagService.isDataAvailable(productType)).thenReturn(true);
@@ -347,6 +369,10 @@ class TagControllerTest {
         // Given - Use a different product type to hit the generic endpoint
         String productType = "argo";
         String dateTime = "20210101";
+
+        // Mock for ensureDataAvailability for this product type to simulate failure
+        when(tagService.ensureDataAvailability(productType)).thenReturn(false);
+
         when(tagService.getSupportedProductTypes()).thenReturn(List.of(productType));
         when(tagService.isValidDateFormat(productType, dateTime)).thenReturn(true);
         when(tagService.isDataAvailable(productType)).thenReturn(false);
@@ -380,6 +406,10 @@ class TagControllerTest {
         // Given - Use a different product type to hit the generic endpoint
         String productType = "argo";
         List<String> tagFiles = Arrays.asList("file1", "file2");
+
+        // Mock for ensureDataAvailability for this product type
+        when(tagService.ensureDataAvailability(productType)).thenReturn(true);
+
         when(tagService.getSupportedProductTypes()).thenReturn(List.of(productType));
         when(tagService.isDataAvailable(productType)).thenReturn(true);
         when(tagService.hasData(productType)).thenReturn(true);
@@ -412,6 +442,10 @@ class TagControllerTest {
     void testGetGenericTagFiles_DataUnavailable() throws Exception {
         // Given - Use a different product type to hit the generic endpoint
         String productType = "argo";
+
+        // Mock for ensureDataAvailability for this product type to simulate failure
+        when(tagService.ensureDataAvailability(productType)).thenReturn(false);
+
         when(tagService.getSupportedProductTypes()).thenReturn(List.of(productType));
         when(tagService.isDataAvailable(productType)).thenReturn(false);
         when(tagService.hasData(productType)).thenReturn(false);

@@ -45,6 +45,7 @@ public class TagService {
 
     /**
      * Download data for a specific product type
+     * This will force a download regardless of current data availability
      */
     public boolean downloadData(String productType) {
         try {
@@ -52,6 +53,32 @@ public class TagService {
             return getServiceForProduct(productType).downloadData();
         } catch (Exception e) {
             log.error("Error downloading data for product {}: {}", productType, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Ensure data is available for a specific product type
+     * Will download data if needed
+     */
+    public boolean ensureDataAvailability(String productType) {
+        try {
+            log.debug("Ensuring data availability for product type: {}", productType);
+            return getServiceForProduct(productType).ensureDataAvailability();
+        } catch (Exception e) {
+            log.error("Error ensuring data availability for product {}: {}", productType, e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * Check if data is available for a specific product type
+     */
+    public boolean isDataAvailable(String productType) {
+        try {
+            return getServiceForProduct(productType).isDataAvailable();
+        } catch (Exception e) {
+            log.debug("Error checking data availability for product {}: {}", productType, e.getMessage());
             return false;
         }
     }
@@ -66,18 +93,6 @@ public class TagService {
         } catch (Exception e) {
             log.error("Error getting tag files for product {}: {}", productType, e.getMessage(), e);
             throw new RuntimeException("Failed to get tag files for product: " + productType, e);
-        }
-    }
-
-    /**
-     * Check if data is available for a specific product type
-     */
-    public boolean isDataAvailable(String productType) {
-        try {
-            return getServiceForProduct(productType).isDataAvailable();
-        } catch (Exception e) {
-            log.debug("Error checking data availability for product {}: {}", productType, e.getMessage());
-            return false;
         }
     }
 
