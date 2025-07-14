@@ -139,22 +139,40 @@ public abstract class SqliteBaseService {
      */
     protected boolean downloadSqliteDatabase() {
         // Use a lock to prevent concurrent downloads from multiple services
-        if (!downloadLock.tryLock()) {
+        log.info("Attempting to acquire download lock");
+        boolean lockAcquired = downloadLock.tryLock();
+        if (!lockAcquired) {
             log.info("Another download is already in progress, waiting...");
             try {
+                // Wait for the other download to complete
+                log.debug("Waiting to acquire lock after initial tryLock failed");
                 downloadLock.lock();
-                // If we get here, the other download has finished
+                log.debug("Lock acquired after waiting, now releasing it immediately");
+                downloadLock.unlock();
+
+                // Check if the database is now available after the other download
                 if (isDatabaseAvailable()) {
                     log.info("Database was downloaded by another service, no need to download again");
                     return true;
                 }
-            } finally {
-                downloadLock.unlock();
+                log.info("Database is still not available after waiting for other download to complete, will try to download");
+            } catch (Exception e) {
+                log.error("Error while waiting for another download: {}", e.getMessage(), e);
+                return false;
             }
+        } else {
+            log.debug("Lock acquired on first attempt");
+            // Release the lock we just acquired since we'll acquire it again below
+            downloadLock.unlock();
+            log.debug("Released lock acquired on first attempt");
         }
 
+        // At this point, either we got the lock on first try, or we waited for another download
+        // that didn't result in a valid database. Try to acquire the lock again.
         try {
+            log.debug("Attempting to acquire lock for actual download operation");
             downloadLock.lock();
+            log.debug("Lock acquired for download operation");
             downloadInProgress = true;
 
             log.info("Starting download of SQLite database from: {}", sqliteProperties.getRemoteUrl());
@@ -204,7 +222,9 @@ public abstract class SqliteBaseService {
             return false;
         } finally {
             downloadInProgress = false;
+            log.debug("Releasing download lock in finally block");
             downloadLock.unlock();
+            log.debug("Download lock released");
         }
     }
 

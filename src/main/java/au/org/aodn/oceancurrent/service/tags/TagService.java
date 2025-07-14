@@ -63,7 +63,7 @@ public class TagService {
      */
     public boolean ensureDataAvailability(String productType) {
         try {
-            log.info("Ensuring data availability for product type: {}", productType);
+            log.debug("Ensuring data availability for product type: {}", productType);
             return getServiceForProduct(productType).ensureDataAvailability();
         } catch (Exception e) {
             log.error("Error ensuring data availability for product {}: {}", productType, e.getMessage(), e);
