@@ -5,9 +5,6 @@ ocean-current:
     - title: "Snapshot SST"
       id: "snapshotSst"
 
-    - title: "Surface Waves"
-      id: "surfaceWaves"
-
     - title: "Argo"
       id: "argo"
 
@@ -121,3 +118,13 @@ ocean-current:
         - title: "Current Meters Region version 49"
           id: "currentMetersRegion-49"
           regionRequired: false
+
+
+    - title: "Surface Waves"
+      id: "surfaceWaves"
+      type: "ProductGroup"
+      children:
+        - title: "Wave"
+          id: "surfaceWaves-wave"
+        - title: "Buoy timeseries"
+          id: "surfaceWaves-buoyTimeseries"
