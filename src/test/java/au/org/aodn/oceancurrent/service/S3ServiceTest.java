@@ -82,14 +82,14 @@ class S3ServiceTest {
             assertEquals(2, result.size());
 
             ImageMetadataEntry entry1 = result.get(0);
-            assertEquals("surfaceWaves", entry1.getProductId());
+            assertEquals("surfaceWaves-wave", entry1.getProductId());
             assertEquals("WAVES/", entry1.getPath());
             assertEquals("2021010100.gif", entry1.getFileName());
             assertEquals("Au", entry1.getRegion());
             assertNull(entry1.getDepth());
 
             ImageMetadataEntry entry2 = result.get(1);
-            assertEquals("surfaceWaves", entry2.getProductId());
+            assertEquals("surfaceWaves-wave", entry2.getProductId());
             assertEquals("WAVES/", entry2.getPath());
             assertEquals("2021020100.gif", entry2.getFileName());
             assertEquals("Au", entry2.getRegion());
@@ -318,7 +318,7 @@ class S3ServiceTest {
 
             // Assert
             assertEquals(1, result.size());
-            assertEquals("surfaceWaves", result.get(0).getProductId());
+            assertEquals("surfaceWaves-wave", result.get(0).getProductId());
             verify(s3Client).listObjectsV2(any(ListObjectsV2Request.class));
         }
     }
