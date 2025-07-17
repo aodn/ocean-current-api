@@ -24,7 +24,7 @@ public class S3Service {
     private final AwsProperties awsProperties;
 
     private static final String WAVES_REGION = "Au";
-    private static final String WAVES_PRODUCT_ID = "surfaceWaves";
+    private static final String WAVES_PRODUCT_ID = "surfaceWaves-wave";
 
     /**
      * Lists and converts S3 surface waves files with the given prefix
@@ -109,6 +109,7 @@ public class S3Service {
 
     private ImageMetadataEntry createMetadataEntry(String key) {
         ImageMetadataEntry entry = new ImageMetadataEntry();
+
         entry.setProductId(WAVES_PRODUCT_ID);
         entry.setPath(awsProperties.getS3().getWavesPrefix());
         entry.setRegion(WAVES_REGION);

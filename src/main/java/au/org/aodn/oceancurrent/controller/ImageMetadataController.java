@@ -54,10 +54,10 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
-    @GetMapping("/image-list/buoy-timeseries")
+    @GetMapping("/image-list/surfaceWaves-buoyTimeseries")
     @Operation(description = """
             Get buoy time series image files list by `region` \n
-            e.g. `/metadata/image-list/buoy-timeseries?region=Gold_Coast` \n
+            e.g. `/metadata/image-list/surfaceWaves-buoyTimeseries?region=Gold_Coast` \n
             """)
     public ResponseEntity<List<ImageMetadataGroup>> getBuoyTimeSeriesImageFilesList(
             @Parameter(description = "Region name", example = "Gold_Coast")
