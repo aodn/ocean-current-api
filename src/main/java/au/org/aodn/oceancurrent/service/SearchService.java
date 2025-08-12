@@ -253,21 +253,42 @@ public class SearchService {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_DEPTH).value(depth)));
             }
 
-            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
-                            .index(indexName)
-                            .size(20000)
-                            .query(q -> q.bool(queryBuilder.build())),
-                    ImageMetadataEntry.class
-            );
+        
 
-            List<ImageMetadataEntry> entries = extractHits(response);
+            long totalHits = esClient.search(s -> s
+                                        .index(indexName)
+                                        .trackTotalHits(tth -> tth.enabled(true))
+                                        .size(0)
+                                        .query(q -> q.bool(queryBuilder.build())),
+                                        ImageMetadataEntry.class).hits().total().value();
+
+                        List<ImageMetadataEntry> allEntries = new ArrayList<>();
+                        int batchSize = 20000;
+                        int currentFrom = 0;
+
+                        while (currentFrom < totalHits) {
+                                final int from = currentFrom;
+                                SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                                                .index(indexName)
+                                                .size(batchSize)
+                                                .from(from)
+                                                .query(q -> q.bool(queryBuilder.build())),
+                                                ImageMetadataEntry.class);
+                                allEntries.addAll(extractHits(response));
+                                currentFrom = currentFrom + batchSize;
+                }
+
+
+
+
+
 
             log.info("Found {} images for product '{}'{} {}",
-                    entries.size(), productId,
+                    allEntries.size(), productId,
                     isValidRegion ? ", region '" + region + "'" : "",
                     isValidDepth? ", depth '" + depth + "'" : "");
 
-            return ImageMetadataConverter.createMetadataGroups(entries);
+            return ImageMetadataConverter.createMetadataGroups(allEntries);
         } catch (Exception e) {
             log.error("Error fetching image metadata", e);
             throw new RuntimeException(e);
@@ -349,14 +370,28 @@ public class SearchService {
                     .must(t -> t.prefix(f -> f.field(FIELD_PRODUCT_ID).value(PRODUCT_TYPE_CURRENT_METERS_PLOT)))
                     .must(t -> t.term(f -> f.field(FIELD_REGION).value(plotName)));
 
-            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
-                            .index(indexName)
-                            .size(20000)
-                            .query(q -> q.bool(queryBuilder.build())),
-                    ImageMetadataEntry.class
-            );
+            long totalHits = esClient.search(s -> s
+                                        .index(indexName)
+                                        .trackTotalHits(tth -> tth.enabled(true))
+                                        .size(0)
+                                        .query(q -> q.bool(queryBuilder.build())),
+                                        ImageMetadataEntry.class).hits().total().value();
 
-            List<ImageMetadataEntry> allEntries = extractHits(response);
+                        List<ImageMetadataEntry> allEntries = new ArrayList<>();
+                        int batchSize = 20000;
+                        int currentFrom = 0;
+
+                        while (currentFrom < totalHits) {
+                                final int from = currentFrom;
+                                SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                                                .index(indexName)
+                                                .size(batchSize)
+                                                .from(from)
+                                                .query(q -> q.bool(queryBuilder.build())),
+                                                ImageMetadataEntry.class);
+                                allEntries.addAll(extractHits(response));
+                                currentFrom = currentFrom + batchSize;
+                }
 
             if (allEntries.isEmpty()) {
                 log.info("No current meters plot data found with plot name: {}", plotName);
