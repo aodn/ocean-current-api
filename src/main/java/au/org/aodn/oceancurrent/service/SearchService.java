@@ -11,11 +11,13 @@ import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.util.ProductIdUtils;
 import au.org.aodn.oceancurrent.util.converter.ImageMetadataConverter;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.aggregations.Aggregate;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch._types.query_dsl.QueryBuilders;
+import co.elastic.clients.elasticsearch.core.OpenPointInTimeResponse;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.json.JsonData;
@@ -70,8 +72,6 @@ public class SearchService {
         this.indexName = esProperties.getIndexName();
     }
 
-
-
     public ImageMetadataGroup findByProductAndRegion(String productId, String region) throws IOException {
         Query query = QueryBuilders.bool()
                 .must(QueryBuilders.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
@@ -81,8 +81,7 @@ public class SearchService {
         SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                         .index(indexName)
                         .query(query),
-                ImageMetadataEntry.class
-        );
+                ImageMetadataEntry.class);
 
         return ImageMetadataConverter.toMetadataGroup(extractHits(response), productId, region);
     }
@@ -100,33 +99,23 @@ public class SearchService {
                                         .must(m -> m
                                                 .term(t -> t
                                                         .field(FIELD_PRODUCT_ID)
-                                                        .value(productId)
-                                                )
-                                        )
+                                                        .value(productId)))
                                         .must(m -> m
                                                 .term(t -> t
                                                         .field(FIELD_REGION)
-                                                        .value(region)
-                                                )
-                                        )
+                                                        .value(region)))
                                         .must(m -> m
                                                 .range(r -> r
                                                         .term(r1 -> r1
                                                                 .field(FIELD_FILE_NAME)
                                                                 .gte(fromDate)
-                                                                .lt(toDate)))
-                                        )
-                                )
-                        )
+                                                                .lt(toDate))))))
                         .sort(st -> st
                                 .field(f -> f
                                         .field(FIELD_FILE_NAME)
-                                        .order(SortOrder.Asc)
-                                )
-                        )
+                                        .order(SortOrder.Asc)))
                         .size(size),
-                ImageMetadataEntry.class
-        );
+                ImageMetadataEntry.class);
 
         List<ImageMetadataEntry> flatResults = response.hits().hits()
                 .stream()
@@ -149,49 +138,37 @@ public class SearchService {
                             .size(0)
                             .query(q -> q.bool(b -> b
                                     .must(
-                                            m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId))
+                                            m -> m.term(t -> t.field(FIELD_PRODUCT_ID)
+                                                    .value(productId))
 
                                     )
                                     .must(
-                                            m -> m.term(t -> t.field(FIELD_REGION).value(region))
-                                    )
-                            ))
+                                            m -> m.term(t -> t.field(FIELD_REGION)
+                                                    .value(region)))))
                             .aggregations(AGG_LESS_THAN_TARGET, a -> a
                                     .filter(f -> f
                                             .range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .lt(date)
-                                                    ))
-                                    )
+                                                            .lt(date))))
                                     .aggregations(AGG_TOP_LESS, a2 -> a2
                                             .topHits(th -> th
                                                     .size(size)
                                                     .sort(srt -> srt.field(f -> f
                                                             .field(FIELD_FILE_NAME)
-                                                            .order(SortOrder.Desc)
-                                                    ))
-                                            )
-                                    )
-                            )
+                                                            .order(SortOrder.Desc))))))
                             .aggregations(AGG_GREATER_THAN_TARGET, a -> a
                                     .filter(f -> f
                                             .range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .gt(date)
-                                                    ))
-                                    )
+                                                            .gt(date))))
                                     .aggregations(AGG_TOP_GREATER, a2 -> a2
                                             .topHits(th -> th
                                                     .size(size)
                                                     .sort(srt -> srt.field(f -> f
                                                             .field(FIELD_FILE_NAME)
-                                                            .order(SortOrder.Asc)
-                                                    ))
-                                            )
-                                    )
-                            ),
+                                                            .order(SortOrder.Asc)))))),
                     Void.class);
 
             List<ImageMetadataEntry> beforeDateResults = extractImageMetadataEntries(
@@ -209,7 +186,8 @@ public class SearchService {
                     .toList();
 
             log.info("Search operation completed - found {} results ({} before, {} after target date)",
-                    combinedSortedResults.size(), beforeDateResults.size(), afterDateResults.size());
+                    combinedSortedResults.size(), beforeDateResults.size(),
+                    afterDateResults.size());
 
             return ImageMetadataConverter.toMetadataGroup(combinedSortedResults, productId, region);
         } catch (Exception e) {
@@ -253,21 +231,49 @@ public class SearchService {
                 queryBuilder.must(t -> t.term(f -> f.field(FIELD_DEPTH).value(depth)));
             }
 
-            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
-                            .index(indexName)
-                            .size(20000)
-                            .query(q -> q.bool(queryBuilder.build())),
-                    ImageMetadataEntry.class
-            );
+            OpenPointInTimeResponse pitResponse = esClient.openPointInTime(o -> o
+                    .index(indexName)
+                    .keepAlive(t -> t.time("2m")));
 
-            List<ImageMetadataEntry> entries = extractHits(response);
+            String pitId = pitResponse.id();
+            int batchSize = 5000;
+
+            List<ImageMetadataEntry> allEntries = new ArrayList<>();
+            BoolQuery query = queryBuilder.build();
+            try {
+                List<FieldValue> searchAfter = null;
+                while (true) {
+                    final List<FieldValue> currentSearchAfter = searchAfter;
+                    SearchResponse<ImageMetadataEntry> response = esClient.search(s -> {
+                        s.pit(pit -> pit.id(pitId).keepAlive(t -> t.time("2m")))
+                                .size(batchSize)
+                                .sort(sort -> sort.field(f -> f.field(FIELD_FILE_NAME)
+                                        .order(SortOrder.Asc)))
+                                .query(q -> q.bool(query));
+                        if (currentSearchAfter != null) {
+                            s.searchAfter(currentSearchAfter);
+                        }
+                        return s;
+                    }, ImageMetadataEntry.class);
+
+                    List<ImageMetadataEntry> hits = extractHits(response);
+                    if (hits.isEmpty())
+                        break;
+                    allEntries.addAll(hits);
+
+                    List<Hit<ImageMetadataEntry>> hitList = response.hits().hits();
+                    searchAfter = hitList.get(hitList.size() - 1).sort();
+                }
+            } finally {
+                esClient.closePointInTime(c -> c.id(pitId));
+            }
 
             log.info("Found {} images for product '{}'{} {}",
-                    entries.size(), productId,
+                    allEntries.size(), productId,
                     isValidRegion ? ", region '" + region + "'" : "",
-                    isValidDepth? ", depth '" + depth + "'" : "");
+                    isValidDepth ? ", depth '" + depth + "'" : "");
 
-            return ImageMetadataConverter.createMetadataGroups(entries);
+            return ImageMetadataConverter.createMetadataGroups(allEntries);
         } catch (Exception e) {
             log.error("Error fetching image metadata", e);
             throw new RuntimeException(e);
@@ -281,57 +287,45 @@ public class SearchService {
                             .index(indexName)
                             .size(0)
                             .query(q -> q
-                                .bool(b -> b
-                                        .must(m -> m
-                                                .term(t -> t
-                                                        .field(FIELD_PRODUCT_ID)
-                                                        .value(productId)
-                                                )
-                                        )
-                                        .must(m -> m
-                                                .regexp(r -> r
-                                                        .field(FIELD_FILE_NAME)
-                                                        .value("\\d{8,14}\\.gif")
-                                                )
-                                        )
-                                )
-                        )
-                        .aggregations(AGG_LATEST_FILES, a -> a
-                                .terms(t -> t
-                                        .field(FIELD_REGION)
-                                        .size(REGION_COUNT)
-                                )
-                                .aggregations(AGG_TOP_HITS, a2 -> a2
-                                        .topHits(th -> th
-                                                .size(1)
-                                                .sort(srt -> srt
-                                                        .field(f -> f
-                                                                .field(FIELD_FILE_NAME)
-                                                                .order(SortOrder.Desc)
-                                                        )
-                                                )
-                                        )
-                                )
-                        ),
-                Void.class
-        );
+                                    .bool(b -> b
+                                            .must(m -> m
+                                                    .term(t -> t
+                                                            .field(FIELD_PRODUCT_ID)
+                                                            .value(productId)))
+                                            .must(m -> m
+                                                    .regexp(r -> r
+                                                            .field(FIELD_FILE_NAME)
+                                                            .value("\\d{8,14}\\.gif")))))
+                            .aggregations(AGG_LATEST_FILES, a -> a
+                                    .terms(t -> t
+                                            .field(FIELD_REGION)
+                                            .size(REGION_COUNT))
+                                    .aggregations(AGG_TOP_HITS, a2 -> a2
+                                            .topHits(th -> th
+                                                    .size(1)
+                                                    .sort(srt -> srt
+                                                            .field(f -> f
+                                                                    .field(FIELD_FILE_NAME)
+                                                                    .order(SortOrder.Desc)))))),
+                    Void.class);
 
-        List<RegionLatestDate> latestFiles = new ArrayList<>();
+            List<RegionLatestDate> latestFiles = new ArrayList<>();
 
-        response.aggregations()
-                .get(AGG_LATEST_FILES)
-                .sterms()
-                .buckets()
-                .array()
-                .forEach(bucket -> {
-                    String region = bucket.key().stringValue();
-                    RegionLatestDate regionLatestDate = extractRegionLatestFileFromBucket(region, bucket.aggregations());
-                    if (regionLatestDate == null) {
-                        log.warn("No latest file found for region: {}", region);
-                        return;
-                    }
-                    latestFiles.add(regionLatestDate);
-                });
+            response.aggregations()
+                    .get(AGG_LATEST_FILES)
+                    .sterms()
+                    .buckets()
+                    .array()
+                    .forEach(bucket -> {
+                        String region = bucket.key().stringValue();
+                        RegionLatestDate regionLatestDate = extractRegionLatestFileFromBucket(
+                                region, bucket.aggregations());
+                        if (regionLatestDate == null) {
+                            log.warn("No latest file found for region: {}", region);
+                            return;
+                        }
+                        latestFiles.add(regionLatestDate);
+                    });
 
             log.info("Found {} latest files for product: {}", latestFiles.size(), productId);
 
@@ -346,24 +340,50 @@ public class SearchService {
     public CurrentMetersPlotResponse findLatestCurrentMetersPlotByPlotName(String plotName) {
         try {
             BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
-                    .must(t -> t.prefix(f -> f.field(FIELD_PRODUCT_ID).value(PRODUCT_TYPE_CURRENT_METERS_PLOT)))
+                    .must(t -> t.prefix(f -> f.field(FIELD_PRODUCT_ID)
+                            .value(PRODUCT_TYPE_CURRENT_METERS_PLOT)))
                     .must(t -> t.term(f -> f.field(FIELD_REGION).value(plotName)));
 
-            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
-                            .index(indexName)
-                            .size(20000)
-                            .query(q -> q.bool(queryBuilder.build())),
-                    ImageMetadataEntry.class
-            );
+            OpenPointInTimeResponse pitResponse = esClient.openPointInTime(o -> o
+                    .index(indexName)
+                    .keepAlive(t -> t.time("2m")));
 
-            List<ImageMetadataEntry> allEntries = extractHits(response);
+            String pitId = pitResponse.id();
+            int batchSize = 1000;
 
-            if (allEntries.isEmpty()) {
-                log.info("No current meters plot data found with plot name: {}", plotName);
-                throw new ResourceNotFoundException("Current meters image", "plot name = " + plotName);
+            List<ImageMetadataEntry> allEntries = new ArrayList<>();
+            BoolQuery query = queryBuilder.build();
+
+            try {
+                List<FieldValue> searchAfter = null;
+                while (true) {
+                    final List<FieldValue> currentSearchAfter = searchAfter;
+                    SearchResponse<ImageMetadataEntry> response = esClient.search(s -> {
+                        s.pit(pit -> pit.id(pitId).keepAlive(t -> t.time("2m")))
+                                .size(batchSize)
+                                .sort(sort -> sort.field(f -> f.field(FIELD_FILE_NAME)
+                                        .order(SortOrder.Asc)))
+                                .query(q -> q.bool(query));
+                        if (currentSearchAfter != null) {
+                            s.searchAfter(currentSearchAfter);
+                        }
+                        return s;
+                    }, ImageMetadataEntry.class);
+
+                    List<ImageMetadataEntry> hits = extractHits(response);
+                    if (hits.isEmpty())
+                        break;
+                    allEntries.addAll(hits);
+
+                    List<Hit<ImageMetadataEntry>> hitList = response.hits().hits();
+                    searchAfter = hitList.get(hitList.size() - 1).sort();
+                }
+            } finally {
+                esClient.closePointInTime(c -> c.id(pitId));
             }
 
-            Integer highestVersion = ProductIdUtils.findHighestVersionNumber(allEntries, PRODUCT_TYPE_CURRENT_METERS_PLOT);
+            Integer highestVersion = ProductIdUtils.findHighestVersionNumber(allEntries,
+                    PRODUCT_TYPE_CURRENT_METERS_PLOT);
 
             if (highestVersion == null) {
                 log.info("No valid current meters plot versions found with plot name: {}", plotName);
@@ -397,31 +417,27 @@ public class SearchService {
         return buoyTimeSeriesService.findAllBuoyTimeSeriesByRegion(region);
     }
 
-    private List<ImageMetadataEntry> getDocumentsBeforeDate(String productId, String region, String date, int size) {
+    private List<ImageMetadataEntry> getDocumentsBeforeDate(String productId, String region, String date,
+                                                            int size) {
         try {
             SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
                             .index(indexName)
                             .size(size)
                             .query(q -> q
                                     .bool(b -> b
-                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
-                                            .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID)
+                                                    .value(productId)))
+                                            .must(m -> m.term(t -> t.field(FIELD_REGION)
+                                                    .value(region)))
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .lte(date)
-                                                    )
-                                            ))
-                                    )
-                            )
+                                                            .lte(date))))))
                             .sort(srt -> srt
                                     .field(f -> f
                                             .field(FIELD_FILE_NAME)
-                                            .order(SortOrder.Desc)
-                                    )
-                            ),
-                    ImageMetadataEntry.class
-            );
+                                            .order(SortOrder.Desc))),
+                    ImageMetadataEntry.class);
 
             log.debug("Found {} documents before date {}", response.hits().hits().size(), date);
 
@@ -441,24 +457,19 @@ public class SearchService {
                             .size(size)
                             .query(q -> q
                                     .bool(b -> b
-                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID).value(productId)))
-                                            .must(m -> m.term(t -> t.field(FIELD_REGION).value(region)))
+                                            .must(m -> m.term(t -> t.field(FIELD_PRODUCT_ID)
+                                                    .value(productId)))
+                                            .must(m -> m.term(t -> t.field(FIELD_REGION)
+                                                    .value(region)))
                                             .must(m -> m.range(r -> r
                                                     .term(r1 -> r1
                                                             .field(FIELD_FILE_NAME)
-                                                            .gte(date)
-                                                    )
-                                            ))
-                                    )
-                            )
+                                                            .gte(date))))))
                             .sort(srt -> srt
                                     .field(f -> f
                                             .field(FIELD_FILE_NAME)
-                                            .order(SortOrder.Asc)
-                                    )
-                            ),
-                    ImageMetadataEntry.class
-            );
+                                            .order(SortOrder.Asc))),
+                    ImageMetadataEntry.class);
 
             log.debug("Found {} documents after date {}", response.hits().hits().size(), date);
 
@@ -490,7 +501,8 @@ public class SearchService {
         }
     }
 
-    private List<ImageMetadataEntry> extractImageMetadataEntries(Map<String, Aggregate> aggregations, String targetKey, String topKey) {
+    private List<ImageMetadataEntry> extractImageMetadataEntries(Map<String, Aggregate> aggregations,
+                                                                 String targetKey, String topKey) {
         return aggregations
                 .get(targetKey)
                 .filter()
