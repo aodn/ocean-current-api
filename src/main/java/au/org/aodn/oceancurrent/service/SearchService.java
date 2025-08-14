@@ -247,7 +247,7 @@ public class SearchService {
                     SearchResponse<ImageMetadataEntry> response = esClient.search(s -> {
                         s.pit(pit -> pit.id(pitId).keepAlive(t -> t.time("2m")))
                                 .size(batchSize)
-                                .sort(sort -> sort.field(f -> f.field("fileName")
+                                .sort(sort -> sort.field(f -> f.field(FIELD_FILE_NAME)
                                         .order(SortOrder.Asc)))
                                 .query(q -> q.bool(query));
                         if (currentSearchAfter != null) {
@@ -361,7 +361,7 @@ public class SearchService {
                     SearchResponse<ImageMetadataEntry> response = esClient.search(s -> {
                         s.pit(pit -> pit.id(pitId).keepAlive(t -> t.time("2m")))
                                 .size(batchSize)
-                                .sort(sort -> sort.field(f -> f.field("fileName")
+                                .sort(sort -> sort.field(f -> f.field(FIELD_FILE_NAME)
                                         .order(SortOrder.Asc)))
                                 .query(q -> q.bool(query));
                         if (currentSearchAfter != null) {
