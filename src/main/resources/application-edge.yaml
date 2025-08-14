@@ -27,3 +27,10 @@ springdoc:
   swagger-ui:
     server:
       domain: https://oceancurrent.edge.aodn.org.au
+
+remote:
+  json:
+    base-url: "https://oceancurrent.edge.aodn.org.au/resource/"
+
+sqlite:
+  remote-url: "https://oceancurrent.edge.aodn.org.au/resource/waves/index.db"
