@@ -36,7 +36,7 @@ public class RemoteJsonService {
     }
 
     private void validateBaseUrl() {
-        String baseUrl = remoteProperties.getJson().getBaseUrl();
+        String baseUrl = "https://oceancurrent.edge.aodn.org.au/resource/";
         log.info("Validating base URL: {}", baseUrl);
         if (baseUrl == null || baseUrl.trim().isEmpty()) {
             throw new RemoteFileException("Base URL is not configured");
@@ -46,7 +46,7 @@ public class RemoteJsonService {
     private String buildFullUrl(String path) {
         try {
             return UriComponentsBuilder
-                    .fromUriString(remoteProperties.getJson().getBaseUrl())
+                    .fromUriString("https://oceancurrent.edge.aodn.org.au/resource/")
                     .path(path)
                     .build()
                     .toString();

@@ -175,9 +175,10 @@ public abstract class SqliteBaseService {
             log.debug("Lock acquired for download operation");
             downloadInProgress = true;
 
-            log.info("Starting download of SQLite database from: {}", sqliteProperties.getRemoteUrl());
+            log.info("Starting download of SQLite database from: {}",
+                    "https://oceancurrent.edge.aodn.org.au/resource/waves/index.db");
 
-            URL url = new URL(sqliteProperties.getRemoteUrl());
+            URL url = new URL("https://oceancurrent.edge.aodn.org.au/resource/waves/index.db");
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(sqliteProperties.getDownload().getConnectTimeout());
             connection.setReadTimeout(sqliteProperties.getDownload().getReadTimeout());
