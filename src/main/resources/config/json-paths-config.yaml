@@ -50,3 +50,15 @@ products:
     paths:
       - /adjustedSeaLevelAnomaly-sst.json
       - /adjustedSeaLevelAnomaly-sst-year.json
+
+  - product: "SealCTD"
+    description: "SealCTD products including temperature and salinity profiles"
+    paths:
+      - /AATAMS/sealCtd-sealTracks.json
+      - /AATAMS/sealCtd-timeseriesSalinity.json
+      - /AATAMS/sealCtd-timeseriesTemperature.json
+      - /AATAMS/sealCtdTags-10days.json
+      - /AATAMS/sealCtdTags-salinity.json
+      - /AATAMS/sealCtdTags-temperature.json
+      - /AATAMS/sealCtdTags-timeseries.json
+      - /AATAMS/sealCtdTags-ts.json
