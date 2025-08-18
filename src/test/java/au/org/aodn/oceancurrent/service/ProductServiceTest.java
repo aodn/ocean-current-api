@@ -203,4 +203,49 @@ class ProductServiceTest {
         assertThat(result).hasSize(2);
         assertThat(result).containsExactly(mockSnapshotSst, mockFourHourSst);
     }
+
+    @Test
+    public void testIsDepthRequired_trueForCurrentMetersPlot49() {
+        // Given
+        String productId = "currentMetersPlot-49";
+        Product product = Product.builder()
+                .id(productId)
+                .title("Current MetersPlot version 49")
+                .depthRequired(true)
+                .build();
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isDepthRequired(productId)).isTrue();
+    }
+
+    @Test
+    public void testIsRegionRequired_falseForCurrentMetersCalendar49() {
+        // Given
+        String productId = "currentMetersCalendar-49";
+        Product product = Product.builder()
+                .id(productId)
+                .title("Current Meters Calendar version 49")
+                .regionRequired(false)
+                .build();
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isRegionRequired(productId)).isFalse();
+    }
+
+    @Test
+    public void testRegionAndDepthRequired_defaultsWhenUnset() {
+        // Given
+        String productId = "sealCtd-timeseriesTemperature";
+        Product product = Product.builder()
+                .id(productId)
+                .title("SealCTD Timeseries Temperature")
+                .build(); // regionRequired=null -> defaults true, depthRequired=null -> defaults false
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isRegionRequired(productId)).isTrue();
+        assertThat(productService.isDepthRequired(productId)).isFalse();
+    }
 }

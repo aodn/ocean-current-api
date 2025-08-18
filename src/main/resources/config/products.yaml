@@ -85,17 +85,17 @@ ocean-current:
       id: "currentMeters"
       type: "ProductGroup"
       children:
-# Current Meters Products ids from frontend, they are used to access the products from different views
-#        - title: "Moored Instrument Array"
-#          id: "currentMeters-mooredInstrumentArray"
-#        - title: "Shelf"
-#          id: "currentMeters-shelf"
-#        - title: "Deep (ADCP)"
-#          id: "currentMeters-deepADCP"
-#        - title: "Deep (ADV)"
-#          id: "currentMeters-deepADV"
-#        - title: "Southern Ocean"
-#          id: "currentMeters-southernOcean"
+        # Current Meters Products ids from frontend, they are used to access the products from different views
+        #        - title: "Moored Instrument Array"
+        #          id: "currentMeters-mooredInstrumentArray"
+        #        - title: "Shelf"
+        #          id: "currentMeters-shelf"
+        #        - title: "Deep (ADCP)"
+        #          id: "currentMeters-deepADCP"
+        #        - title: "Deep (ADV)"
+        #          id: "currentMeters-deepADV"
+        #        - title: "Southern Ocean"
+        #          id: "currentMeters-southernOcean"
 
         # Current Meters Products ids do not match frontend product ids, these ids are used to save the image files list
         # Version 48
@@ -119,7 +119,6 @@ ocean-current:
           id: "currentMetersRegion-49"
           regionRequired: false
 
-
     - title: "Surface Waves"
       id: "surfaceWaves"
       type: "ProductGroup"
@@ -128,3 +127,24 @@ ocean-current:
           id: "surfaceWaves-wave"
         - title: "Buoy timeseries"
           id: "surfaceWaves-buoyTimeseries"
+
+    - title: "SealCTD"
+      id: "sealCtd"
+      type: "ProductGroup"
+      children:
+        - title: "SealCTD Seal Tracks"
+          id: "sealCtd-sealTracks"
+        - title: "SealCTD Timeseries Salinity"
+          id: "sealCtd-timeseriesSalinity"
+        - title: "SealCTD Timeseries Temperature"
+          id: "sealCtd-timeseriesTemperature"
+        - title: "SealCTD Tags 10 days"
+          id: "sealCtdTags-10days"
+        - title: "SealCTD Tags Salinity"
+          id: "sealCtdTags-salinity"
+        - title: "SealCTD Tags Temperature"
+          id: "sealCtdTags-temperature"
+        - title: "SealCTD Tags timeseries"
+          id: "sealCtdTags-timeseries"
+        - title: "SeaCTD Tags TS Plot"
+          id: "sealCtdTags-ts"
