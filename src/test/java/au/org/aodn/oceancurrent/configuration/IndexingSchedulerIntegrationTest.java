@@ -32,15 +32,11 @@ public class IndexingSchedulerIntegrationTest {
 
     @Test
     void testSchedulerIsConfigured() {
-        // Verify that the scheduler is created
         assertNotNull(indexingScheduler, "Scheduled indexing scheduler is null");
 
-        // Verify the cron expression is valid
         CronExpression expression = CronExpression.parse(configuredCronExpression);
         assertNotNull(expression, "Cron expression should be valid");
 
-        // When scheduled for 2 AM Hobart time, the UTC time would be either 15:00 (3 PM)
-        // or 16:00 (4 PM) of the previous day, depending on daylight saving
         LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
         LocalDateTime nextRun = expression.next(now);
         assertNotNull(nextRun, "Next run time should be calculated");
@@ -54,9 +50,7 @@ public class IndexingSchedulerIntegrationTest {
             assertNotNull(annotation, "Method should have @Scheduled annotation");
             assertTrue(annotation.cron().contains("${elasticsearch.indexing.cron.expression"),
                     "Annotation should reference the property");
-            assertEquals(
-                    "Australia/Hobart",
-                    annotation.zone(),
+            assertEquals("Australia/Hobart", annotation.zone(),
                     "Timezone should be set to Australia/Hobart for consistent execution");
         } catch (NoSuchMethodException e) {
             throw new AssertionError("Scheduled method not found", e);

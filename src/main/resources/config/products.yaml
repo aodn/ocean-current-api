@@ -132,8 +132,8 @@ ocean-current:
       id: "sealCtd"
       type: "ProductGroup"
       children:
-        - title: "SealCTD Seal Track"
-        - id: "sealCtd-sealTrack"
+        - title: "SealCTD Seal Tracks"
+          id: "sealCtd-sealTracks"
         - title: "SealCTD Timeseries Salinity"
           id: "sealCtd-timeseriesSalinity"
         - title: "SealCTD Timeseries Temperature"

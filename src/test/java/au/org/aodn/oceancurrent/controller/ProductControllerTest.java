@@ -164,8 +164,8 @@ public class ProductControllerTest {
 
         // Add SealCTD children
         Product mockSealTrack = Product.builder()
-                .title("SealCTD Seal Track")
-                .id("sealCtd-sealTrack")
+                .title("SealCTD Seal Tracks")
+                .id("sealCtd-sealTracks")
                 .type("Product")
                 .parent(mockSealCtd)
                 .build();
@@ -275,7 +275,7 @@ public class ProductControllerTest {
                 .andExpect(jsonPath("$[*].id", containsInAnyOrder(
                         "snapshotSst", "surfaceWaves", "argo", "tidalCurrents", "EACMooringArray",
                         "fourHourSst-sstFilled", "fourHourSst-sst", "fourHourSst-sstAge", "fourHourSst-windSpeed",
-                        "sealCtd-sealTrack", "sealCtd-timeseriesSalinity", "sealCtd-timeseriesTemperature",
+                        "sealCtd-sealTracks", "sealCtd-timeseriesSalinity", "sealCtd-timeseriesTemperature",
                         "sealCtdTags-10days", "sealCtdTags-salinity", "sealCtdTags-temperature",
                         "sealCtdTags-timeseries", "sealCtdTags-ts")));
     }
