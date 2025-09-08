@@ -52,7 +52,7 @@ products:
       - /adjustedSeaLevelAnomaly-sst-year.json
 
   - product: "Tidal Currents"
-    description: "Tidal Currents products"
+    description: "Tidal Currents and sea level predictions"
     paths:
       - /tides/tidalCurrents-spd.json
       - /tides/tidalCurrents-sl.json
