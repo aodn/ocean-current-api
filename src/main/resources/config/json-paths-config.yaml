@@ -70,6 +70,6 @@ products:
       - /AATAMS/sealCtdTags-ts.json
 
   - product: "EAC Mooring Array"
-    description: "EAC Mooring Array products SST for Brisbane only"
+    description: "EAC Mooring Array SST products" # for Brisbane only
     paths:
       - /EAC_array_figures/EACMooringArray.json
