@@ -8,9 +8,6 @@ ocean-current:
     - title: "Argo"
       id: "argo"
 
-    - title: "Tidal Currents"
-      id: "tidalCurrents"
-
     - title: "EAC Mooring Array"
       id: "EACMooringArray"
 
@@ -127,6 +124,15 @@ ocean-current:
           id: "surfaceWaves-wave"
         - title: "Buoy timeseries"
           id: "surfaceWaves-buoyTimeseries"
+
+    - title: "Tidal Currents"
+      id: "tidalCurrents"
+      type: "ProductGroup"
+      children:
+        - title: "Tidal Currents Speed"
+          id: "tidalCurrents-spd"
+        - title: "Tidal Currents Sea Level"
+          id: "tidalCurrents-sl"
 
     - title: "SealCTD"
       id: "sealCtd"

@@ -51,6 +51,12 @@ products:
       - /adjustedSeaLevelAnomaly-sst.json
       - /adjustedSeaLevelAnomaly-sst-year.json
 
+  - product: "Tidal Currents"
+    description: "Tidal Currents products"
+    paths:
+      - /tides/tidalCurrents-spd.json
+      - /tides/tidalCurrents-sl.json
+
   - product: "SealCTD"
     description: "SealCTD products including temperature and salinity profiles"
     paths:
@@ -62,3 +68,8 @@ products:
       - /AATAMS/sealCtdTags-temperature.json
       - /AATAMS/sealCtdTags-timeseries.json
       - /AATAMS/sealCtdTags-ts.json
+
+  - product: "EAC Mooring Array"
+    description: "EAC Mooring Array products SST for Brisbane only"
+    paths:
+      - /EAC_array_figures/EACMooringArray.json
