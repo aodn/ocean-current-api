@@ -123,6 +123,18 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping("/latest-dates/argo")
+    @Operation(description = """
+            Get the latest date for Argo product from remote server \n
+            e.g. `/metadata/latest-dates/argo` \n
+            Returns the latest available date by polling the remote server.
+            """)
+    public ResponseEntity<RegionLatestDateResponse> getLatestArgoDate() {
+        log.info("Received request to get latest Argo date from remote server");
+        RegionLatestDateResponse results = remoteLatestDateService.getLatestDateByProductId("argo");
+        return ResponseEntity.ok(results);
+    }
+
     @GetMapping("/latest-dates/{productId}")
     @Operation(description = """
             Get the latest dates for each region by `product id` \n
@@ -142,18 +154,6 @@ public class ImageMetadataController {
         RegionLatestDateResponse results = searchService.findLatestRegionDatesByProductId(productId);
         return ResponseEntity.ok(results);
 
-    }
-
-    @GetMapping("/latest-dates/argo")
-    @Operation(description = """
-            Get the latest date for Argo product from remote server \n
-            e.g. `/metadata/latest-dates/argo` \n
-            Returns the latest available date by polling the remote server.
-            """)
-    public ResponseEntity<RegionLatestDateResponse> getLatestArgoDate() {
-        log.info("Received request to get latest Argo date from remote server");
-        RegionLatestDateResponse results = remoteLatestDateService.getLatestDateByProductId("argo");
-        return ResponseEntity.ok(results);
     }
 
     @GetMapping("/product/{productId}/region/{region}")
