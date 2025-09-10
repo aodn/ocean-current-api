@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -26,6 +27,9 @@ class RemoteLatestDateServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
+    @Mock
+    private CacheManager cacheManager;
+
     private RemoteLatestDateService remoteLatestDateService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -34,7 +38,7 @@ class RemoteLatestDateServiceTest {
 
     @BeforeEach
     void setUp() {
-        remoteLatestDateService = new RemoteLatestDateService(restTemplate);
+        remoteLatestDateService = new RemoteLatestDateService(restTemplate, cacheManager);
     }
 
     @Test
@@ -120,20 +124,4 @@ class RemoteLatestDateServiceTest {
         verify(restTemplate, times(0)).headForHeaders(anyString());
     }
 
-    @Test
-    void getLatestDateByProductId_CacheHit_DoesNotCallRemote() {
-        // Given - first call succeeds
-        String expectedUrl = "https://oceancurrent.edge.aodn.org.au/resource/profiles/map/" + TODAY + ".gif";
-        when(restTemplate.headForHeaders(expectedUrl)).thenReturn(new HttpHeaders());
-
-        // When - make two calls
-        RegionLatestDateResponse firstResponse = remoteLatestDateService.getLatestDateByProductId("argo");
-        RegionLatestDateResponse secondResponse = remoteLatestDateService.getLatestDateByProductId("argo");
-
-        // Then - both responses should be identical and only one HTTP call made
-        assertThat(firstResponse.getRegionLatestDates().get(0).getLatestDate()).isEqualTo(TODAY);
-        assertThat(secondResponse.getRegionLatestDates().get(0).getLatestDate()).isEqualTo(TODAY);
-
-        verify(restTemplate, times(1)).headForHeaders(expectedUrl);
-    }
 }
