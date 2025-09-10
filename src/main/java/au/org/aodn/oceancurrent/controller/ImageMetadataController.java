@@ -5,6 +5,7 @@ import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
 import au.org.aodn.oceancurrent.exception.InvalidProductException;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.service.ProductService;
+import au.org.aodn.oceancurrent.service.RemoteLatestDateService;
 import au.org.aodn.oceancurrent.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,6 +30,7 @@ import java.util.List;
 public class ImageMetadataController {
     private final SearchService searchService;
     private final ProductService productService;
+    private final RemoteLatestDateService remoteLatestDateService;
 
     @GetMapping("/search")
     @Operation(description = """
@@ -118,6 +120,18 @@ public class ImageMetadataController {
                             + productId);
         }
         List<ImageMetadataGroup> results = searchService.findAllImageList(productId, region, depth);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/latest-dates/argo")
+    @Operation(description = """
+            Get the latest date for Argo product from remote server \n
+            e.g. `/metadata/latest-dates/argo` \n
+            Returns the latest available date by polling the remote server.
+            """)
+    public ResponseEntity<RegionLatestDateResponse> getLatestArgoDate() {
+        log.info("Received request to get latest Argo date from remote server");
+        RegionLatestDateResponse results = remoteLatestDateService.getLatestDateByProductId("argo");
         return ResponseEntity.ok(results);
     }
 

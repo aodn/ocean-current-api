@@ -34,7 +34,8 @@ public class CacheConfig {
                 CacheNames.IMAGE_LIST,
                 CacheNames.CURRENT_METERS_PLOT_LIST,
                 CacheNames.LATEST_FILES,
-                CacheNames.BUOY_TIME_SERIES
+                CacheNames.BUOY_TIME_SERIES,
+                CacheNames.ARGO_LATEST_DATE
         ));
 
         return cacheManager;
