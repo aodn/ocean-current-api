@@ -27,7 +27,7 @@ public class SqliteDownloadScheduler {
                 log.warn("Scheduled SQLite database download failed");
             }
         } catch (Exception e) {
-            log.error("Error during scheduled SQLite database download: {}", e.getMessage(), e);
+            log.error("[FATAL] Error during scheduled SQLite database download: {}", e.getMessage(), e);
         }
     }
 }

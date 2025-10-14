@@ -36,7 +36,7 @@ public class IndexingScheduler {
                     duration.toMinutes(),
                     duration.minusMinutes(duration.toMinutes()).getSeconds());
         } catch (IOException e) {
-            log.error("Error during scheduled indexing", e);
+            log.error("[FATAL] Error during scheduled indexing", e);
         }
     }
 
@@ -54,7 +54,7 @@ public class IndexingScheduler {
                     duration.toMinutes(),
                     duration.minusMinutes(duration.toMinutes()).getSeconds());
         } catch (IOException e) {
-            log.error("Error during scheduled S3 indexing", e);
+            log.error("[FATAL] Error during scheduled S3 indexing", e);
         }
     }
 }
