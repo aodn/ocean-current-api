@@ -42,7 +42,7 @@ class RemoteLatestDateServiceTest {
 
     @BeforeEach
     void setUp() {
-        when(remoteProperties.getBaseUrl()).thenReturn("https://oceancurrent.edge.aodn.org.au/resource/");
+        when(remoteProperties.getResourceBaseUrl()).thenReturn("https://oceancurrent.edge.aodn.org.au/resource/");
         remoteLatestDateService = new RemoteLatestDateService(restTemplate, cacheManager, remoteProperties);
     }
 

@@ -19,8 +19,22 @@ public class RemoteServiceProperties {
     @Pattern(regexp = "^(https)://.*$", message = "Remote service URL must start with https://")
     private String baseUrl;
 
+    /**
+     * CloudFront proxy path for accessing remote resources
+     */
+    private String resourcePath = "/resource/";
+
     @PostConstruct
     public void logConfig() {
-        log.info("Remote JSON file service base URL: {}", baseUrl);
+        log.info("Remote service base URL: {}", baseUrl);
+        log.info("Remote resource path (CloudFront proxy): {}", resourcePath);
+    }
+
+    /**
+     * Get the full URL for accessing remote resource files through CloudFront proxy
+     * @return base URL + CloudFront proxy path (e.g., "https://example.com/resource/")
+     */
+    public String getResourceBaseUrl() {
+        return baseUrl + resourcePath;
     }
 }

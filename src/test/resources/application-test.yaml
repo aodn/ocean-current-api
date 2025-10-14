@@ -31,6 +31,7 @@ elasticsearch:
 
 remote:
   base-url: "https://localhost:8080"
+  resource-path: "/resource/"
 
 aws:
   region: ${AWS_S3_REGION:ap-southeast-2}

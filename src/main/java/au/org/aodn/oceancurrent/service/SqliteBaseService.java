@@ -50,7 +50,7 @@ public abstract class SqliteBaseService {
     }
 
     protected String getSqliteRemoteUrl() {
-        return remoteProperties.getBaseUrl() + sqliteProperties.getRemotePath();
+        return remoteProperties.getResourceBaseUrl() + sqliteProperties.getRemotePath();
     }
 
     /**

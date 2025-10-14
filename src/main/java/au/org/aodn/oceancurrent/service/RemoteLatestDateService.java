@@ -40,7 +40,7 @@ public class RemoteLatestDateService {
     }
 
     private void initializeProductUrls() {
-        productBaseUrls.put("argo", remoteProperties.getBaseUrl() + "profiles/map/");
+        productBaseUrls.put("argo", remoteProperties.getResourceBaseUrl() + "profiles/map/");
     }
 
     @Cacheable(value = CacheNames.ARGO_LATEST_DATE, key = "#productId")
