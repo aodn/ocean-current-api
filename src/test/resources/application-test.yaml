@@ -30,8 +30,7 @@ elasticsearch:
     elastic-version: 8.17.4 # Use the same version as in Elastic Cloud
 
 remote:
-  json:
-    base-url: "https://localhost:8080"
+  base-url: "https://localhost:8080"
 
 aws:
   region: ${AWS_S3_REGION:ap-southeast-2}
@@ -43,7 +42,7 @@ aws:
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 
 sqlite:
-  remote-url: ${SQLITE_REMOTE_URL:https://test.example.com/test-index.db}
+  remote-path: test-index.db
   local-path: data/sqlite/test-index.db
   download:
     cron:

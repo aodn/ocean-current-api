@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.service;
 
+import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.dto.RegionLatestDate;
 import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
@@ -29,20 +30,23 @@ public class RemoteLatestDateService {
     private final CacheManager cacheManager;
     private final Map<String, String> productBaseUrls = new ConcurrentHashMap<>();
 
-    public RemoteLatestDateService(RestTemplate restTemplate, CacheManager cacheManager) {
+    private final RemoteServiceProperties remoteProperties;
+
+    public RemoteLatestDateService(RestTemplate restTemplate, CacheManager cacheManager, RemoteServiceProperties remoteProperties) {
         this.restTemplate = restTemplate;
         this.cacheManager = cacheManager;
+        this.remoteProperties = remoteProperties;
         initializeProductUrls();
     }
 
     private void initializeProductUrls() {
-        productBaseUrls.put("argo", "https://oceancurrent.edge.aodn.org.au/resource/profiles/map/");
+        productBaseUrls.put("argo", remoteProperties.getBaseUrl() + "profiles/map/");
     }
 
     @Cacheable(value = CacheNames.ARGO_LATEST_DATE, key = "#productId")
     public RegionLatestDateResponse getLatestDateByProductId(String productId) {
         String latestDate = fetchLatestDateForProduct(productId);
-        
+
         RegionLatestDate regionLatestDate = new RegionLatestDate("", latestDate, "");
         return new RegionLatestDateResponse(productId, List.of(regionLatestDate));
     }
@@ -51,7 +55,7 @@ public class RemoteLatestDateService {
     @CacheEvict(value = CacheNames.ARGO_LATEST_DATE, allEntries = true)
     public void updateAllLatestDates() {
         log.info("Starting scheduled remote latest date polling - evicting and refreshing cache");
-        
+
         // Prefetch fresh data for all products after cache eviction
         for (String productId : productBaseUrls.keySet()) {
             try {
@@ -59,7 +63,7 @@ public class RemoteLatestDateService {
                 if (latestDate != null) {
                     RegionLatestDate regionLatestDate = new RegionLatestDate("", latestDate, "");
                     RegionLatestDateResponse response = new RegionLatestDateResponse(productId, List.of(regionLatestDate));
-                    
+
                     // Manually populate the cache
                     Objects.requireNonNull(cacheManager.getCache(CacheNames.ARGO_LATEST_DATE)).put(productId, response);
                     log.info("Refreshed cache for product: {} with date: {}", productId, latestDate);

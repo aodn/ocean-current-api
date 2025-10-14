@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.service.tags;
 
+import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
 import au.org.aodn.oceancurrent.dto.WaveTagResponse;
 import au.org.aodn.oceancurrent.service.SqliteBaseService;
@@ -20,8 +21,8 @@ public class SurfaceWavesTagService extends SqliteBaseService implements Product
 
     private static final String PRODUCT_TYPE = "surface-waves";
 
-    public SurfaceWavesTagService(SqliteProperties sqliteProperties) {
-        super(sqliteProperties);
+    public SurfaceWavesTagService(RemoteServiceProperties remoteProperties, SqliteProperties sqliteProperties) {
+        super(remoteProperties, sqliteProperties);
     }
 
     @Override

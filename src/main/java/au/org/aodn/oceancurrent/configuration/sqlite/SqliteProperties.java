@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "sqlite")
 public class SqliteProperties {
 
-    private String remoteUrl;
+    private String remotePath;
     private String localPath;
     private Download download = new Download();
 
