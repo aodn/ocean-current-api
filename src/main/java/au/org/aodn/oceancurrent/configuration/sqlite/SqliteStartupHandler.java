@@ -64,12 +64,12 @@ public class SqliteStartupHandler implements ApplicationRunner {
                     log.warn("SQLite database was downloaded but not all services can access it properly");
                 }
             } else {
-                log.error("SQLite database initialization failed despite download attempt");
+                log.error("[FATAL] SQLite database initialization failed despite download attempt");
                 log.warn("The application will attempt to download the database again when needed");
             }
 
         } catch (Exception e) {
-            log.error("Error initializing SQLite database: {}", e.getMessage());
+            log.error("[FATAL] Error initializing SQLite database: {}", e.getMessage());
             log.warn("The application will attempt to download the database again when needed");
         }
     }
