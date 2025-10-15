@@ -1,11 +1,13 @@
 package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
+import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.constant.CacheNames;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import au.org.aodn.oceancurrent.model.ImageMetadataGroup;
 import au.org.aodn.oceancurrent.util.converter.ImageMetadataConverter;
 import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -24,8 +26,8 @@ import java.util.List;
 @Service
 public class BuoyTimeSeriesService extends SqliteBaseService {
 
-    public BuoyTimeSeriesService(SqliteProperties sqliteProperties) {
-        super(sqliteProperties);
+    public BuoyTimeSeriesService(RemoteServiceProperties remoteProperties, SqliteProperties sqliteProperties) {
+        super(remoteProperties, sqliteProperties);
     }
 
     /**

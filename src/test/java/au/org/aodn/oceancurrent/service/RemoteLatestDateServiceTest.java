@@ -1,5 +1,6 @@
 package au.org.aodn.oceancurrent.service;
 
+import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.dto.RegionLatestDate;
 import au.org.aodn.oceancurrent.dto.RegionLatestDateResponse;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,9 @@ class RemoteLatestDateServiceTest {
     @Mock
     private CacheManager cacheManager;
 
+    @Mock
+    private RemoteServiceProperties remoteProperties;
+
     private RemoteLatestDateService remoteLatestDateService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
@@ -38,7 +42,8 @@ class RemoteLatestDateServiceTest {
 
     @BeforeEach
     void setUp() {
-        remoteLatestDateService = new RemoteLatestDateService(restTemplate, cacheManager);
+        when(remoteProperties.getResourceBaseUrl()).thenReturn("https://oceancurrent.edge.aodn.org.au/resource/");
+        remoteLatestDateService = new RemoteLatestDateService(restTemplate, cacheManager, remoteProperties);
     }
 
     @Test
@@ -68,7 +73,7 @@ class RemoteLatestDateServiceTest {
         // Given - today's file doesn't exist, but yesterday's does
         String todayUrl = "https://oceancurrent.edge.aodn.org.au/resource/profiles/map/" + TODAY + ".gif";
         String yesterdayUrl = "https://oceancurrent.edge.aodn.org.au/resource/profiles/map/" + YESTERDAY + ".gif";
-        
+
         when(restTemplate.headForHeaders(todayUrl)).thenThrow(new RestClientException("404 Not Found"));
         when(restTemplate.headForHeaders(yesterdayUrl)).thenReturn(new HttpHeaders());
 

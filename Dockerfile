@@ -7,7 +7,7 @@ ENTRYPOINT [\
     "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", \
     "-Delasticsearch.host=${ES_HOST}",\
     "-Delasticsearch.apiKey=${ES_API_KEY}",\
-    "-Delasticsearch.remote.json.baseUrl=${REMOTE_JSON_BASE_URL}",\
+    "-Dremote.baseUrl=${REMOTE_BASE_URL}",\
     "-Daws.region=${AWS_REGION}",\
     "-Daws.s3.bucket-name=${DATA_BUCKET}",\
     "-jar",\

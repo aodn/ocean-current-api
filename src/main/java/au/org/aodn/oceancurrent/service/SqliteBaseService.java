@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.sqlite.SqliteProperties;
+import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +35,7 @@ public abstract class SqliteBaseService {
     // Flag to track if download is in progress
     private boolean downloadInProgress = false;
 
+    protected final RemoteServiceProperties remoteProperties;
     protected final SqliteProperties sqliteProperties;
 
     /**
@@ -45,6 +47,10 @@ public abstract class SqliteBaseService {
     protected Connection getConnection() throws SQLException {
         String url = "jdbc:sqlite:" + sqliteProperties.getLocalPath();
         return DriverManager.getConnection(url);
+    }
+
+    protected String getSqliteRemoteUrl() {
+        return remoteProperties.getResourceBaseUrl() + sqliteProperties.getRemotePath();
     }
 
     /**
@@ -176,9 +182,9 @@ public abstract class SqliteBaseService {
             downloadInProgress = true;
 
             log.info("Starting download of SQLite database from: {}",
-                    "https://oceancurrent.edge.aodn.org.au/resource/waves/index.db");
+                getSqliteRemoteUrl());
 
-            URL url = new URL("https://oceancurrent.edge.aodn.org.au/resource/waves/index.db");
+            URL url = new URL(getSqliteRemoteUrl());
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setConnectTimeout(sqliteProperties.getDownload().getConnectTimeout());
             connection.setReadTimeout(sqliteProperties.getDownload().getReadTimeout());

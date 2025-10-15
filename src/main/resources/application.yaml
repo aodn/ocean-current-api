@@ -49,8 +49,8 @@ elasticsearch:
         expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
 
 remote:
-  json:
-    base-url: ${REMOTE_JSON_BASE_URL:}
+  base-url: ${REMOTE_BASE_URL:}
+  resource-path: ${REMOTE_RESOURCE_PATH:/resource/}  # CloudFront proxy path
 
 aws:
   region: ${AWS_REGION:ap-southeast-2}
@@ -62,7 +62,7 @@ aws:
     max-keys-per-request: ${AWS_S3_MAX_KEYS_PER_REQUEST:1000}
 
 sqlite:
-  remote-url: ${SQLITE_REMOTE_URL:}
+  remote-path: waves/index.db
   local-path: data/sqlite/index.db
   download:
     cron:
