@@ -1,8 +1,7 @@
 package au.org.aodn.oceancurrent.configuration;
 
-import au.org.aodn.oceancurrent.security.AwsIamAuthenticationFilter;
+import au.org.aodn.oceancurrent.security.Ec2InstanceAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -26,9 +25,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
 
     private final CorsProperties corsProperties;
-
-    @Autowired(required = false)
-    private AwsIamAuthenticationFilter awsIamAuthenticationFilter;
+    private final Optional<Ec2InstanceAuthenticationFilter> ec2InstanceAuthenticationFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -37,10 +34,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // Add AWS IAM filter if available (only in prod/edge profiles)
-        if (awsIamAuthenticationFilter != null) {
-            httpSecurity.addFilterBefore(awsIamAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
-        }
+        // Add EC2 instance authentication filter if available (only in prod/edge profiles)
+        ec2InstanceAuthenticationFilter.ifPresent(filter ->
+            httpSecurity.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
+        );
 
         return httpSecurity
                 .authorizeHttpRequests(authorizeRequests ->

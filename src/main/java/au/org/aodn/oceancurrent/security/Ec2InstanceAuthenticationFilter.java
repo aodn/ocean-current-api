@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.security;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import au.org.aodn.oceancurrent.configuration.MonitoringSecurityProperties;
+import au.org.aodn.oceancurrent.dto.MonitoringRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,11 +11,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -35,18 +38,13 @@ import java.util.Set;
 @Profile({"prod", "edge"})
 @Slf4j
 @RequiredArgsConstructor
-public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
+public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String MONITORING_PATH = "/api/v1/monitoring";
 
-    // Whitelist of authorised EC2 instance IDs
-    // Instance ID: i-0703053427295ec44
-    private static final Set<String> ALLOWED_INSTANCE_IDS = Set.of(
-        "i-0703053427295ec44"  // Production EC2 instance
-    );
-
     private final AwsInstanceIdentityValidator instanceIdentityValidator;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
+    private final MonitoringSecurityProperties monitoringSecurityProperties;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
@@ -64,11 +62,10 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
         String clientIp = getClientIp(request);
 
         try {
-            String requestBody = getRequestBody(request);
-            JsonNode bodyJson;
+            MonitoringRequest monitoringRequest;
 
             try {
-                bodyJson = objectMapper.readTree(requestBody);
+                monitoringRequest = parseMonitoringRequest(request);
             } catch (Exception e) {
                 log.warn("[MONITORING-AUTH-FAILED] Invalid JSON in request body | Path={} | IP={} | Error={}",
                         requestPath, clientIp, e.getMessage());
@@ -76,10 +73,11 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String instanceId = bodyJson.has("instanceId") ? bodyJson.get("instanceId").asText() : null;
-            String document = bodyJson.has("document") ? bodyJson.get("document").asText() : null;
-            String pkcs7 = bodyJson.has("pkcs7") ? bodyJson.get("pkcs7").asText() : null;
+            String instanceId = monitoringRequest.getInstanceId();
+            String document = monitoringRequest.getDocument();
+            String pkcs7 = monitoringRequest.getPkcs7();
 
+            // Validate required fields are present
             if (instanceId == null || instanceId.isEmpty()) {
                 log.warn("[MONITORING-AUTH-FAILED] Missing instanceId in request body | Path={} | IP={}",
                         requestPath, clientIp);
@@ -111,7 +109,8 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            if (!ALLOWED_INSTANCE_IDS.contains(instanceId)) {
+            Set<String> authorisedIds = new HashSet<>(monitoringSecurityProperties.getAuthorizedInstanceIds());
+            if (!authorisedIds.contains(instanceId)) {
                 log.warn("[MONITORING-AUTH-FAILED] Unauthorised instance ID | InstanceId={} | IP={}",
                         instanceId, clientIp);
                 sendUnauthorisedResponse(response, "Instance not authorised");
@@ -121,9 +120,9 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
             log.info("[MONITORING-AUTH-SUCCESS] EC2 instance authenticated | InstanceId={} | IP={} | Path={}",
                     instanceId, clientIp, requestPath);
 
-            // Store authentication info in request attributes for later use by controller
             request.setAttribute("ec2_instance_id", instanceId);
             request.setAttribute("ec2_authenticated", true);
+            request.setAttribute("monitoring_request", monitoringRequest);
 
         } catch (IOException e) {
             log.error("[MONITORING-AUTH-ERROR] IOException during authentication | Path={} | Error={}",
@@ -136,23 +135,23 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Get request body content.
+     * Parse request body into MonitoringRequest DTO.
      * Note: This reads the input stream, which can only be read once.
      * We use ContentCachingRequestWrapper to enable multiple reads.
+     *
+     * @param request the HTTP request
+     * @return parsed MonitoringRequest object
+     * @throws IOException if reading the request body fails
      */
-    private String getRequestBody(HttpServletRequest request) throws IOException {
+    private MonitoringRequest parseMonitoringRequest(HttpServletRequest request) throws IOException {
         if (!(request instanceof ContentCachingRequestWrapper)) {
             request = new ContentCachingRequestWrapper(request);
         }
 
         ContentCachingRequestWrapper wrapper = (ContentCachingRequestWrapper) request;
-        byte[] buf = wrapper.getContentAsByteArray();
+        String body = StreamUtils.copyToString(wrapper.getInputStream(), StandardCharsets.UTF_8);
 
-        if (buf.length == 0) {
-            return "{}";
-        }
-
-        return new String(buf, StandardCharsets.UTF_8);
+        return objectMapper.readValue(body, MonitoringRequest.class);
     }
 
     /**
@@ -171,7 +170,7 @@ public class AwsIamAuthenticationFilter extends OncePerRequestFilter {
      * Send 401 Unauthorised response with JSON error message.
      */
     private void sendUnauthorisedResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORISED);
         response.setContentType("application/json");
         response.getWriter().write(String.format(
                 "{\"error\": \"Unauthorised\", \"message\": \"%s\"}",

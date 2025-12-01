@@ -36,6 +36,8 @@ dependencies {
 	implementation platform('software.amazon.awssdk:bom:2.21.29')
 	implementation 'software.amazon.awssdk:s3'
 	implementation 'org.xerial:sqlite-jdbc:3.47.1.0'
+	implementation 'org.bouncycastle:bcpkix-jdk18on:1.79'
+
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 
