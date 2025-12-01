@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.security;
 import au.org.aodn.oceancurrent.configuration.MonitoringSecurityProperties;
 import au.org.aodn.oceancurrent.dto.MonitoringRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,12 +25,12 @@ import java.util.Set;
 /**
  * Authentication filter for internal monitoring endpoints.
  * Only active in production and edge environments.
- *
+ * <p>
  * Validates EC2 instance identity using:
  * 1. Instance identity document from EC2 metadata service
  * 2. PKCS7 signature to prove authenticity
  * 3. Whitelist of authorised instance IDs
- *
+ * <p>
  * This provides defense-in-depth:
  * - PKCS7 signature proves the document is authentic and from AWS
  * - Instance ID proves it came from a specific EC2 instance
@@ -46,6 +47,14 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
     private final AwsInstanceIdentityValidator instanceIdentityValidator;
     private final ObjectMapper objectMapper;
     private final MonitoringSecurityProperties monitoringSecurityProperties;
+
+    private Set<String> authorisedInstanceIds;
+
+    @PostConstruct
+    public void init() {
+        this.authorisedInstanceIds = new HashSet<>(monitoringSecurityProperties.getAuthorisedInstanceIds());
+        log.info("Initialized EC2 authentication filter with {} authorised instance IDs", authorisedInstanceIds.size());
+    }
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -110,8 +119,7 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            Set<String> authorisedIds = new HashSet<>(monitoringSecurityProperties.getAuthorisedInstanceIds());
-            if (!authorisedIds.contains(instanceId)) {
+            if (!authorisedInstanceIds.contains(instanceId)) {
                 log.warn("[MONITORING-AUTH-FAILED] Unauthorised instance ID | InstanceId={} | IP={}",
                         instanceId, clientIp);
                 sendUnauthorisedResponse(response, "Instance not authorised");
