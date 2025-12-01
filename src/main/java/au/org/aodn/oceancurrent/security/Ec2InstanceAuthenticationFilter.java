@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -47,16 +48,16 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
     private final MonitoringSecurityProperties monitoringSecurityProperties;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+    protected boolean shouldNotFilter(HttpServletRequest request) {
         // Only filter monitoring endpoints
         String path = request.getRequestURI();
         return !path.startsWith(MONITORING_PATH);
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String requestPath = request.getRequestURI();
         String clientIp = getClientIp(request);
@@ -109,7 +110,7 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            Set<String> authorisedIds = new HashSet<>(monitoringSecurityProperties.getAuthorizedInstanceIds());
+            Set<String> authorisedIds = new HashSet<>(monitoringSecurityProperties.getAuthorisedInstanceIds());
             if (!authorisedIds.contains(instanceId)) {
                 log.warn("[MONITORING-AUTH-FAILED] Unauthorised instance ID | InstanceId={} | IP={}",
                         instanceId, clientIp);
@@ -170,7 +171,7 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
      * Send 401 Unauthorised response with JSON error message.
      */
     private void sendUnauthorisedResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORISED);
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(String.format(
                 "{\"error\": \"Unauthorised\", \"message\": \"%s\"}",
