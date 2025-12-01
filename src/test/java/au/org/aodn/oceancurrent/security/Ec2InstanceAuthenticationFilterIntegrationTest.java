@@ -54,8 +54,8 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("Unauthorised"))
-                .andExpect(jsonPath("$.message").value("Instance ID required in request body"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").value("Instance ID required in request body"));
     }
 
     @Test
@@ -70,8 +70,8 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.error").value("Unauthorised"))
-                .andExpect(jsonPath("$.message").value("Instance identity document required"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").value("Instance identity document required"));
     }
 
     @Test
@@ -89,7 +89,8 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                         .content(requestBody))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("PKCS7 signature required"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").value("PKCS7 signature required"));
     }
 
     @Test
@@ -108,8 +109,8 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                         .content(requestBody))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorised"))
-                .andExpect(jsonPath("$.message").exists());
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").exists());
     }
 
     @Test
@@ -143,7 +144,7 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                         .content(requestBody))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorised"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"));
     }
 
     @Test
@@ -154,6 +155,6 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
         mockMvc.perform(get("/api/v1/monitoring/fatal-log"))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Unauthorised"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"));
     }
 }

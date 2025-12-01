@@ -1,6 +1,7 @@
 package au.org.aodn.oceancurrent.security;
 
 import au.org.aodn.oceancurrent.configuration.MonitoringSecurityProperties;
+import au.org.aodn.oceancurrent.dto.ErrorResponse;
 import au.org.aodn.oceancurrent.dto.MonitoringRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -11,6 +12,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
@@ -19,6 +22,7 @@ import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -176,14 +180,19 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
     }
 
     /**
-     * Send 401 Unauthorised response with JSON error message.
+     * Send 401 Unauthorised response with ErrorResponse DTO.
      */
     private void sendUnauthorisedResponse(HttpServletResponse response, String message) throws IOException {
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.setContentType("application/json");
-        response.getWriter().write(String.format(
-                "{\"error\": \"Unauthorised\", \"message\": \"%s\"}",
-                message
-        ));
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.getReasonPhrase(),
+                Collections.singletonList(message)
+        );
+
+        String jsonResponse = objectMapper.writeValueAsString(errorResponse);
+        response.getWriter().write(jsonResponse);
+        response.getWriter().flush();
     }
 }
