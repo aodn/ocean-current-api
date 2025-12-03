@@ -32,11 +32,13 @@ public class IndexingController {
     }
 
     @PostMapping
-    @Operation(description = "Trigger indexing of JSON files in the data directory")
-    public ResponseEntity<String> triggerIndexing() {
+    @Operation(description = "Trigger indexing metadata files in the data directory")
+    public ResponseEntity<String> triggerIndexing(
+            @Parameter(description = "Flag to confirm the indexing operation")
+            @RequestParam(value = "confirm", defaultValue = "false") Boolean confirm) {
         log.info("Received indexing request");
         try {
-            indexingService.indexRemoteJsonFiles(true,null);
+            indexingService.reindexAll(confirm);
             log.info("Indexing request completed");
             return ResponseEntity.ok("Indexing completed");
         } catch (IOException e) {
@@ -47,7 +49,7 @@ public class IndexingController {
     }
 
     @PostMapping(path = "/async")
-    @Operation(description = "Index all metadata JSON files with real-time progress updates via Server-Sent Events")
+    @Operation(description = "Index all metadata files with real-time progress updates via Server-Sent Events")
     public SseEmitter indexAllMetadataAsync(
             @Parameter(description = "Flag to confirm the indexing operation")
             @RequestParam(value = "confirm", defaultValue = "false") Boolean confirm) {
@@ -57,7 +59,7 @@ public class IndexingController {
 
         new Thread(() -> {
             try {
-                indexingService.indexRemoteJsonFiles(confirm, callback);
+                indexingService.reindexAll(confirm, callback);
             } catch (IOException e) {
                 emitter.completeWithError(e);
                 log.error("Error during indexing", e);

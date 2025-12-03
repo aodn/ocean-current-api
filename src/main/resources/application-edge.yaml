@@ -2,6 +2,9 @@ spring:
   config:
     import: optional:file:.env.edge[.properties]
 
+elasticsearch:
+  index-name: ocean-current-files-edge
+
 app:
   cors:
     allowed-origins:

@@ -4,6 +4,9 @@ springdoc:
   api-docs:
     enabled: false
 
+elasticsearch:
+  index-name: ocean-current-files-prod
+
 logging:
   level:
     au.org.aodn.oceancurrent: info

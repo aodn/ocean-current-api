@@ -40,17 +40,17 @@ elasticsearch:
   host: ${ES_HOST:placeholder}
   api-key: ${ES_API_KEY:placeholder}
   max-result-window: ${ES_MAX_RESULT_WINDOW:20000}
-  index-name: ${INDEX_NAME:ocean-current-files}
+  index-name: ${INDEX_NAME:ocean-current-files-dev}
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
-    s3:
-      cron:
-        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
+#    s3:
+#      cron:
+#        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
 
 remote:
   base-url: ${REMOTE_BASE_URL:}
-  resource-path: ${REMOTE_RESOURCE_PATH:/resource/}  # CloudFront proxy path
+  resource-path: ${REMOTE_RESOURCE_PATH:/resource/} # CloudFront proxy path
 
 aws:
   region: ${AWS_REGION:ap-southeast-2}
