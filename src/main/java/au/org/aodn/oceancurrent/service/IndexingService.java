@@ -18,15 +18,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPPINGS;
 
@@ -36,8 +34,7 @@ public class IndexingService {
     private final String indexName;
     private static final int BATCH_SIZE = 100000;
     private static final int THREAD_POOL_SIZE = 2;
-    private static final DateTimeFormatter INDEX_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private static final Pattern INDEX_VERSION_PATTERN = Pattern.compile("^(.+)-(\\d{4}-\\d{2}-\\d{2})-v(\\d+)$");
+    private static final DateTimeFormatter INDEX_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd't'HHmmssSSS");
 
     private final ElasticsearchClient esClient;
     private final RemoteJsonService remoteJsonService;
@@ -347,43 +344,13 @@ public class IndexingService {
     }
 
     /**
-     * Generates a new versioned index name with today's date
+     * Generates a new timestamped index name
      * @param baseIndexName The base name for the index (e.g., "ocean-current-files")
-     * @return A versioned index name (e.g., "ocean-current-files-2025-12-03-v1")
+     * @return A timestamped index name (e.g., "ocean-current-files-20251203t142530123")
      */
-    private String generateTimestampedIndexName(String baseIndexName) throws IOException {
-        String today = LocalDate.now().format(INDEX_DATE_FORMAT);
-        int nextVersion = getNextVersionForDate(baseIndexName, today);
-        return String.format("%s-%s-v%d", baseIndexName, today, nextVersion);
-    }
-
-    /**
-     * Finds the next available version number for a given date by querying existing indices
-     * @param baseIndexName The base name for the index
-     * @param date The date string in yyyy-MM-dd format
-     * @return The next version number (starting from 1)
-     */
-    private int getNextVersionForDate(String baseIndexName, String date) throws IOException {
-        // Get all indices matching the pattern baseIndexName-*
-        var response = esClient.indices().get(g -> g.index(baseIndexName + "-*"));
-
-        int maxVersion = 0;
-
-        for (String indexName : response.result().keySet()) {
-            Matcher matcher = INDEX_VERSION_PATTERN.matcher(indexName);
-            if (matcher.matches()) {
-                String indexBase = matcher.group(1);
-                String indexDate = matcher.group(2);
-                int version = Integer.parseInt(matcher.group(3));
-
-                // Check if this index matches our base name and date
-                if (indexBase.equals(baseIndexName) && indexDate.equals(date)) {
-                    maxVersion = Math.max(maxVersion, version);
-                }
-            }
-        }
-
-        return maxVersion + 1;
+    private String generateTimestampedIndexName(String baseIndexName) {
+        String timestamp = LocalDateTime.now().format(INDEX_TIMESTAMP_FORMAT);
+        return baseIndexName + "-" + timestamp;
     }
 
     /**

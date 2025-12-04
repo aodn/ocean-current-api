@@ -44,9 +44,6 @@ elasticsearch:
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
-#    s3:
-#      cron:
-#        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
 
 remote:
   base-url: ${REMOTE_BASE_URL:}
