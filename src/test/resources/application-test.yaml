@@ -22,9 +22,6 @@ elasticsearch:
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
-    s3:
-      cron:
-        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
 
   docker:
     elastic-version: 8.17.4 # Use the same version as in Elastic Cloud
