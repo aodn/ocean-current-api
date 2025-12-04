@@ -31,7 +31,7 @@ import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPP
 @Service
 @Slf4j
 public class IndexingService {
-    private final String indexName;
+    private final String indexAlias;
     private static final int BATCH_SIZE = 100000;
     private static final int THREAD_POOL_SIZE = 2;
     private static final DateTimeFormatter INDEX_TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd't'HHmmssSSS");
@@ -51,7 +51,7 @@ public class IndexingService {
         this.remoteJsonService = remoteJsonService;
         this.s3Service = s3Service;
         this.esProperties = esProperties;
-        this.indexName = esProperties.getIndexName();
+        this.indexAlias = esProperties.getIndexName();
         this.cacheManager = cacheManager;
     }
 
@@ -59,34 +59,14 @@ public class IndexingService {
         boolean exists = isIndexExists();
 
         if (exists) {
-            log.info("Deleting index with name '{}'", indexName);
-            esClient.indices().delete(c -> c.index(indexName));
-            log.info("Index with name '{}' deleted", indexName);
+            log.info("Deleting index with name '{}'", indexAlias);
+            esClient.indices().delete(c -> c.index(indexAlias));
+            log.info("Index with name '{}' deleted", indexAlias);
         } else {
-            log.warn("Index with name '{}' does not exist", indexName);
+            log.warn("Index with name '{}' does not exist", indexAlias);
         }
     }
 
-//    /**
-//     * @deprecated Use reindexAll() instead for complete reindexing with zero downtime.
-//     * This method is kept for backward compatibility only.
-//     */
-//    @Deprecated
-//    public void indexRemoteJsonFiles(boolean confirm) throws IOException {
-//        reindexAll(confirm, null);
-//    }
-//
-//    /**
-//     * @deprecated Use reindexAll() instead for complete reindexing with zero downtime.
-//     * This method is kept for backward compatibility only.
-//     */
-//    @Deprecated
-//    @CacheEvict(value = CacheNames.IMAGE_LIST, allEntries = true)
-//    public void indexRemoteJsonFiles(boolean confirm, IndexingCallback callback) throws IOException {
-//        log.warn("indexRemoteJsonFiles() is deprecated. Calling reindexAll() instead.");
-//        reindexAll(confirm, callback);
-//    }
-//
    /**
     * @deprecated Use reindexAll() instead for complete reindexing with zero downtime.
     * This method is kept for backward compatibility only.
@@ -119,11 +99,11 @@ public class IndexingService {
         log.info("Starting full reindexing process");
 
         // Generate a new timestamped index name
-        String newIndexName = generateTimestampedIndexName(indexName);
+        String newIndexName = generateTimestampedIndexName(indexAlias);
         log.info("Creating new index: {}", newIndexName);
 
         // Get old indices before creating new one
-        Set<String> oldIndices = getIndicesForAlias(indexName);
+        Set<String> oldIndices = getIndicesForAlias(indexAlias);
 
         ExecutorService executor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
 
@@ -140,10 +120,19 @@ public class IndexingService {
             // Index S3 files
             indexS3FilesIntoIndex(newIndexName, callback);
 
-            // Atomically switch the alias from old index to new index
-            switchAlias(indexName, newIndexName);
+            // Refresh the new index to ensure all documents are searchable
+            refreshIndex(newIndexName);
             if (callback != null) {
-                callback.onProgress("Switched alias '" + indexName + "' to new index");
+                callback.onProgress("Refreshed new index to ensure all documents are searchable");
+            }
+
+            // Validate the new index before switching alias
+            validateNewIndex(newIndexName, indexAlias, callback);
+
+            // Atomically switch the alias from old index to new index
+            switchAlias(indexAlias, newIndexName);
+            if (callback != null) {
+                callback.onProgress("Switched alias '" + indexAlias + "' to new index");
             }
 
             // Delete old indices
@@ -153,7 +142,7 @@ public class IndexingService {
             }
 
             if (callback != null) {
-                callback.onComplete("Full reindexing completed successfully with zero downtime");
+                callback.onComplete("Full reindexing completed successfully");
             }
 
             clearImageListCache();
@@ -213,7 +202,7 @@ public class IndexingService {
 
     /**
      * Indexes S3 surface waves files into the specified index.
-     * This is a helper method used by both indexS3SurfaceWavesFiles and reindexAll.
+     * This is a helper method used by reindexAll.
      */
     private void indexS3FilesIntoIndex(String targetIndexName, IndexingCallback callback) {
         BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, targetIndexName, esClient);
@@ -322,7 +311,7 @@ public class IndexingService {
     }
 
     private boolean isIndexExists() throws IOException {
-        return isIndexExists(indexName);
+        return isIndexExists(indexAlias);
     }
 
     private boolean isIndexExists(String index) throws IOException {
@@ -461,5 +450,182 @@ public class IndexingService {
                 log.error("Failed to delete old index '{}': {}", oldIndex, e.getMessage());
             }
         }
+    }
+
+    /**
+     * Validates the new index before switching alias.
+     * Checks:
+     * 1. Document count is greater than 0
+     * 2. Document count is at least the threshold percentage of current index (if alias exists)
+     * 3. Distinct productId count matches or exceeds current index (if alias exists)
+     *
+     * @param newIndexName The name of the new index to validate
+     * @param aliasName The alias name (e.g., "ocean-current-files-dev")
+     * @param callback Optional callback for progress updates
+     * @throws RuntimeException if validation fails
+     */
+    private void validateNewIndex(String newIndexName, String aliasName, IndexingCallback callback) throws IOException {
+        log.info("Validating new index '{}' before switching alias '{}'", newIndexName, aliasName);
+
+        long newIndexDocCount = getDocumentCount(newIndexName);
+        log.info("New index '{}' contains {} documents", newIndexName, newIndexDocCount);
+
+        // Check 1: Document count must be greater than 0
+        if (newIndexDocCount == 0) {
+            String errorMsg = String.format(
+                    "New index '%s' contains 0 documents. Cannot switch alias to an empty index. Reindexing failed.",
+                    newIndexName
+            );
+            log.error("[FATAL] {}", errorMsg);
+            if (callback != null) {
+                callback.onError(errorMsg);
+            }
+            throw new RuntimeException(errorMsg);
+        }
+
+        // Check 2 & 3: If alias exists, validate against current index
+        if (isAliasExists(aliasName)) {
+            // Get document count using the alias (which points to the current index)
+            long currentIndexDocCount = getDocumentCount(aliasName);
+            log.info("Current index (via alias '{}') contains {} documents", aliasName, currentIndexDocCount);
+
+            if (currentIndexDocCount > 0) {
+                // Check 2: Document count threshold
+                double percentage = (newIndexDocCount * 100.0) / currentIndexDocCount;
+                int threshold = esProperties.getReindexValidationThresholdPercent();
+
+                log.info("New index has {}% of current index documents (threshold: {}%)",
+                        percentage, threshold);
+
+                if (percentage < threshold) {
+                    String errorMsg = String.format(
+                            "New index '%s' has only %.2f%% (%d) of current index documents (%d). " +
+                            "Required threshold is %d%%. Cannot switch alias. Reindexing failed.",
+                            newIndexName, percentage, newIndexDocCount, currentIndexDocCount, threshold
+                    );
+                    log.error("[FATAL] {}", errorMsg);
+                    if (callback != null) {
+                        callback.onError(errorMsg);
+                    }
+                    throw new RuntimeException(errorMsg);
+                }
+
+                log.info("Validation passed: New index has {}% of current index documents (threshold: {}%)",
+                        percentage, threshold);
+                if (callback != null) {
+                    callback.onProgress(String.format(
+                            "Validation passed: Document count check - new index has %.2f%% (%d/%d) documents (threshold: %d%%)",
+                            percentage, newIndexDocCount, currentIndexDocCount, threshold
+                    ));
+                }
+
+                // Check 3: Distinct productId values
+                Set<String> currentProductIds = getDistinctProductIds(aliasName);
+                Set<String> newProductIds = getDistinctProductIds(newIndexName);
+                log.info("Current index has {} distinct productIds: {}", currentProductIds.size(), currentProductIds);
+                log.info("New index has {} distinct productIds: {}", newProductIds.size(), newProductIds);
+
+                // Check if any productIds are missing in new index
+                Set<String> missingProductIds = new java.util.HashSet<>(currentProductIds);
+                missingProductIds.removeAll(newProductIds);
+
+                if (!missingProductIds.isEmpty()) {
+                    String errorMsg = String.format(
+                            "New index '%s' is missing productIds that exist in current index. " +
+                            "Missing productIds: %s. This indicates data loss. Cannot switch alias. Reindexing failed.",
+                            newIndexName, missingProductIds
+                    );
+                    log.error("[FATAL] {}", errorMsg);
+                    if (callback != null) {
+                        callback.onError(errorMsg);
+                    }
+                    throw new RuntimeException(errorMsg);
+                }
+
+                // Log any new productIds (this is expected and okay)
+                Set<String> newlyAddedProductIds = new java.util.HashSet<>(newProductIds);
+                newlyAddedProductIds.removeAll(currentProductIds);
+                if (!newlyAddedProductIds.isEmpty()) {
+                    log.info("New index contains additional productIds not in current index: {}", newlyAddedProductIds);
+                }
+
+                log.info("Validation passed: New index contains all productIds from current index ({}/{})",
+                        newProductIds.size(), currentProductIds.size());
+                if (callback != null) {
+                    callback.onProgress(String.format(
+                            "Validation passed: ProductId check - new index has all %d productIds from current index%s",
+                            currentProductIds.size(),
+                            newlyAddedProductIds.isEmpty() ? "" : " (plus " + newlyAddedProductIds.size() + " new ones)"
+                    ));
+                }
+            }
+        } else {
+            log.info("Alias '{}' does not exist. Validation passed with {} documents in new index", aliasName, newIndexDocCount);
+
+            // Still check and log distinct productIds for first time indexing
+            Set<String> newProductIds = getDistinctProductIds(newIndexName);
+            log.info("New index contains {} distinct productIds: {}", newProductIds.size(), newProductIds);
+
+            if (callback != null) {
+                callback.onProgress(String.format(
+                        "Validation passed: New index contains %d documents with %d distinct productIds (first time indexing)",
+                        newIndexDocCount, newProductIds.size()
+                ));
+            }
+        }
+    }
+
+    /**
+     * Gets the document count for a specific index.
+     *
+     * @param indexName The name of the index
+     * @return The number of documents in the index
+     * @throws IOException if the count request fails
+     */
+    private long getDocumentCount(String indexName) throws IOException {
+        return esClient.count(c -> c.index(indexName)).count();
+    }
+
+    /**
+     * Refreshes an index to make all recently indexed documents searchable.
+     *
+     * @param indexName The name of the index to refresh
+     * @throws IOException if the refresh request fails
+     */
+    private void refreshIndex(String indexName) throws IOException {
+        log.info("Refreshing index '{}'", indexName);
+        esClient.indices().refresh(r -> r.index(indexName));
+        log.info("Index '{}' refreshed successfully", indexName);
+    }
+
+    /**
+     * Gets the set of distinct productIds in an index using terms aggregation.
+     * Efficient for small sets (e.g., ~20 productIds).
+     *
+     * @param indexName The name of the index
+     * @return Set of distinct productId values
+     * @throws IOException if the aggregation request fails
+     */
+    private Set<String> getDistinctProductIds(String indexName) throws IOException {
+        var response = esClient.search(s -> s
+                .index(indexName)
+                .size(0)
+                .aggregations("unique_products", a -> a
+                        .terms(t -> t
+                                .field("productId")
+                                .size(100)  // Large enough for all productIds
+                        )
+                ),
+                ImageMetadataEntry.class
+        );
+
+        return response.aggregations()
+                .get("unique_products")
+                .sterms()
+                .buckets()
+                .array()
+                .stream()
+                .map(bucket -> bucket.key().stringValue())
+                .collect(java.util.stream.Collectors.toSet());
     }
 }
