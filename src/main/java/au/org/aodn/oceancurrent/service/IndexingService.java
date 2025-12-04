@@ -2,6 +2,7 @@ package au.org.aodn.oceancurrent.service;
 
 import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
 import au.org.aodn.oceancurrent.constant.CacheNames;
+import au.org.aodn.oceancurrent.exception.ReindexValidationException;
 import au.org.aodn.oceancurrent.exception.RemoteFileException;
 import au.org.aodn.oceancurrent.model.FileMetadata;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
@@ -457,12 +458,13 @@ public class IndexingService {
      * Checks:
      * 1. Document count is greater than 0
      * 2. Document count is at least the threshold percentage of current index (if alias exists)
-     * 3. Distinct productId count matches or exceeds current index (if alias exists)
+     * 3. Distinct productId values match current index (if alias exists)
      *
      * @param newIndexName The name of the new index to validate
-     * @param aliasName The alias name (e.g., "ocean-current-files-dev")
+     * @param aliasName The alias name (e.g., "ocean-current-files")
      * @param callback Optional callback for progress updates
-     * @throws RuntimeException if validation fails
+     * @throws ReindexValidationException if validation fails
+     * @throws IOException if Elasticsearch operations fail
      */
     private void validateNewIndex(String newIndexName, String aliasName, IndexingCallback callback) throws IOException {
         log.info("Validating new index '{}' before switching alias '{}'", newIndexName, aliasName);
@@ -480,7 +482,7 @@ public class IndexingService {
             if (callback != null) {
                 callback.onError(errorMsg);
             }
-            throw new RuntimeException(errorMsg);
+            throw new ReindexValidationException(errorMsg);
         }
 
         // Check 2 & 3: If alias exists, validate against current index
@@ -507,7 +509,7 @@ public class IndexingService {
                     if (callback != null) {
                         callback.onError(errorMsg);
                     }
-                    throw new RuntimeException(errorMsg);
+                    throw new ReindexValidationException(errorMsg);
                 }
 
                 log.info("Validation passed: New index has {}% of current index documents (threshold: {}%)",
@@ -539,7 +541,7 @@ public class IndexingService {
                     if (callback != null) {
                         callback.onError(errorMsg);
                     }
-                    throw new RuntimeException(errorMsg);
+                    throw new ReindexValidationException(errorMsg);
                 }
 
                 // Log any new productIds (this is expected and okay)
