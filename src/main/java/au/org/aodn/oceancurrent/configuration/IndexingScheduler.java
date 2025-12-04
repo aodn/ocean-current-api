@@ -29,7 +29,7 @@ public class IndexingScheduler {
 
         try {
             Instant startTime = Instant.now();
-            indexingService.reindexAll( true);
+            indexingService.reindexAll(true);
             Duration duration = Duration.between(startTime, Instant.now());
 
             log.info("Completed scheduled daily indexing in {} minutes and {} seconds",

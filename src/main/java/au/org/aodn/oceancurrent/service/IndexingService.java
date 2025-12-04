@@ -21,11 +21,13 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import static au.org.aodn.oceancurrent.constant.ProductConstants.PRODUCT_ID_MAPPINGS;
 
@@ -174,7 +176,7 @@ public class IndexingService {
 
     /**
      * Indexes remote JSON files into the specified index.
-     * This is a helper method used by both indexRemoteJsonFiles and reindexAll.
+     * This is a helper method used by reindexAll.
      */
     private void indexRemoteJsonFilesIntoIndex(String targetIndexName, ExecutorService executor, IndexingCallback callback) throws Exception {
         BulkRequestProcessor bulkRequestProcessor = new BulkRequestProcessor(BATCH_SIZE, targetIndexName, esClient);
@@ -545,7 +547,7 @@ public class IndexingService {
                 }
 
                 // Log any new productIds (this is expected and okay)
-                Set<String> newlyAddedProductIds = new java.util.HashSet<>(newProductIds);
+                Set<String> newlyAddedProductIds = new HashSet<>(newProductIds);
                 newlyAddedProductIds.removeAll(currentProductIds);
                 if (!newlyAddedProductIds.isEmpty()) {
                     log.info("New index contains additional productIds not in current index: {}", newlyAddedProductIds);
@@ -615,7 +617,7 @@ public class IndexingService {
                 .aggregations("unique_products", a -> a
                         .terms(t -> t
                                 .field("productId")
-                                .size(100)  // Large enough for all productIds
+                                .size(100)  // Max unique productIds (see src/main/resources/config/products.yaml - currently ~50 products)
                         )
                 ),
                 ImageMetadataEntry.class
@@ -628,6 +630,6 @@ public class IndexingService {
                 .array()
                 .stream()
                 .map(bucket -> bucket.key().stringValue())
-                .collect(java.util.stream.Collectors.toSet());
+                .collect(Collectors.toSet());
     }
 }
