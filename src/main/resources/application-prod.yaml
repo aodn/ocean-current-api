@@ -4,6 +4,12 @@ springdoc:
   api-docs:
     enabled: false
 
+elasticsearch:
+  index-name: ocean-current-files-prod
+  indexing:
+    cron:
+      expression: 0 0 3 * * ? # every day at 3 AM in Australia/Hobart time
+
 logging:
   level:
     au.org.aodn.oceancurrent: info
