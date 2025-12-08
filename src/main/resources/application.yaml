@@ -67,3 +67,6 @@ sqlite:
       expression: 0 0 */2 * * ? # every 2 hours
     connect-timeout: 30000
     read-timeout: 60000
+
+monitoring:
+  api-key: ${MONITORING_API_KEY:changeme}
