@@ -1,16 +1,16 @@
 package au.org.aodn.oceancurrent.controller;
 
+import au.org.aodn.oceancurrent.dto.MonitoringAlertRequest;
+import au.org.aodn.oceancurrent.dto.MonitoringResponse;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/monitoring")
@@ -24,24 +24,20 @@ public class MonitoringController {
             description = "Generates a FATAL log entry when called with an error message. Used by external tasks like cron jobs to report failures so monitoring systems can detect and alert on them.",
             security = @SecurityRequirement(name = "ApiKeyAuth")
     )
-    public ResponseEntity<Map<String, Object>> reportFailure(
-            @Parameter(description = "The error message describing what went wrong")
-            @RequestParam(required = false, defaultValue= "Monitoring alert triggered") String message,
-            @Parameter(description = "Optional context or job name")
-            @RequestParam(required = false) String source) {
+    public ResponseEntity<MonitoringResponse> reportFailure(@RequestBody MonitoringAlertRequest request) {
 
         ZonedDateTime timestamp = ZonedDateTime.now();
 
-        if (source != null && !source.isEmpty()) {
+        String message = StringUtils.hasText(request.getMessage()) ? request.getMessage() : "Monitoring alert triggered";
+        String source = request.getSource();
+
+        if (StringUtils.hasText(source)) {
             log.error("[FATAL]: [{}] {}", source, message);
         } else {
             log.error("[FATAL]: {}", message);
         }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "logged");
-        response.put("timestamp", timestamp.toString());
-        response.put("message", "Failure logged successfully");
+        MonitoringResponse response = new MonitoringResponse("logged", timestamp, "Failure logged successfully");
 
         log.info("Monitoring alert reported at {} with message '{}'", timestamp, message);
 
@@ -54,10 +50,8 @@ public class MonitoringController {
             description = "Returns 200 OK if the API is up and running. Does not generate any logs.",
             security = @SecurityRequirement(name = "ApiKeyAuth")
     )
-    public ResponseEntity<Map<String, String>> ping() {
-        Map<String, String> response = new HashMap<>();
-        response.put("status", "ok");
-        response.put("timestamp", ZonedDateTime.now().toString());
+    public ResponseEntity<MonitoringResponse> ping() {
+        MonitoringResponse response = new MonitoringResponse("ok", ZonedDateTime.now(), "API is reachable");
         return ResponseEntity.ok(response);
     }
 }
