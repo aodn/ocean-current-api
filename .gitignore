@@ -65,3 +65,7 @@ data/
 # AI files
 CLAUDE.md
 *.php
+
+# Python virtual environment
+venv/
+.venv/
