@@ -63,3 +63,13 @@ tasks.named('test') {
 		exceptionFormat = "full"
 	}
 }
+
+tasks.register('buildWithoutTests') {
+    description = 'Build Spring Boot application without running tests'
+    group = 'build'
+    dependsOn bootJar
+    dependsOn classes
+    doFirst {
+        println 'Building without tests...'
+    }
+}

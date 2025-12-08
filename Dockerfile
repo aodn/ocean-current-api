@@ -1,4 +1,4 @@
-FROM openjdk:17-alpine
+FROM amazoncorretto:17
 WORKDIR /app
 COPY ./build/libs/ocean-current-*-SNAPSHOT.jar /app/app.jar
 EXPOSE 8080
