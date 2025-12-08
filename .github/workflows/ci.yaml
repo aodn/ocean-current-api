@@ -31,13 +31,8 @@ jobs:
           distribution: "temurin"
           java-version: 17
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: "8.10"
-
-      - name: Run Gradle Wrapper
-        run: gradle wrapper
+      - name: Make gradlew executable
+        run: chmod +x gradlew
 
       - name: Verify Docker is running
         run: docker info
