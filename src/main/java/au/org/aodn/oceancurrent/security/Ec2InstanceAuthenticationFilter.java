@@ -41,7 +41,7 @@ import java.util.Set;
  * - Whitelist prevents unauthorised instances from accessing the endpoint
  */
 @Component
-@Profile({"prod", "edge"})
+//@Profile({"prod", "edge"})
 @Slf4j
 @RequiredArgsConstructor
 public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
@@ -90,6 +90,9 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
             String instanceId = monitoringRequest.getInstanceId();
             String document = monitoringRequest.getDocument();
             String pkcs7 = monitoringRequest.getPkcs7();
+
+            log.debug("[MONITORING-AUTH] Received request | InstanceId={} | DocumentLength={} | Pkcs7Length={}",
+                    instanceId, document != null ? document.length() : 0, pkcs7 != null ? pkcs7.length() : 0);
 
             // Validate required fields are present
             if (instanceId == null || instanceId.isEmpty()) {

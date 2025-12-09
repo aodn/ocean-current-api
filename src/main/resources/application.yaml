@@ -70,6 +70,12 @@ sqlite:
     connect-timeout: 30000
     read-timeout: 60000
 
+logging:
+  level:
+    au.org.aodn.oceancurrent.security: DEBUG # Enable debug logging for security components
+
 app:
   monitoring-security:
     authorised-instance-ids: ${AUTHORISED_INSTANCE_IDS:} # Comma-separated EC2 instance IDs, passed via environment variable
+  ec2-identity-cert-path: ${EC2_IDENTITY_CERT_PATH:classpath:aws/ec2-instance-identity.pem} # Path to AWS EC2 instance identity certificate
+  ec2-identity-timestamp-tolerance-seconds: ${EC2_IDENTITY_TIMESTAMP_TOLERANCE_SECONDS:300} # Maximum age of pendingTime in seconds (default: 5 minutes)
