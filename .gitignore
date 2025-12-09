@@ -66,6 +66,6 @@ data/
 CLAUDE.md
 *.php
 
-# python virtual environment
+# Python virtual environment
 venv/
 .venv/

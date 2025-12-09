@@ -9,7 +9,7 @@
 #   - AUTHORISED_INSTANCE_IDS: Comma-separated EC2 instance IDs (e.g., "i-xxx,i-yyy")
 #
 
-FROM openjdk:17-alpine
+FROM amazoncorretto:17
 WORKDIR /app
 COPY ./build/libs/ocean-current-*-SNAPSHOT.jar /app/app.jar
 EXPOSE 8080

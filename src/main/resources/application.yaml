@@ -41,12 +41,10 @@ elasticsearch:
   api-key: ${ES_API_KEY:placeholder}
   max-result-window: ${ES_MAX_RESULT_WINDOW:20000}
   index-name: ${INDEX_NAME:ocean-current-files}
+  reindex-validation-threshold-percent: 80 # Minimum percentage of old index documents required in new index
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
-    s3:
-      cron:
-        expression: 0 30 2 * * ? # every day at 2:30 AM in Australia/Hobart time
 
 remote:
   base-url: ${REMOTE_BASE_URL:}

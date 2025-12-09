@@ -28,25 +28,25 @@ class IndexingSchedulerTest {
     @Test
     void testScheduledIndexingSuccessful() throws IOException {
         // Arrange
-        doNothing().when(indexingService).indexRemoteJsonFiles(true);
+        doNothing().when(indexingService).reindexAll(true);
 
         // Act
         indexingScheduler.scheduledIndexing();
 
         // Assert
-        verify(indexingService, times(1)).indexRemoteJsonFiles(true);
+        verify(indexingService, times(1)).reindexAll(true);
     }
 
     @Test
     void testScheduledIndexingHandlesException() throws IOException {
         // Arrange
-        doThrow(IOException.class).when(indexingService).indexRemoteJsonFiles(true);
+        doThrow(IOException.class).when(indexingService).reindexAll(true);
 
         // Act
         indexingScheduler.scheduledIndexing();
 
         // Assert
-        verify(indexingService, times(1)).indexRemoteJsonFiles(true);
+        verify(indexingService, times(1)).reindexAll(true);
         // Note: We're only verifying the method was called
         // The exception is caught in the method, so we don't need to assert anything about it
     }
