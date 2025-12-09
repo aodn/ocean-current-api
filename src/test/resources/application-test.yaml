@@ -47,3 +47,6 @@ sqlite:
       expression: "*/30 * * * * ?" # every 30 seconds for testing
     connect-timeout: 30000
     read-timeout: 60000
+
+monitoring:
+  api-key: test-api-key
