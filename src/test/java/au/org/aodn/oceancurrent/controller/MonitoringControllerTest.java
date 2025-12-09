@@ -26,7 +26,7 @@ public class MonitoringControllerTest {
 
     @Test
     public void testTriggerFatalLog_NoRequestBody() throws Exception {
-        // When & Then
+        // When & Then - request body is optional, should use default message
         mockMvc.perform(post("/monitoring/fatal-log")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andDo(print())

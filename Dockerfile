@@ -3,7 +3,7 @@
 #   - SPRING_PROFILES_ACTIVE: Spring profile (prod, edge)
 #   - ES_HOST: Elasticsearch host
 #   - ES_API_KEY: Elasticsearch API key
-#   - REMOTE_BASE_URL: Remote JSON base URL
+#   - REMOTE_BASE_URL: Remote Server base URL
 #   - AWS_REGION: AWS region
 #   - DATA_BUCKET: AWS S3 bucket name
 #   - AUTHORISED_INSTANCE_IDS: Comma-separated EC2 instance IDs (e.g., "i-xxx,i-yyy")

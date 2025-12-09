@@ -9,6 +9,9 @@ import lombok.NoArgsConstructor;
 /**
  * Request DTO for monitoring endpoint.
  * Allows callers to provide custom error messages for logging with EC2 instance authentication.
+ *
+ * SECURITY NOTE: The instanceId and document are NOT accepted from the request body.
+ * They are extracted from the PKCS7 signature to prevent tampering.
  */
 @Data
 @NoArgsConstructor
@@ -17,26 +20,9 @@ import lombok.NoArgsConstructor;
 public class MonitoringRequest {
 
     @Schema(
-            description = "EC2 instance ID making the request. Fetched from EC2 metadata service.",
-            example = "i-0123456789abcdef0",
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    @NotBlank(message = "Instance ID is required")
-    private String instanceId;
-
-    @Schema(
-            description = "Instance identity document JSON from EC2 metadata service. " +
-                    "Fetch from: http://169.254.169.254/latest/dynamic/instance-identity/document",
-            example = "{\"instanceId\":\"i-0123456789abcdef0\",\"region\":\"ap-southeast-2\",...}",
-            requiredMode = Schema.RequiredMode.REQUIRED
-    )
-    @NotBlank(message = "Instance identity document is required")
-    private String document;
-
-    @Schema(
             description = "PKCS7 signature of the instance identity document from EC2 metadata service. " +
                     "Fetch from: http://169.254.169.254/latest/dynamic/instance-identity/pkcs7 " +
-                    "This signature proves the document is authentic and from AWS.",
+                    "The instance identity document (including instanceId) is extracted from this signature to prevent tampering.",
             example = "MIAGCSqGSIb3DQEHAqCAMIACAQExCzAJBgUrDgMCGgUAMIAGCSqGSIb3DQEHAaCAJIAEggHc...",
             requiredMode = Schema.RequiredMode.REQUIRED
     )

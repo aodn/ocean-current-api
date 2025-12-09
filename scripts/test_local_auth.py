@@ -2,7 +2,7 @@
 """
 EC2 Instance Identity Authentication Test
 
-Tests EC2 instance identity document + PKCS7 signature validation.
+Tests EC2 instance identity PKCS7 signature validation.
 Authentication filter is only active in edge and prod profiles.
 
 Usage:
@@ -36,14 +36,14 @@ EC2_METADATA_URL = 'http://169.254.169.254/latest/dynamic/instance-identity'
 
 def fetch_ec2_identity(use_ec2_metadata=False):
     """
-    Fetch EC2 instance identity document and PKCS7 signature.
+    Fetch PKCS7 signature from EC2 metadata service.
 
     Args:
         use_ec2_metadata: If True, fetch from EC2 metadata service.
                          If False, return None (requires real EC2 metadata for signature).
 
     Returns:
-        tuple: (instance_id, document, pkcs7_signature) or None if failed
+        PKCS7 signature string or None if failed
     """
     if not use_ec2_metadata:
         # Cannot use simulated data - PKCS7 signatures must be cryptographically valid
@@ -57,19 +57,6 @@ def fetch_ec2_identity(use_ec2_metadata=False):
     print("ℹ️  Fetching EC2 identity from metadata service...")
 
     try:
-        # Fetch instance identity document
-        doc_response = requests.get(
-            f'{EC2_METADATA_URL}/document',
-            timeout=2,
-            headers={'User-Agent': 'aws-cli/2.0'}
-        )
-
-        if doc_response.status_code != 200:
-            print(f"❌ Failed to fetch instance identity document: {doc_response.status_code}")
-            return None
-
-        document = doc_response.text
-
         # Fetch PKCS7 signature
         sig_response = requests.get(
             f'{EC2_METADATA_URL}/pkcs7',
@@ -82,16 +69,7 @@ def fetch_ec2_identity(use_ec2_metadata=False):
             return None
 
         pkcs7_signature = sig_response.text.strip()
-
-        # Extract instance ID from document
-        doc_json = json.loads(document)
-        instance_id = doc_json.get('instanceId')
-
-        if not instance_id:
-            print("❌ Failed to extract instance ID from document")
-            return None
-
-        return instance_id, document, pkcs7_signature
+        return pkcs7_signature
 
     except requests.exceptions.Timeout:
         print("❌ Timeout fetching EC2 metadata (not running on EC2)")
@@ -131,23 +109,20 @@ def test_without_auth():
         return False
 
 
-def test_with_ec2_identity(instance_id, document, pkcs7_signature):
+def test_with_ec2_identity(pkcs7_signature):
     """Test endpoint with EC2 instance identity authentication."""
     print("\n2. Testing with EC2 instance identity + PKCS7 signature:")
 
     # Build request body
+    # SECURITY NOTE: We only send the PKCS7 signature and timestamp.
+    # The instanceId and document are extracted from the PKCS7 on the server side.
+    # This prevents tampering with the instance identity.
     request_body = {
-        "instanceId": instance_id,
-        "document": document,
         "pkcs7": pkcs7_signature,
-        "errorMessage": "Local EC2 identity test",
-        "source": "test-script",
-        "context": "testing EC2 authentication",
-        "timestamp": datetime.now().isoformat() + "Z"
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "errorMessage": "Local EC2 identity test"
     }
 
-    print(f"   Instance ID: {instance_id}")
-    print(f"   Document size: {len(document)} bytes")
     print(f"   PKCS7 signature size: {len(pkcs7_signature)} bytes")
 
     try:
@@ -187,26 +162,9 @@ def test_with_missing_fields():
 
     test_cases = [
         {
-            "name": "Missing instanceId",
-            "body": {
-                "document": "{}",
-                "pkcs7": "test",
-                "errorMessage": "Test"
-            }
-        },
-        {
-            "name": "Missing document",
-            "body": {
-                "instanceId": "i-0123456789abcdef0",
-                "pkcs7": "test",
-                "errorMessage": "Test"
-            }
-        },
-        {
             "name": "Missing pkcs7",
             "body": {
-                "instanceId": "i-0123456789abcdef0",
-                "document": "{}",
+                "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
                 "errorMessage": "Test"
             }
         }
@@ -241,7 +199,7 @@ def main():
     print("=" * 70)
     print("EC2 Instance Identity Authentication Test")
     print("=" * 70)
-    print("\nThis script tests EC2 instance identity document + PKCS7 signature")
+    print("\nThis script tests EC2 instance identity PKCS7 signature")
     print("validation for the monitoring endpoint.\n")
 
     use_ec2_metadata = '--use-ec2-metadata' in sys.argv
@@ -251,11 +209,10 @@ def main():
 
     # Test 2: With EC2 identity
     print("\n2. Testing with EC2 instance identity + PKCS7 signature:")
-    identity = fetch_ec2_identity(use_ec2_metadata=use_ec2_metadata)
+    pkcs7_signature = fetch_ec2_identity(use_ec2_metadata=use_ec2_metadata)
 
-    if identity:
-        instance_id, document, pkcs7_signature = identity
-        ec2_validation_passed = test_with_ec2_identity(instance_id, document, pkcs7_signature)
+    if pkcs7_signature:
+        ec2_validation_passed = test_with_ec2_identity(pkcs7_signature)
     else:
         print("   Note: PKCS7 signatures must be real and cryptographically valid")
         print("   - Use --use-ec2-metadata flag to test on EC2 instance")

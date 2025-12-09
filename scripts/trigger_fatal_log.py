@@ -4,6 +4,7 @@ EC2 Instance Fatal Log Trigger
 
 Minimal script to send fatal error notifications from EC2 instances to Ocean Current API.
 Uses EC2 instance identity document and PKCS7 signature for authentication.
+Supports IMDSv2 (Instance Metadata Service Version 2) for enhanced security.
 
 Usage (from EC2 instance):
     API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log" \\
@@ -26,13 +27,12 @@ Examples:
 
 import sys
 import os
-import json
 import requests
 from datetime import datetime
 
-# EC2 Instance Metadata Service endpoints
+# EC2 Instance Metadata Service endpoints (IMDSv2)
 METADATA_BASE_URL = "http://169.254.169.254/latest"
-INSTANCE_IDENTITY_DOCUMENT_URL = f"{METADATA_BASE_URL}/dynamic/instance-identity/document"
+IMDS_TOKEN_URL = f"{METADATA_BASE_URL}/api/token"
 INSTANCE_IDENTITY_PKCS7_URL = f"{METADATA_BASE_URL}/dynamic/instance-identity/pkcs7"
 
 # Backend API endpoint from environment variable
@@ -40,73 +40,85 @@ API_ENDPOINT = os.environ.get("API_ENDPOINT")
 
 # Metadata service timeout
 METADATA_TIMEOUT = 2  # seconds
+IMDS_TOKEN_TTL_SECONDS = 21600  # 6 hours
+
+
+def get_imds_token():
+    """
+    Fetch IMDSv2 session token for secure metadata access.
+
+    Returns:
+        Token string or None on error
+    """
+    try:
+        response = requests.put(
+            IMDS_TOKEN_URL,
+            headers={"X-aws-ec2-metadata-token-ttl-seconds": str(IMDS_TOKEN_TTL_SECONDS)},
+            timeout=METADATA_TIMEOUT
+        )
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"WARNING: Failed to get IMDSv2 token, falling back to IMDSv1: {e}", file=sys.stderr)
+        return None
 
 
 def fetch_instance_identity():
     """
-    Fetch instance identity document and PKCS7 signature from EC2 metadata service.
+    Fetch PKCS7 signature from EC2 metadata service.
+    Uses IMDSv2 for enhanced security, with fallback to IMDSv1.
 
     Returns:
-        Tuple of (instance_id, document, pkcs7_signature) or (None, None, None) on error
+        PKCS7 signature string or None on error
     """
     try:
-        # Fetch instance identity document
-        doc_response = requests.get(
-            INSTANCE_IDENTITY_DOCUMENT_URL,
-            timeout=METADATA_TIMEOUT
-        )
-        doc_response.raise_for_status()
-        document = doc_response.text
-
-        # Parse document to extract instance ID
-        doc_json = json.loads(document)
-        instance_id = doc_json.get("instanceId")
-
-        if not instance_id:
-            print("ERROR: Could not extract instanceId from metadata document", file=sys.stderr)
-            return None, None, None
+        # Get IMDSv2 token (optional, will fallback to IMDSv1 if unavailable)
+        token = get_imds_token()
+        headers = {}
+        if token:
+            headers["X-aws-ec2-metadata-token"] = token
+            print("Using IMDSv2 (secure mode)")
+        else:
+            print("Using IMDSv1 (fallback mode)")
 
         # Fetch PKCS7 signature
         pkcs7_response = requests.get(
             INSTANCE_IDENTITY_PKCS7_URL,
+            headers=headers,
             timeout=METADATA_TIMEOUT
         )
         pkcs7_response.raise_for_status()
         pkcs7_signature = pkcs7_response.text
 
-        print(f"Successfully fetched instance identity: {instance_id}")
-        return instance_id, document, pkcs7_signature
+        print("Successfully fetched instance identity")
+        return pkcs7_signature
 
     except requests.exceptions.Timeout:
         print("ERROR: Timeout fetching EC2 metadata. Are you running on an EC2 instance?", file=sys.stderr)
-        return None, None, None
+        return None
     except requests.exceptions.RequestException as e:
         print(f"ERROR: Failed to fetch EC2 metadata: {e}", file=sys.stderr)
-        return None, None, None
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse instance identity document: {e}", file=sys.stderr)
-        return None, None, None
+        return None
 
 
-def send_fatal_log(error_message, instance_id, document, pkcs7):
+def send_fatal_log(error_message, pkcs7):
     """
     Send fatal log request to the backend API.
 
     Args:
         error_message: The error message to log
-        instance_id: EC2 instance ID
-        document: Instance identity document JSON
-        pkcs7: PKCS7 signature
+        pkcs7: PKCS7 signature (instanceId and document are extracted from this on the server)
 
     Returns:
         True if successful, False otherwise
     """
     # Build request payload
+    # SECURITY NOTE: We only send the PKCS7 signature and timestamp.
+    # The instanceId and document are extracted from the PKCS7 on the server side.
+    # This prevents tampering with the instance identity.
     payload = {
-        "instanceId": instance_id,
-        "document": document,
         "pkcs7": pkcs7,
-        "timestamp": datetime.now().isoformat() + "Z",
+        "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "errorMessage": error_message
     }
 
@@ -161,17 +173,15 @@ def main():
     print("=" * 60)
 
     # Fetch instance identity from metadata service
-    instance_id, document, pkcs7 = fetch_instance_identity()
+    pkcs7 = fetch_instance_identity()
 
-    if not all([instance_id, document, pkcs7]):
+    if not pkcs7:
         print("\n✗ Failed to fetch instance identity. Exiting.", file=sys.stderr)
         sys.exit(1)
 
     # Send fatal log to backend
     success = send_fatal_log(
         error_message=error_message,
-        instance_id=instance_id,
-        document=document,
         pkcs7=pkcs7
     )
 

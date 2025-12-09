@@ -39,12 +39,11 @@ public class MonitoringController {
             @ApiResponse(responseCode = "401", description = "Unauthorised - EC2 instance authentication required (prod/edge only)")
     })
     public ResponseEntity<MonitoringResponse> triggerFatalLog(
-            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional monitoring request with custom error message", required = false)
+            @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional monitoring request with custom error message")
             @RequestBody(required = false) MonitoringRequest request) {
 
         Instant timestamp = Instant.now();
 
-        // Build the error message
         String errorMessage;
         if (request != null && request.getErrorMessage() != null && !request.getErrorMessage().trim().isEmpty()) {
             errorMessage = request.getErrorMessage();
@@ -52,7 +51,6 @@ public class MonitoringController {
             errorMessage = "Monitoring health check endpoint triggered";
         }
 
-        // Build log context
         StringBuilder logContext = new StringBuilder();
         logContext.append(errorMessage);
 
@@ -66,9 +64,8 @@ public class MonitoringController {
         }
 
         // Generate fatal log that will be caught by NewRelic monitoring
-        log.error("[FATAL] {} at {}", logContext, timestamp);
+        log.error("[FATAL] Monitoring log triggered at {} with message: {}", timestamp, logContext);
 
-        // Build response
         MonitoringResponse response = MonitoringResponse.builder()
                 .status("success")
                 .message("Fatal log generated successfully for monitoring purposes")

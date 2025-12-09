@@ -1,6 +1,5 @@
 package au.org.aodn.oceancurrent.security;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,7 +16,8 @@ import static org.hamcrest.Matchers.*;
 
 /**
  * Integration test for EC2 Instance Identity authentication filter.
- * Tests that monitoring endpoints require EC2 instance identity document + PKCS7 signature.
+ * Tests that monitoring endpoints require a valid PKCS7 signature containing EC2 instance identity.
+ * The instance identity and instance ID are extracted and validated from the PKCS7 signature.
  * <p>
  * Note: This test runs with the 'edge' profile to activate the authentication filter.
  * The 'test' profile provides the base configuration (Elasticsearch, etc).
@@ -30,21 +30,9 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private String mockInstanceId;
-    private String mockDocument;
-    private String mockPkcs7;
-
-    @BeforeEach
-    public void setUp() {
-        // Mock EC2 instance identity data for testing
-        mockInstanceId = "i-0123456789abcdef0";
-        mockDocument = "{\"instanceId\":\"i-0123456789abcdef0\",\"region\":\"ap-southeast-2\",\"accountId\":\"123456789012\"}";
-        mockPkcs7 = "MIAGCSqGSIb3DQEHAqCAMIACAQExCzAJBgUrDgMCGgUAMIAGCSqGSIb3DQEHAaCAJIAEggHceyJp==";
-    }
-
     @Test
-    public void testMonitoringEndpoint_WithoutInstanceId_ReturnUnauthorised() throws Exception {
-        // Given: A request to monitoring endpoint without instance ID
+    public void testMonitoringEndpoint_WithoutPkcs7_ReturnUnauthorised() throws Exception {
+        // Given: A request to monitoring endpoint without PKCS7 signature
         String requestBody = "{\"errorMessage\": \"Test error\"}";
 
         // When & Then: Request should be rejected
@@ -55,33 +43,13 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.message").value("Unauthorized"))
-                .andExpect(jsonPath("$.errors[0]").value("Instance ID required in request body"));
+                .andExpect(jsonPath("$.errors[0]").value("PKCS7 signature required"));
     }
 
     @Test
-    public void testMonitoringEndpoint_WithInstanceIdButNoDocument_ReturnUnauthorised() throws Exception {
-        // Given: A request with instance ID but missing document
-        String requestBody = String.format("{\"instanceId\": \"%s\", \"errorMessage\": \"Test error\"}", mockInstanceId);
-
-        // When & Then: Request should be rejected
-        mockMvc.perform(post("/api/v1/monitoring/fatal-log")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestBody))
-                .andDo(print())
-                .andExpect(status().isUnauthorized())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.message").value("Unauthorized"))
-                .andExpect(jsonPath("$.errors[0]").value("Instance identity document required"));
-    }
-
-    @Test
-    public void testMonitoringEndpoint_WithInstanceIdAndDocumentButNoPkcs7_ReturnUnauthorised() throws Exception {
-        // Given: A request with instance ID and document but missing PKCS7 signature
-        String requestBody = String.format(
-            "{\"instanceId\": \"%s\", \"document\": \"%s\", \"errorMessage\": \"Test error\"}",
-            mockInstanceId,
-            mockDocument.replace("\"", "\\\"")
-        );
+    public void testMonitoringEndpoint_WithEmptyPkcs7_ReturnUnauthorised() throws Exception {
+        // Given: A request with empty PKCS7 signature
+        String requestBody = "{\"pkcs7\": \"\", \"errorMessage\": \"Test error\"}";
 
         // When & Then: Request should be rejected
         mockMvc.perform(post("/api/v1/monitoring/fatal-log")
@@ -94,14 +62,9 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
     }
 
     @Test
-    public void testMonitoringEndpoint_WithAllFieldsButInvalidSignature_ReturnUnauthorised() throws Exception {
-        // Given: A request with all required fields but invalid PKCS7 signature
-        String requestBody = String.format(
-            "{\"instanceId\": \"%s\", \"document\": \"%s\", \"pkcs7\": \"%s\", \"errorMessage\": \"Test error\"}",
-            mockInstanceId,
-            mockDocument.replace("\"", "\\\""),
-            "invalid-signature"
-        );
+    public void testMonitoringEndpoint_WithInvalidPkcs7Signature_ReturnUnauthorised() throws Exception {
+        // Given: A request with invalid PKCS7 signature
+        String requestBody = "{\"pkcs7\": \"invalid-signature\", \"errorMessage\": \"Test error\"}";
 
         // When & Then: Request should be rejected due to invalid signature
         mockMvc.perform(post("/api/v1/monitoring/fatal-log")
@@ -110,7 +73,7 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Unauthorized"))
-                .andExpect(jsonPath("$.errors[0]").exists());
+                .andExpect(jsonPath("$.errors[0]").value(containsString("Invalid instance identity")));
     }
 
     @Test
@@ -126,35 +89,30 @@ public class Ec2InstanceAuthenticationFilterIntegrationTest {
     }
 
     @Test
-    public void testMonitoringEndpoint_WithUnauthorisedInstanceId_ReturnUnauthorised() throws Exception {
-        // Given: A request from an instance ID not in the whitelist
-        String unauthorisedInstanceId = "i-9999999999999999";
-        String unauthorisedDocument = "{\"instanceId\":\"i-9999999999999999\",\"region\":\"ap-southeast-2\"}";
+    public void testMonitoringEndpoint_WithInvalidJsonBody_ReturnUnauthorised() throws Exception {
+        // Given: A request with invalid JSON body
+        String requestBody = "{invalid json}";
 
-        String requestBody = String.format(
-            "{\"instanceId\": \"%s\", \"document\": \"%s\", \"pkcs7\": \"%s\", \"errorMessage\": \"Test error\"}",
-            unauthorisedInstanceId,
-            unauthorisedDocument.replace("\"", "\\\""),
-            mockPkcs7
-        );
-
-        // When & Then: Request should be rejected - not in whitelist
+        // When & Then: Request should be rejected due to invalid JSON
         mockMvc.perform(post("/api/v1/monitoring/fatal-log")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestBody))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Unauthorized"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").value("Invalid request body format"));
     }
 
     @Test
     public void testMonitoringEndpoint_GetRequest_RequiresAuth() throws Exception {
         // Given: A GET request to monitoring endpoint without authentication
+        // GET requests typically don't have a request body, so parsing will fail
 
-        // When & Then: Request should be rejected
+        // When & Then: Request should be rejected with invalid request body format
         mockMvc.perform(get("/api/v1/monitoring/fatal-log"))
                 .andDo(print())
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Unauthorized"));
+                .andExpect(jsonPath("$.message").value("Unauthorized"))
+                .andExpect(jsonPath("$.errors[0]").value("Invalid request body format"));
     }
 }

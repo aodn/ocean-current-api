@@ -11,4 +11,6 @@ import java.util.List;
 @Configuration
 public class MonitoringSecurityProperties {
     private List<String> authorisedInstanceIds;
+    private String ec2IdentityCertPath;
+    private long ec2IdentityTimestampToleranceSeconds;
 }

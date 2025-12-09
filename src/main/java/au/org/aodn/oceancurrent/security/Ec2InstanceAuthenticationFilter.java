@@ -16,12 +16,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.ContentCachingRequestWrapper;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -41,14 +38,14 @@ import java.util.Set;
  * - Whitelist prevents unauthorised instances from accessing the endpoint
  */
 @Component
-//@Profile({"prod", "edge"})
+@Profile({"prod", "edge"})
 @Slf4j
 @RequiredArgsConstructor
 public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String MONITORING_PATH = "/api/v1/monitoring";
 
-    private final AwsInstanceIdentityValidator instanceIdentityValidator;
+    private final Ec2InstanceIdentityValidator instanceIdentityValidator;
     private final ObjectMapper objectMapper;
     private final MonitoringSecurityProperties monitoringSecurityProperties;
 
@@ -62,7 +59,6 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        // Only filter monitoring endpoints
         String path = request.getRequestURI();
         return !path.startsWith(MONITORING_PATH);
     }
@@ -75,11 +71,14 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
         String requestPath = request.getRequestURI();
         String clientIp = getClientIp(request);
 
+        // Wrap the request to enable multiple reads of the request body
+        CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request);
+
         try {
             MonitoringRequest monitoringRequest;
 
             try {
-                monitoringRequest = parseMonitoringRequest(request);
+                monitoringRequest = parseMonitoringRequest(cachedRequest);
             } catch (Exception e) {
                 log.warn("[MONITORING-AUTH-FAILED] Invalid JSON in request body | Path={} | IP={} | Error={}",
                         requestPath, clientIp, e.getMessage());
@@ -87,44 +86,33 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            String instanceId = monitoringRequest.getInstanceId();
-            String document = monitoringRequest.getDocument();
             String pkcs7 = monitoringRequest.getPkcs7();
 
-            log.debug("[MONITORING-AUTH] Received request | InstanceId={} | DocumentLength={} | Pkcs7Length={}",
-                    instanceId, document != null ? document.length() : 0, pkcs7 != null ? pkcs7.length() : 0);
-
-            // Validate required fields are present
-            if (instanceId == null || instanceId.isEmpty()) {
-                log.warn("[MONITORING-AUTH-FAILED] Missing instanceId in request body | Path={} | IP={}",
-                        requestPath, clientIp);
-                sendUnauthorisedResponse(response, "Instance ID required in request body");
-                return;
-            }
-
-            if (document == null || document.isEmpty()) {
-                log.warn("[MONITORING-AUTH-FAILED] Missing document in request body | Path={} | IP={} | InstanceId={}",
-                        requestPath, clientIp, instanceId);
-                sendUnauthorisedResponse(response, "Instance identity document required");
-                return;
-            }
+            log.debug("[MONITORING-AUTH] Received request | Pkcs7Length={} | Path={} | IP={}",
+                    pkcs7 != null ? pkcs7.length() : 0, requestPath, clientIp);
 
             if (pkcs7 == null || pkcs7.isEmpty()) {
-                log.warn("[MONITORING-AUTH-FAILED] Missing pkcs7 signature in request body | Path={} | IP={} | InstanceId={}",
-                        requestPath, clientIp, instanceId);
+                log.warn("[MONITORING-AUTH-FAILED] Missing PKCS7 signature in request body | Path={} | IP={}",
+                        requestPath, clientIp);
                 sendUnauthorisedResponse(response, "PKCS7 signature required");
                 return;
             }
 
-            AwsInstanceIdentityValidator.ValidationResult validationResult =
-                instanceIdentityValidator.validate(document, pkcs7, instanceId);
+            // Validate the PKCS7 signature and extract the instance identity
+            // SECURITY: instanceId and document are extracted from PKCS7
+            String requestTimestamp = monitoringRequest.getTimestamp();
+            Ec2InstanceIdentityValidator.ValidationResult validationResult =
+                instanceIdentityValidator.validatePkcs7(pkcs7, requestTimestamp);
 
             if (!validationResult.isValid()) {
-                log.warn("[MONITORING-AUTH-FAILED] Instance identity validation failed | InstanceId={} | IP={} | Reason={}",
-                        instanceId, clientIp, validationResult.getErrorMessage());
+                log.warn("[MONITORING-AUTH-FAILED] Instance identity validation failed | IP={} | Reason={}",
+                        clientIp, validationResult.getErrorMessage());
                 sendUnauthorisedResponse(response, "Invalid instance identity: " + validationResult.getErrorMessage());
                 return;
             }
+
+            // Get the validated instance ID from the PKCS7 signature
+            String instanceId = validationResult.getInstanceId();
 
             if (!authorisedInstanceIds.contains(instanceId)) {
                 log.warn("[MONITORING-AUTH-FAILED] Unauthorised instance ID | InstanceId={} | IP={}",
@@ -136,9 +124,9 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
             log.info("[MONITORING-AUTH-SUCCESS] EC2 instance authenticated | InstanceId={} | IP={} | Path={}",
                     instanceId, clientIp, requestPath);
 
-            request.setAttribute("ec2_instance_id", instanceId);
-            request.setAttribute("ec2_authenticated", true);
-            request.setAttribute("monitoring_request", monitoringRequest);
+            cachedRequest.setAttribute("ec2_instance_id", instanceId);
+            cachedRequest.setAttribute("ec2_authenticated", true);
+            cachedRequest.setAttribute("monitoring_request", monitoringRequest);
 
         } catch (IOException e) {
             log.error("[MONITORING-AUTH-ERROR] IOException during authentication | Path={} | Error={}",
@@ -147,26 +135,19 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        filterChain.doFilter(request, response);
+        filterChain.doFilter(cachedRequest, response);
     }
 
     /**
      * Parse request body into MonitoringRequest DTO.
-     * Note: This reads the input stream, which can only be read once.
-     * We use ContentCachingRequestWrapper to enable multiple reads.
+     * Note: Uses CachedBodyHttpServletRequest which allows multiple reads of the body.
      *
-     * @param request the HTTP request
+     * @param request the HTTP request (should be a CachedBodyHttpServletRequest)
      * @return parsed MonitoringRequest object
      * @throws IOException if reading the request body fails
      */
-    private MonitoringRequest parseMonitoringRequest(HttpServletRequest request) throws IOException {
-        if (!(request instanceof ContentCachingRequestWrapper)) {
-            request = new ContentCachingRequestWrapper(request);
-        }
-
-        ContentCachingRequestWrapper wrapper = (ContentCachingRequestWrapper) request;
-        String body = StreamUtils.copyToString(wrapper.getInputStream(), StandardCharsets.UTF_8);
-
+    private MonitoringRequest parseMonitoringRequest(CachedBodyHttpServletRequest request) throws IOException {
+        String body = request.getBodyAsString();
         return objectMapper.readValue(body, MonitoringRequest.class);
     }
 
