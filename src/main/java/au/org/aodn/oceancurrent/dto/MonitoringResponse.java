@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * Response DTO for monitoring endpoint.
- */
 @Data
 @Builder
 @NoArgsConstructor

@@ -68,10 +68,6 @@ sqlite:
     connect-timeout: 30000
     read-timeout: 60000
 
-logging:
-  level:
-    au.org.aodn.oceancurrent.security: DEBUG # Enable debug logging for security components
-
 app:
   monitoring-security:
     authorised-instance-ids: ${AUTHORISED_INSTANCE_IDS:} # Comma-separated EC2 instance IDs, passed via environment variable
