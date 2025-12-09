@@ -1,0 +1,4 @@
+app:
+  monitoring-security:
+    authorised-instance-ids:
+      - i-0123456789abcdef0
