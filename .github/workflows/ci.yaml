@@ -31,9 +31,6 @@ jobs:
           distribution: "temurin"
           java-version: 17
 
-      - name: Make gradlew executable
-        run: chmod +x gradlew
-
       - name: Verify Docker is running
         run: docker info
 
