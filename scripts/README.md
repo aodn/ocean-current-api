@@ -15,32 +15,57 @@ This helper sends a POST request to `/api/v1/monitoring/fatal-log` using the EC2
 pip3 install requests
 ```
 
-### Basic usage (EC2 instance)
+### Configuration
 
-1. Set the API endpoint:
+The script reads the API endpoint from a config file or environment variable (config file takes precedence):
+
+**Option 1: Config file (recommended for production)**
 
 ```bash
-export API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log"
+# System-wide configuration
+sudo mkdir -p /etc/imos
+echo "https://api.example.com/api/v1/monitoring/fatal-log" | sudo tee /etc/imos/oc_api_endpoint.conf
+
+# OR local configuration (in same directory as script)
+echo "https://api.example.com/api/v1/monitoring/fatal-log" > ./scripts/oc_api_endpoint.conf
 ```
 
-2. Run the script with your error message:
+**Option 2: Environment variable (fallback)**
+
+```bash
+export OC_API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log"
+```
+
+### Basic usage (EC2 instance)
+
+1. Run the script with your error message:
 
 ```bash
 python3 trigger_fatal_log.py "File scan failed while generating JSON index"
 ```
 
+2. **Optional**: Add source type and additional context for better categorization:
+
+```bash
+# With source type only
+python3 trigger_fatal_log.py "Configuration error" "startup"
+
+# With source type and additional context
+python3 trigger_fatal_log.py "Database connection failed" "test" "db=postgres,timeout=30s"
+```
+
 The script will:
 
 - Fetch the instance identity document and PKCS7 signature from the EC2 metadata service
-- Extract the instance ID
-- POST a JSON body containing `instanceId`, `document`, `pkcs7`, `timestamp`, and your error message
+- POST a JSON body containing `pkcs7`, `timestamp`, `errorMessage`, `source`, and `context`
+- Include metadata: script name, process ID, Python version in the `context` field
 
 ### Local testing
 
 For local/dev testing (no EC2 metadata, no auth filter):
 
 ```bash
-export API_ENDPOINT="http://localhost:8080/api/v1/monitoring/fatal-log"
+export OC_API_ENDPOINT="http://localhost:8080/api/v1/monitoring/fatal-log"
 python3 trigger_fatal_log.py "Test error from local"
 ```
 
