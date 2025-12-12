@@ -7,22 +7,34 @@ Uses EC2 instance identity document and PKCS7 signature for authentication.
 Supports IMDSv2 (Instance Metadata Service Version 2) for enhanced security.
 
 Usage (from EC2 instance):
-    API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log" \\
-    python3 trigger_fatal_log.py "Error message"
+    python3 trigger_fatal_log.py "Error message" [source_type] [additional_context]
 
 Requirements:
     - Python 3.6+
     - requests: pip install requests
-    - Environment variable: API_ENDPOINT (monitoring endpoint URL)
+    - API endpoint configuration (one of):
+      * Config file: /etc/imos/oc_api_endpoint.conf (system-wide) or
+                     ./oc_api_endpoint.conf (local to script)
+      * Environment variable: OC_API_ENDPOINT (fallback if config file not found)
 
 Examples:
-    # Set endpoint and run
-    export API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log"
+    # Setup: Create config file (preferred method)
+    echo "https://api.example.com/api/v1/monitoring/fatal-log" > /etc/imos/oc_api_endpoint.conf
+    # OR for local testing
+    echo "https://api.example.com/api/v1/monitoring/fatal-log" > ./oc_api_endpoint.conf
+
+    # Basic usage (reads from config file)
     python3 trigger_fatal_log.py "File scan failed while generating JSON index"
 
-    # Or inline
-    API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log" \\
-    python3 trigger_fatal_log.py "Daily backup completed"
+    # With source type
+    python3 trigger_fatal_log.py "Configuration error" "startup"
+
+    # With source type and additional context
+    python3 trigger_fatal_log.py "Database connection failed" "test" "db=postgres,timeout=30s"
+
+    # Alternative: Using environment variable (if config file doesn't exist)
+    export OC_API_ENDPOINT="https://api.example.com/api/v1/monitoring/fatal-log"
+    python3 trigger_fatal_log.py "Daily backup completed" "manual" "backup_id=12345"
 """
 
 import sys
@@ -35,8 +47,31 @@ METADATA_BASE_URL = "http://169.254.169.254/latest"
 IMDS_TOKEN_URL = f"{METADATA_BASE_URL}/api/token"
 INSTANCE_IDENTITY_PKCS7_URL = f"{METADATA_BASE_URL}/dynamic/instance-identity/pkcs7"
 
-# Backend API endpoint from environment variable
-API_ENDPOINT = os.environ.get("API_ENDPOINT")
+# Backend API endpoint for fatal log notifications
+# Reads from config file or environment variable (config file takes precedence)
+# Config file location: /etc/imos/oc_api_endpoint.conf or ./oc_api_endpoint.conf
+def _load_api_endpoint():
+    """Load API endpoint from config file or environment variable."""
+    # Try config file locations (in order of preference)
+    config_locations = [
+        "/etc/imos/oc_api_endpoint.conf",  # System-wide config
+        os.path.join(os.path.dirname(__file__), "oc_api_endpoint.conf"),  # Local to script
+    ]
+
+    for config_file in config_locations:
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r') as f:
+                    endpoint = f.read().strip()
+                    if endpoint:
+                        return endpoint
+            except Exception:
+                pass  # Try next location
+
+    # Fallback to environment variable
+    return os.getenv("OC_API_ENDPOINT")
+
+OC_API_ENDPOINT = _load_api_endpoint()
 
 # Metadata service timeout
 METADATA_TIMEOUT = 2  # seconds
@@ -101,31 +136,53 @@ def fetch_instance_identity():
         return None
 
 
-def send_fatal_log(error_message, pkcs7):
+def send_fatal_log(error_message, pkcs7, source_type=None, additional_context=None):
     """
     Send fatal log request to the backend API.
 
     Args:
         error_message: The error message to log
         pkcs7: PKCS7 signature (instanceId and document are extracted from this on the server)
+        source_type: Optional source type identifier (e.g., 'test', 'manual')
+        additional_context: Optional additional context information
 
     Returns:
         True if successful, False otherwise
     """
-    # Build request payload
+    # Build request payload matching production format
     # SECURITY NOTE: We only send the PKCS7 signature and timestamp.
     # The instanceId and document are extracted from the PKCS7 on the server side.
     # This prevents tampering with the instance identity.
+
+    # Determine source identifier
+    script_name = os.path.basename(__file__)
+    if source_type:
+        source = f"trigger-fatal-log/{source_type}"
+    else:
+        source = "trigger-fatal-log"
+
+    # Build context with additional info
+    context_parts = [
+        f"script={script_name}",
+        f"pid={os.getpid()}",
+        f"python={sys.version.split()[0]}"
+    ]
+    if additional_context:
+        context_parts.append(additional_context)
+    context = ", ".join(context_parts)
+
     payload = {
         "pkcs7": pkcs7,
         "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "errorMessage": error_message
+        "errorMessage": error_message,
+        "source": source,
+        "context": context
     }
 
     try:
-        print(f"Sending fatal log to {API_ENDPOINT}...")
+        print(f"Sending fatal log to {OC_API_ENDPOINT}...")
         response = requests.post(
-            API_ENDPOINT,
+            OC_API_ENDPOINT,
             json=payload,
             headers={"Content-Type": "application/json"},
             timeout=10
@@ -155,18 +212,21 @@ def send_fatal_log(error_message, pkcs7):
 
 
 def main():
-    # Validate API_ENDPOINT is configured
-    if not API_ENDPOINT:
-        print("ERROR: API_ENDPOINT environment variable is not set", file=sys.stderr)
-        print("Example: API_ENDPOINT=\"https://api.example.com/api/v1/monitoring/fatal-log\" python3 trigger_fatal_log.py \"Error message\"", file=sys.stderr)
+    # Validate OC_API_ENDPOINT is configured
+    if not OC_API_ENDPOINT:
+        print("ERROR: OC_API_ENDPOINT environment variable is not set", file=sys.stderr)
+        print("Example: OC_API_ENDPOINT=\"https://api.example.com/api/v1/monitoring/fatal-log\" python3 trigger_fatal_log.py \"Error message\" [source_type] [additional_context]", file=sys.stderr)
         sys.exit(1)
 
     if len(sys.argv) < 2:
-        print("Usage: python3 trigger_fatal_log.py \"Error message\"", file=sys.stderr)
+        print("Usage: python3 trigger_fatal_log.py \"Error message\" [source_type] [additional_context]", file=sys.stderr)
         print("Example: python3 trigger_fatal_log.py \"File scan failed while generating JSON index\"", file=sys.stderr)
+        print("Example: python3 trigger_fatal_log.py \"Configuration error\" \"startup\" \"config=test.json\"", file=sys.stderr)
         sys.exit(1)
 
     error_message = sys.argv[1]
+    source_type = sys.argv[2] if len(sys.argv) > 2 else None
+    additional_context = sys.argv[3] if len(sys.argv) > 3 else None
 
     print("=" * 60)
     print("EC2 Instance Fatal Log Trigger")
@@ -182,7 +242,9 @@ def main():
     # Send fatal log to backend
     success = send_fatal_log(
         error_message=error_message,
-        pkcs7=pkcs7
+        pkcs7=pkcs7,
+        source_type=source_type,
+        additional_context=additional_context
     )
 
     print("=" * 60)
