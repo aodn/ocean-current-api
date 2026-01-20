@@ -56,6 +56,20 @@ public class ImageMetadataController {
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping("/image-list/tidalCurrents-monthplots")
+    @Operation(description = """
+            Get tidal current month plots image files list by `region` \n
+            e.g. `/metadata/image-list/tidalCurrents-monthplots?region=NTC_Port_douglas` \n
+            """)
+    public ResponseEntity<List<ImageMetadataGroup>> getTidalCurrentMonthPlotsImageFilesList(
+            @Parameter(description = "Region name", example = "NTC_Port_douglas")
+            @RequestParam String region
+    ) {
+        log.info("Received request to search tidal current month plots image files for region: {}", region);
+        List<ImageMetadataGroup> results = searchService.findAllTidalCurrentMonthPlotsByPlotName(region);
+        return ResponseEntity.ok(results);
+    }
+
     @GetMapping("/image-list/surfaceWaves-buoyTimeseries")
     @Operation(description = """
             Get buoy time series image files list by `region` \n

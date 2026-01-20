@@ -57,6 +57,8 @@ ocean-current:
           id: "adjustedSeaLevelAnomaly-centiles"
         - title: "SLA + SST"
           id: "adjustedSeaLevelAnomaly-sst"
+        - title: "Non-Tidal SLA"
+          id: "adjustedSeaLevelAnomaly-nonTidalSla"
 
     - title: "Monthly Means"
       id: "monthlyMeans"
@@ -133,6 +135,8 @@ ocean-current:
           id: "tidalCurrents-spd"
         - title: "Tidal Currents Sea Level"
           id: "tidalCurrents-sl"
+        - title: "Tidal Currents Month Plots"
+          id: "tidalCurrents-monthplots"
 
     - title: "SealCTD"
       id: "sealCtd"
