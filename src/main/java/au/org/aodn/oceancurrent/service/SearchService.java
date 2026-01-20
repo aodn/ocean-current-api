@@ -55,6 +55,7 @@ public class SearchService {
     private static final String AGG_TOP_HITS = "top_hits";
 
     private static final String PRODUCT_TYPE_CURRENT_METERS_PLOT = "currentMetersPlot";
+    private static final String PRODUCT_TYPE_TIDAL_CURRENT_MONTH_PLOTS = "tidalCurrents-monthplots";
 
     private static final int REGION_COUNT = 100;
 
@@ -407,6 +408,29 @@ public class SearchService {
         } catch (Exception e) {
             log.error("Error fetching current meters plot data", e);
             throw new RuntimeException("Failed to retrieve current meters plot data", e);
+        }
+    }
+
+    public List<ImageMetadataGroup> findAllTidalCurrentMonthPlotsByPlotName(String plotName) {
+        try {
+            BoolQuery.Builder queryBuilder = new BoolQuery.Builder()
+                    .must(t -> t.prefix(f -> f.field(FIELD_PRODUCT_ID)
+                            .value(PRODUCT_TYPE_TIDAL_CURRENT_MONTH_PLOTS)))
+                    .must(t -> t.wildcard(w -> w.field(FIELD_FILE_NAME)
+                            .value("*" + plotName + "*")));
+
+            SearchResponse<ImageMetadataEntry> response = esClient.search(s -> s
+                    .index(indexName)
+                    .size(10000)
+                    .query(q -> q.bool(queryBuilder.build())), ImageMetadataEntry.class);
+
+            List<ImageMetadataEntry> hits = extractHits(response);
+            log.info("Found {} images for tidal current month plots with fileName containing '{}'",
+                    hits.size(), plotName);
+            return ImageMetadataConverter.createMetadataGroups(hits);
+        } catch (Exception e) {
+            log.error("Error fetching tidal current month plots by plot name", e);
+            throw new RuntimeException("Failed to retrieve tidal current month plots by plot name", e);
         }
     }
 

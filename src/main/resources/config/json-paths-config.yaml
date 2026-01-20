@@ -44,6 +44,7 @@ products:
     paths:
       - /STATE_daily/SLA/SLA.json
       - /STATE_daily/SLA_pctiles/SLA_pctiles.json
+      - /STATE_daily/NTSLA/NTSLA.json
 
   - product: "Adjusted Sea Level Anomaly and Sea Surface Temperature"
     description: "Adjusted Sea Level Anomaly and Sea Surface Temperature products"
@@ -56,6 +57,7 @@ products:
     paths:
       - /tides/tidalCurrents-spd.json
       - /tides/tidalCurrents-sl.json
+      - /tides/tidalCurrents-monthplots.json
 
   - product: "SealCTD"
     description: "SealCTD products including temperature and salinity profiles"
