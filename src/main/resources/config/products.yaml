@@ -64,6 +64,11 @@ ocean-current:
       id: "monthlyMeans"
       type: "ProductGroup"
       children:
+        - title: "30-day Mean"
+          id: "monthlyMeans-30day"
+        - title: "Climatology Mean"
+          id: "monthlyMeans-climatology"
+        ## deprecated - todo: to be removed once no longer used
         - title: "Anomalies"
           id: "monthlyMeans-anomalies"
         - title: "OFAM3/SSTARS"
