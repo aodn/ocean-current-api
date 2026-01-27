@@ -6,7 +6,7 @@ elasticsearch:
   index-name: ocean-current-files-edge
   indexing:
     cron:
-      expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
+      expression: 0 0 2/4 * * ? # every 4 hours starting at 2 AM in Australia/Hobart time
 
 app:
   cors:

@@ -8,7 +8,7 @@ elasticsearch:
   index-name: ocean-current-files-prod
   indexing:
     cron:
-      expression: 0 0 3 * * ? # every day at 3 AM in Australia/Hobart time
+      expression: 0 0 3/4 * * ? # every 4 hours starting at 3 AM in Australia/Hobart time
 
 logging:
   level:
