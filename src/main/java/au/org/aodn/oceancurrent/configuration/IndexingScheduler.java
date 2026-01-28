@@ -25,7 +25,7 @@ public class IndexingScheduler {
     @Scheduled(cron = "${elasticsearch.indexing.cron.expression:0 0 2 * * ?}", zone = "Australia/Hobart")
     public void scheduledIndexing() {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        log.info("Starting scheduled daily indexing at {} UTC (2 AM Australia/Hobart time)", timestamp);
+        log.info("Starting scheduled daily indexing at {} (UTC)", timestamp);
 
         try {
             Instant startTime = Instant.now();
