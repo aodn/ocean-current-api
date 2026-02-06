@@ -151,7 +151,7 @@ public class IndexingService {
             clearImageListCache();
 
         } catch (Exception e) {
-            log.error("Failed to complete full reindexing", e);
+            log.error("[FATAL] Failed to complete full reindexing", e);
             if (callback != null) {
                 callback.onError("Failed to complete full reindexing: " + e.getMessage());
             }
