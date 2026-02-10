@@ -23,4 +23,16 @@ public class ElasticsearchProperties {
     @Min(0)
     @Min(100)
     private int reindexValidationThresholdPercent = 80;
+
+    /**
+     * Socket timeout in milliseconds for Elasticsearch operations (defaults to 30 seconds).
+     * Default is 60,000 (1 minute) to accommodate bulk indexing operations.
+     */
+    private int socketTimeout = 60000;
+
+    /**
+     * Connection timeout in milliseconds for establishing a connection to Elasticsearch (defaults to 1 seconds).
+     * Default is 5,000 (5 seconds).
+     */
+    private int connectionTimeout = 5000;
 }

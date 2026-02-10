@@ -44,7 +44,6 @@ public class ElasticsearchConfig {
 
     @Bean
     public ElasticsearchClient elasticsearchClient() {
-        // Validate required configuration
         if (!StringUtils.hasText(host) || !StringUtils.hasText(apiKey)) {
             failStartup("Missing required Elasticsearch configuration (host or apiKey)");
         }
@@ -56,14 +55,20 @@ public class ElasticsearchConfig {
                 log.debug("Elasticsearch index name: {}", elasticsearchProperties.getIndexName());
             }
 
-            restClient = RestClient.builder(
-                            HttpHost.create(host)
-                    )
+            restClient = RestClient.builder(HttpHost.create(host))
                     .setDefaultHeaders(new Header[]{new BasicHeader(
                             "Authorization",
                             "ApiKey " + apiKey
                     )})
+                    .setRequestConfigCallback(requestConfigBuilder ->
+                            requestConfigBuilder
+                                    .setConnectTimeout(elasticsearchProperties.getConnectionTimeout())
+                                    .setSocketTimeout(elasticsearchProperties.getSocketTimeout())
+                    )
                     .build();
+
+            log.info("Elasticsearch client configured with connection timeout: {}ms, socket timeout: {}ms",
+                    elasticsearchProperties.getConnectionTimeout(), elasticsearchProperties.getSocketTimeout());
 
             ElasticsearchTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
             ElasticsearchClient client = new ElasticsearchClient(transport);
@@ -79,13 +84,10 @@ public class ElasticsearchConfig {
         } catch (Exception e) {
             log.error("Failed to initialize Elasticsearch client: {}", e.getMessage());
             failStartup(e.getMessage());
-            return null; // This line never executes, just for compilation
+            return null;
         }
     }
 
-    /**
-     * Handles authentication errors
-     */
     private void handleAuthenticationError(Exception e) {
         if (e instanceof TransportException) {
             String message = e.getMessage();
@@ -102,9 +104,6 @@ public class ElasticsearchConfig {
         failStartup("Failed to connect to Elasticsearch: " + e.getMessage());
     }
 
-    /**
-     * Checks if the error message indicates a connection problem
-     */
     private boolean isConnectionProblem(String message) {
         if (message == null) return false;
 
