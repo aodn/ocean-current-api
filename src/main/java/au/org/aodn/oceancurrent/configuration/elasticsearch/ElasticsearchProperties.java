@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Max;
 
 @Data
 @Configuration
@@ -21,18 +22,18 @@ public class ElasticsearchProperties {
      * Value should be between 0 and 100. Default is 80 (meaning new index must have at least 80% of old index documents).
      */
     @Min(0)
-    @Min(100)
+    @Max(100)
     private int reindexValidationThresholdPercent = 80;
 
     /**
-     * Socket timeout in milliseconds for Elasticsearch operations (defaults to 30 seconds).
-     * Default is 60,000 (1 minute) to accommodate bulk indexing operations.
+     * Socket timeout in milliseconds for Elasticsearch operations.
+     * RestClient default is 30 seconds. Increased to accommodate bulk indexing operations.
      */
     private int socketTimeout = 60000;
 
     /**
-     * Connection timeout in milliseconds for establishing a connection to Elasticsearch (defaults to 1 seconds).
-     * Default is 5,000 (5 seconds).
+     * Connection timeout in milliseconds for establishing a connection to Elasticsearch.
+     * RestClient default is 1 second.
      */
     private int connectionTimeout = 5000;
 }
