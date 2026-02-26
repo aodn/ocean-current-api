@@ -2,6 +2,12 @@ name: CD-Edge
 run-name: Deploy to Edge
 
 on:
+  workflow_dispatch:
+    inputs:
+      skip_product_id_check:
+        description: "Skip productId validation check for this deployment (use when intentionally updating productIds)"
+        type: boolean
+        default: false
   workflow_run:
     workflows: [CI]
     types: [completed]
@@ -15,6 +21,7 @@ permissions:
 jobs:
   build_app:
     name: Gradle Build
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_product_id_check != 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -40,6 +47,7 @@ jobs:
   build_docker:
     name: Docker Build
     needs: build_app
+    if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.skip_product_id_check != 'true' }}
     environment: central
     runs-on: ubuntu-latest
     outputs:
@@ -81,6 +89,7 @@ jobs:
 
   deploy_to_edge:
     name: Deploy to Edge
+    if: ${{ always() && (needs.build_docker.result == 'success' || needs.build_docker.result == 'skipped') }}
     runs-on: ubuntu-latest
     needs: build_docker
     environment: edge
@@ -93,7 +102,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
 
       - name: Update Image Digest to SSM Parameter
-        if: ${{ needs.build_docker.outputs.digest != '' }}
+        if: ${{ needs.build_docker.result == 'success' && needs.build_docker.outputs.digest != '' }}
         run: |
           aws ssm put-parameter \
             --name "/apps/oceancurrent/edge/image_digest" \
@@ -102,6 +111,16 @@ jobs:
             --overwrite
         env:
           digest: ${{ needs.build_docker.outputs.digest }}
+
+      - name: Update product id check flag in SSM Parameter
+        run: |
+          aws ssm put-parameter \
+            --name "/apps/oceancurrent/edge/es_skip_product_id_check" \
+            --type "String" \
+            --value "$skip_product_id_check" \
+            --overwrite
+        env:
+          skip_product_id_check: ${{ github.event.inputs.skip_product_id_check || 'false' }}
 
       - name: Generate App Token
         uses: actions/create-github-app-token@v1

@@ -36,4 +36,12 @@ public class ElasticsearchProperties {
      * RestClient default is 1 second.
      */
     private int connectionTimeout = 5000;
+
+    /**
+     * When true, skips the productId check during reindex validation.
+     * Use only when intentionally updating productIds in source files.
+     * Controlled via ES_SKIP_PRODUCT_ID_CHECK env var backed by SSM, updated in cd_production.yaml workflow.
+     * Reset to false and redeploy after the scheduled run completes.
+     */
+    private boolean reindexValidationSkipProductIdCheck = false;
 }

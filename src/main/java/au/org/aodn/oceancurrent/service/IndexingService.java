@@ -534,16 +534,25 @@ public class IndexingService {
                 missingProductIds.removeAll(newProductIds);
 
                 if (!missingProductIds.isEmpty()) {
-                    String errorMsg = String.format(
-                            "New index '%s' is missing productIds that exist in current index. " +
-                            "Missing productIds: %s. This indicates data loss. Cannot switch alias. Reindexing failed.",
-                            newIndexName, missingProductIds
-                    );
-                    log.error("[FATAL] {}", errorMsg);
-                    if (callback != null) {
-                        callback.onError(errorMsg);
+                    if (esProperties.isReindexValidationSkipProductIdCheck()) {
+                        log.warn("[INTENTIONAL] ProductId check skipped via config. Missing productIds: {}. " +
+                                "Ensure ES_SKIP_PRODUCT_ID_CHECK is reset to false after this run.",
+                                missingProductIds);
+                        if (callback != null) {
+                            callback.onProgress("WARNING: productId check skipped. Missing IDs: " + missingProductIds);
+                        }
+                    } else {
+                        String errorMsg = String.format(
+                                "New index '%s' is missing productIds that exist in current index. " +
+                                "Missing productIds: %s. This indicates data loss. Cannot switch alias. Reindexing failed.",
+                                newIndexName, missingProductIds
+                        );
+                        log.error("[FATAL] {}", errorMsg);
+                        if (callback != null) {
+                            callback.onError(errorMsg);
+                        }
+                        throw new ReindexValidationException(errorMsg);
                     }
-                    throw new ReindexValidationException(errorMsg);
                 }
 
                 // Log any new productIds (this is expected and okay)

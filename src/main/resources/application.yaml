@@ -42,6 +42,7 @@ elasticsearch:
   max-result-window: ${ES_MAX_RESULT_WINDOW:20000}
   index-name: ${INDEX_NAME:ocean-current-files}
   reindex-validation-threshold-percent: 80 # Minimum percentage of old index documents required in new index
+  reindex-validation-skip-product-id-check: ${ES_SKIP_PRODUCT_ID_CHECK:false}
   indexing:
     cron:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
