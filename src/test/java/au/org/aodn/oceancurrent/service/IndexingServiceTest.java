@@ -460,6 +460,98 @@ class IndexingServiceTest {
         }
 
         @Test
+        void testReindexAll_succeedsWhenProductIdsMissingButSkipCheckEnabled() throws Exception {
+            // Given
+            doReturn(true).when(s3Service).isBucketAccessible();
+            doReturn(Collections.emptyList()).when(s3Service).listAllSurfaceWaves();
+            doReturn(Collections.emptyList()).when(remoteJsonService).getFullUrls();
+
+            doReturn(mock(CreateIndexResponse.class)).when(indicesClient).create(isA(CreateIndexRequest.class));
+
+            // Mock alias exists
+            doReturn(new BooleanResponse(true)).when(indicesClient).existsAlias(any(Function.class));
+
+            GetAliasResponse getAliasResponse = mock(GetAliasResponse.class);
+            Map<String, IndexAliases> aliasMap = new HashMap<>();
+            aliasMap.put("old-index", mock(IndexAliases.class));
+            doReturn(aliasMap).when(getAliasResponse).result();
+            doReturn(getAliasResponse).when(indicesClient).getAlias(any(Function.class));
+
+            doReturn(mock(RefreshResponse.class)).when(indicesClient).refresh(any(Function.class));
+
+            // Mock counts: both have enough documents
+            CountResponse countResponse = mock(CountResponse.class);
+            doReturn(1000L).when(countResponse).count();
+            doReturn(countResponse).when(esClient).count(any(Function.class));
+
+            // Mock productIds: old index has product1, product2, product3
+            // new index only has product1, product2 (missing product3)
+            SearchResponse<ImageMetadataEntry> oldResp = createMockSearchResponseWithProductIds(Arrays.asList("product1", "product2", "product3"));
+            SearchResponse<ImageMetadataEntry> newResp = createMockSearchResponseWithProductIds(Arrays.asList("product1", "product2"));
+            doReturn(oldResp, newResp).when(esClient).search(any(Function.class), eq(ImageMetadataEntry.class));
+
+            // Enable skip productId check
+            doReturn(true).when(esProperties).isReindexValidationSkipProductIdCheck();
+
+            doReturn(mock(UpdateAliasesResponse.class)).when(indicesClient).updateAliases(any(Function.class));
+            doReturn(mock(DeleteIndexResponse.class)).when(indicesClient).delete(any(Function.class));
+
+            // When
+            indexingService.reindexAll(true);
+
+            // Then - should succeed despite missing productIds
+            verify(indicesClient).updateAliases(any(Function.class));
+        }
+
+        @Test
+        void testReindexAll_succeedsWithCallbackWarningWhenSkipCheckEnabled() throws Exception {
+            // Given
+            IndexingCallback callback = mock(IndexingCallback.class);
+
+            doReturn(true).when(s3Service).isBucketAccessible();
+            doReturn(Collections.emptyList()).when(s3Service).listAllSurfaceWaves();
+            doReturn(Collections.emptyList()).when(remoteJsonService).getFullUrls();
+
+            doReturn(mock(CreateIndexResponse.class)).when(indicesClient).create(isA(CreateIndexRequest.class));
+
+            // Mock alias exists
+            doReturn(new BooleanResponse(true)).when(indicesClient).existsAlias(any(Function.class));
+
+            GetAliasResponse getAliasResponse = mock(GetAliasResponse.class);
+            Map<String, IndexAliases> aliasMap = new HashMap<>();
+            aliasMap.put("old-index", mock(IndexAliases.class));
+            doReturn(aliasMap).when(getAliasResponse).result();
+            doReturn(getAliasResponse).when(indicesClient).getAlias(any(Function.class));
+
+            doReturn(mock(RefreshResponse.class)).when(indicesClient).refresh(any(Function.class));
+
+            // Mock counts: both have enough documents
+            CountResponse countResponse = mock(CountResponse.class);
+            doReturn(1000L).when(countResponse).count();
+            doReturn(countResponse).when(esClient).count(any(Function.class));
+
+            // Mock productIds: missing product3 in new index
+            SearchResponse<ImageMetadataEntry> oldResp = createMockSearchResponseWithProductIds(Arrays.asList("product1", "product2", "product3"));
+            SearchResponse<ImageMetadataEntry> newResp = createMockSearchResponseWithProductIds(Arrays.asList("product1", "product2"));
+            doReturn(oldResp, newResp).when(esClient).search(any(Function.class), eq(ImageMetadataEntry.class));
+
+            // Enable skip productId check
+            doReturn(true).when(esProperties).isReindexValidationSkipProductIdCheck();
+
+            doReturn(mock(UpdateAliasesResponse.class)).when(indicesClient).updateAliases(any(Function.class));
+            doReturn(mock(DeleteIndexResponse.class)).when(indicesClient).delete(any(Function.class));
+
+            // When
+            indexingService.reindexAll(true, callback);
+
+            // Then - should succeed and report warning via callback
+            verify(indicesClient).updateAliases(any(Function.class));
+            verify(callback).onProgress(contains("productId check skipped"));
+            verify(callback).onComplete(anyString());
+            verify(callback, never()).onError(anyString());
+        }
+
+        @Test
         void testReindexAll_successWhenNewIndexHasAdditionalProductIds() throws Exception {
             // Given
             doReturn(true).when(s3Service).isBucketAccessible();
