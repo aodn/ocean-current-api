@@ -6,7 +6,7 @@ import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.cache.CacheManager;
 
 import java.util.Collections;
@@ -25,10 +25,10 @@ class IndexingServiceIntegrationTest extends ElasticsearchTestBase {
     @Autowired
     private IndexingService indexingService;
 
-    @MockBean
+    @MockitoBean
     private S3Service s3Service;
 
-    @MockBean
+    @MockitoBean
     private RemoteJsonService remoteJsonService;
 
     @Autowired
