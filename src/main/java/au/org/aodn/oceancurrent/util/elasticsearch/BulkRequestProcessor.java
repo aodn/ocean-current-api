@@ -4,6 +4,8 @@ import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.elasticsearch.core.BulkRequest;
 import co.elastic.clients.elasticsearch.core.BulkResponse;
+import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
+import co.elastic.clients.transport.TransportException;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -92,7 +94,7 @@ public class BulkRequestProcessor {
                 if (is429(e) && attempt < MAX_RETRIES) {
                     attempt++;
                     long delay = retryBaseDelayMs * attempt;
-                    log.warn("Bulk indexing rejected by circuit breaker (429), retry {}/{} after {}ms", attempt, MAX_RETRIES, delay);
+                    log.warn("Bulk indexing received 429 Too Many Requests, retry {}/{} after {}ms", attempt, MAX_RETRIES, delay);
                     try {
                         //noinspection BusyWait
                         Thread.sleep(delay);
@@ -100,6 +102,17 @@ public class BulkRequestProcessor {
                         Thread.currentThread().interrupt();
                         throw new RuntimeException("Bulk indexing interrupted during retry", ie);
                     }
+                } else if (is413(e)) {
+                    List<BulkOperation> ops = request.operations();
+                    if (ops.size() == 1) {
+                        log.error("Single document is too large for bulk indexing (413), skipping");
+                        return;
+                    }
+                    int mid = ops.size() / 2;
+                    log.warn("Bulk request too large (413), splitting {} documents into two halves and retrying", ops.size());
+                    executeWithRetry(new BulkRequest.Builder().operations(ops.subList(0, mid)).build());
+                    executeWithRetry(new BulkRequest.Builder().operations(ops.subList(mid, ops.size())).build());
+                    return;
                 } else {
                     log.error("Error during bulk indexing", e);
                     throw new RuntimeException("Bulk indexing failed", e);
@@ -109,6 +122,20 @@ public class BulkRequestProcessor {
     }
 
     private boolean is429(IOException e) {
-        return e instanceof ResponseException re && re.getResponse().getStatusLine().getStatusCode() == 429;
+        return getHttpStatusCode(e) == 429;
+    }
+
+    private boolean is413(IOException e) {
+        return getHttpStatusCode(e) == 413;
+    }
+
+    private int getHttpStatusCode(IOException e) {
+        if (e instanceof TransportException te) {
+            return te.statusCode();
+        }
+        if (e instanceof ResponseException re) {
+            return re.getResponse().getStatusLine().getStatusCode();
+        }
+        return -1;
     }
 }
