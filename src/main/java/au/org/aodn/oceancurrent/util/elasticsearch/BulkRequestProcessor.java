@@ -82,12 +82,19 @@ public class BulkRequestProcessor {
                 BulkResponse response = esClient.bulk(request);
                 log.info("Bulk indexing completed");
                 if (response.errors()) {
-                    log.error("Bulk indexing has errors!");
-                    response.items().forEach(item -> {
+                    int maxSamples = 5;
+                    long errorCount = 0;
+                    List<String> errorSamples = new ArrayList<>();
+                    for (var item : response.items()) {
                         if (item.error() != null) {
-                            log.error("Error for item: {}", item.error().reason());
+                            errorCount++;
+                            if (errorSamples.size() < maxSamples) {
+                                errorSamples.add(item.error().type() + ": " + item.error().reason());
+                            }
                         }
-                    });
+                    }
+                    log.error("Bulk indexing completed with {}/{} errors. Sample errors (first {}): {}",
+                            errorCount, response.items().size(), maxSamples, errorSamples);
                 }
                 return;
             } catch (IOException e) {
