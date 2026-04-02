@@ -37,6 +37,10 @@ ocean-current:
           id: "sixDaySst-centiles"
         - title: "Timeseries"
           id: "sixDaySst-timeseries"
+        - title: "Climatology"
+          id: "sixDaySst-climatologySst"
+        - title: "SSTAARS Data Count Data Count"
+          id: "sixDaySst-climatologyDataCount"
 
     - title: "Chlorophyll-a Concentration"
       id: "oceanColour"
@@ -75,15 +79,6 @@ ocean-current:
           id: "monthlyMeans-CLIM_OFAM3_SSTAARS"
         - title: "CNES MDT/CARS SST"
           id: "monthlyMeans-CLIM_CNESCARS"
-
-    - title: "Climatology"
-      id: "climatology"
-      type: "ProductGroup"
-      children:
-        - title: "SST"
-          id: "climatology-sst"
-        - title: "Data Count"
-          id: "climatology-dataCount"
 
     - title: "Current Meters"
       id: "currentMeters"
