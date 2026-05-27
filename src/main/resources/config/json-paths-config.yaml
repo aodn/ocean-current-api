@@ -75,3 +75,8 @@ products:
     description: "EAC Mooring Array SST products" # for Brisbane only
     paths:
       - /EAC_array_figures/EACMooringArray.json
+
+  - product: "SWOT GSLA"
+    description: "SWOT Global Sea Level Anomaly SSH products"
+    paths:
+      - /DR_SWOT/SSH/SSH.json

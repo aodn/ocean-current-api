@@ -158,3 +158,12 @@ ocean-current:
           id: "sealCtdTags-timeseries"
         - title: "SeaCTD Tags TS Plot"
           id: "sealCtdTags-ts"
+
+    - title: "SWOT GSLA"
+      id: "swotGsla"
+      type: "ProductGroup"
+      children:
+        - title: "SSH"
+          id: "swotGsla-ssh"
+        - title: "MDT"
+          id: "swotGsla-mdt"
