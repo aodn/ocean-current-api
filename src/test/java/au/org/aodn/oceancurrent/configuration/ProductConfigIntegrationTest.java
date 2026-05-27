@@ -123,4 +123,20 @@ class ProductConfigIntegrationTest {
                 "sealCtdTags-ts"
         );
     }
+
+    @Test
+    void swotGslaGroupShouldContainSshAndMdtChildren() {
+        Product swotGsla = productGroupMap.get("swotGsla");
+        assertThat(swotGsla).isNotNull();
+        assertThat(swotGsla.getTitle()).isEqualTo("SWOT GSLA");
+
+        List<String> childIds = swotGsla.getChildren().stream().map(Product::getId).collect(Collectors.toList());
+        assertThat(childIds).containsExactlyInAnyOrder("swotGsla-ssh", "swotGsla-mdt");
+
+        swotGsla.getChildren().forEach(child -> {
+            assertThat(child.getParentId()).isEqualTo("swotGsla");
+            assertThat(child.getParentTitle()).isEqualTo("SWOT GSLA");
+            assertThat(productMap).containsKey(child.getId());
+        });
+    }
 }
