@@ -31,7 +31,7 @@ public class ElasticsearchTestConfig {
      */
     @Bean(initMethod = "start", destroyMethod = "stop")
     public ElasticsearchContainer elasticsearchContainer(
-            @Value("${elasticsearch.docker.elasticVersion:8.19.10}") String version
+            @Value("${elasticsearch.docker.elastic-version}") String version
     ) {
         ElasticsearchContainer container = new ElasticsearchContainer(
                 DockerImageName.parse(ELASTICSEARCH_IMAGE + version)
