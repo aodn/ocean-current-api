@@ -6,9 +6,10 @@ logging:
 management:
   endpoint:
     health:
-      enabled: false
+      access: none
   endpoints:
-    enabled-by-default: false
+    access:
+      default: none
 
 springdoc:
   api-docs:
@@ -24,7 +25,7 @@ elasticsearch:
       expression: 0 0 2 * * ? # every day at 2 AM in Australia/Hobart time
 
   docker:
-    elastic-version: 8.17.4 # Use the same version as in Elastic Cloud
+    elastic-version: 8.19.10 # Use the same version as in Elastic Cloud
 
 remote:
   base-url: "https://localhost:8080"
