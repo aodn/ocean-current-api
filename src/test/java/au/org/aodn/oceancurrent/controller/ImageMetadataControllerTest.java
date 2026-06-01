@@ -93,10 +93,10 @@ class ImageMetadataControllerTest {
     }
 
     @Test
-    void getLatestRegionDates_TrailingSlash_ReturnsNotFound() throws Exception {
-        // A trailing slash matches no handler in Spring Boot 3 and must surface as
-        // 404, not be swallowed by the catch-all Exception handler as 500.
-        mockMvc.perform(get("/metadata/latest-dates/sixDaySst-sst/"))
+    void unmatchedPath_ReturnsNotFound() throws Exception {
+        // A path that matches no handler must surface as 404, not be swallowed by the
+        // catch-all Exception handler as 500.
+        mockMvc.perform(get("/metadata/no/such/endpoint"))
                 .andExpect(status().isNotFound());
     }
 }
