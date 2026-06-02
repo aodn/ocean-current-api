@@ -91,4 +91,12 @@ class ImageMetadataControllerTest {
         mockMvc.perform(get("/metadata/latest-dates/argo"))
                 .andExpect(status().isInternalServerError());
     }
+
+    @Test
+    void unmatchedPath_ReturnsNotFound() throws Exception {
+        // A path that matches no handler must surface as 404, not be swallowed by the
+        // catch-all Exception handler as 500.
+        mockMvc.perform(get("/metadata/no/such/endpoint"))
+                .andExpect(status().isNotFound());
+    }
 }

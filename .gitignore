@@ -53,6 +53,7 @@ out/
 .env.edge
 
 .DS_Store
+tmp/
 
 # BlueJ files
 *.ctxt
