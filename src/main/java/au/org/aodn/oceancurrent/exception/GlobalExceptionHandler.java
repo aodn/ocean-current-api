@@ -40,11 +40,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NoResourceFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNoResourceFoundException(NoResourceFoundException ex) {
-        log.info("No resource found for path: {}", ex.getResourcePath());
+        log.debug("No endpoint found for path: {}", ex.getResourcePath());
 
         return new ErrorResponse(
                 HttpStatus.NOT_FOUND.getReasonPhrase(),
-                List.of("No endpoint found for path: " + ex.getResourcePath())
+                List.of("The requested endpoint does not exist.")
         );
     }
 

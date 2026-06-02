@@ -36,11 +36,10 @@ public class TrailingSlashNormalizationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        if (uri.length() <= 1 || !uri.endsWith("/")) {
+        String withinContext = request.getRequestURI().substring(request.getContextPath().length());
+        if (withinContext.length() <= 1 || !withinContext.endsWith("/")) {
             return true;
         }
-        String withinContext = uri.substring(request.getContextPath().length());
         return EXCLUDED_PREFIXES.stream().anyMatch(withinContext::startsWith);
     }
 
