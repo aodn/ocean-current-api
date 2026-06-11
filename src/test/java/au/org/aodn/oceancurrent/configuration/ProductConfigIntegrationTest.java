@@ -163,8 +163,16 @@ class ProductConfigIntegrationTest {
     @Test
     void fishSoopRegionFlagsShouldMatchConfig() {
         // Profiles are per-region; the anomaly products index region-less records (region: null)
-        assertThat(productMap.get("fishSOOP-profiles").isRegionRequired()).isTrue();
-        assertThat(productMap.get("fishSOOP-quarterlyAnomalies").isRegionRequired()).isFalse();
-        assertThat(productMap.get("fishSOOP-depthAnomalies").isRegionRequired()).isFalse();
+        Product profiles = productMap.get("fishSOOP-profiles");
+        assertThat(profiles).isNotNull();
+        assertThat(profiles.isRegionRequired()).isTrue();
+
+        Product quarterlyAnomalies = productMap.get("fishSOOP-quarterlyAnomalies");
+        assertThat(quarterlyAnomalies).isNotNull();
+        assertThat(quarterlyAnomalies.isRegionRequired()).isFalse();
+
+        Product depthAnomalies = productMap.get("fishSOOP-depthAnomalies");
+        assertThat(depthAnomalies).isNotNull();
+        assertThat(depthAnomalies.isRegionRequired()).isFalse();
     }
 }
