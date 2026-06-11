@@ -139,4 +139,40 @@ class ProductConfigIntegrationTest {
             assertThat(productMap).containsKey(child.getId());
         });
     }
+
+    @Test
+    void fishSoopGroupShouldContainExpectedChildren() {
+        Product fishSoop = productGroupMap.get("fishSOOP");
+        assertThat(fishSoop).isNotNull();
+        assertThat(fishSoop.getTitle()).isEqualTo("FishSOOP");
+
+        List<String> childIds = fishSoop.getChildren().stream().map(Product::getId).collect(Collectors.toList());
+        assertThat(childIds).containsExactlyInAnyOrder(
+                "fishSOOP-profiles",
+                "fishSOOP-quarterlyAnomalies",
+                "fishSOOP-depthAnomalies"
+        );
+
+        fishSoop.getChildren().forEach(child -> {
+            assertThat(child.getParentId()).isEqualTo("fishSOOP");
+            assertThat(child.getParentTitle()).isEqualTo("FishSOOP");
+            assertThat(productMap).containsKey(child.getId());
+        });
+    }
+
+    @Test
+    void fishSoopRegionFlagsShouldMatchConfig() {
+        // Profiles are per-region; the anomaly products index region-less records (region: null)
+        Product profiles = productMap.get("fishSOOP-profiles");
+        assertThat(profiles).isNotNull();
+        assertThat(profiles.isRegionRequired()).isTrue();
+
+        Product quarterlyAnomalies = productMap.get("fishSOOP-quarterlyAnomalies");
+        assertThat(quarterlyAnomalies).isNotNull();
+        assertThat(quarterlyAnomalies.isRegionRequired()).isFalse();
+
+        Product depthAnomalies = productMap.get("fishSOOP-depthAnomalies");
+        assertThat(depthAnomalies).isNotNull();
+        assertThat(depthAnomalies.isRegionRequired()).isFalse();
+    }
 }

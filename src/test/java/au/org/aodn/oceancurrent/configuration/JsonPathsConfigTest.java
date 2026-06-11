@@ -44,4 +44,17 @@ class JsonPathsConfigTest {
         assertThat(entry).isPresent();
         assertThat(entry.get().getPaths()).noneMatch(p -> p.contains("MDT") || p.contains("MDTCMEMS"));
     }
+
+    @Test
+    void fishSoopShouldHaveThreeJsonPaths() {
+        Optional<JsonPath> entry = config.getProducts().stream()
+                .filter(p -> p.getProduct().equals("FishSOOP"))
+                .findFirst();
+        assertThat(entry).isPresent();
+        assertThat(entry.get().getPaths()).containsExactly(
+                "/fishsoop/fishSOOP-profiles.json",
+                "/fishsoop/fishSOOP-quarterlyAnomalies.json",
+                "/fishsoop/fishSOOP-depthAnomalies.json"
+        );
+    }
 }

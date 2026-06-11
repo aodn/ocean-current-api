@@ -167,3 +167,16 @@ ocean-current:
           id: "swotGsla-ssh"
         - title: "MDT"
           id: "swotGsla-mdt"
+
+    - title: "FishSOOP"
+      id: "fishSOOP"
+      type: "ProductGroup"
+      children:
+        - title: "Regional Profiles"
+          id: "fishSOOP-profiles"
+        - title: "Quarterly Anomalies"
+          id: "fishSOOP-quarterlyAnomalies"
+          regionRequired: false
+        - title: "Depth Anomalies"
+          id: "fishSOOP-depthAnomalies"
+          regionRequired: false
