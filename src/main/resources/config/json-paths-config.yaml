@@ -80,3 +80,10 @@ products:
     description: "SWOT Global Sea Level Anomaly SSH products"
     paths:
       - /DR_SWOT/SSH/SSH.json
+
+  - product: "FishSOOP"
+    description: "FishSOOP temperature profiles and anomalies"
+    paths:
+      - /fishsoop/fishSOOP-profiles.json
+      - /fishsoop/fishSOOP-quarterlyAnomalies.json
+      - /fishsoop/fishSOOP-depthAnomalies.json
