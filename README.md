@@ -1,4 +1,4 @@
-# Ocean-Current
+# Ocean-Current API
 
 ## Prerequisites
 
@@ -6,7 +6,7 @@
 
 ## Version Info
 
-> Spring Boot 3.3.4
+> Spring Boot 3.5.11
 >
 > Gradle 8.10+
 
@@ -18,10 +18,9 @@
 
 ```shell
 elasticsearch.host="your elasticsearch host"
-elasticsearch.apiKey="your elasticsearch api key"
-elasticsearch.maxResultWindow=20000
-remote.json.baseURL="the remote json file server URL"
-sqlite.remote-url="the sqlite db file URL"
+elasticsearch.api-key="your elasticsearch api key"
+elasticsearch.max-result-window=20000
+remote.base-url="the remote base URL"
 aws.region="your aws region"
 aws.s3.bucket-name="the-bucket-name"
 aws.access-key-id="aws-access-key-id"
@@ -34,8 +33,7 @@ aws.secret-access-key="aws-secret-access-key"
 ES_HOST="your elasticsearch host"
 ES_API_KEY="your elasticsearch api key"
 ES_MAX_RESULT_WINDOW=20000
-REMOTE_JSON_BASE_URL="the remote json file server URL"
-SQLITE_REMOTE_URL="the sqlite db file URL"
+REMOTE_BASE_URL="the remote base URL"
 AWS_REGION="your aws region"
 AWS_S3_BUCKET_NAME="the-bucket-name"
 AWS_ACCESS_KEY_ID="aws-access-key-id"
@@ -44,7 +42,7 @@ AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
 
 ### Run
 
-- By IDEA(IntelliJ, same below)
+- By IDEA (IntelliJ, same below)
 
   Gradle -> Tasks -> application -> bootRun
 
@@ -52,6 +50,12 @@ AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
 
   ```shell
   ./gradlew bootRun
+  ```
+
+- By Docker
+
+  ```shell
+  docker-compose up
   ```
 
 ### Test
@@ -64,6 +68,12 @@ AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
 
   ```shell
   ./gradlew test
+  ```
+
+  Run a single test class:
+
+  ```shell
+  ./gradlew test --tests "*ClassName*"
   ```
 
 ### Build
@@ -80,13 +90,19 @@ AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
   ./gradlew clean build
   ```
 
+  Build without running tests:
+
+  ```shell
+  ./gradlew buildWithoutTests
+  ```
+
 ## Documentation
 
 For detailed documentation, see the `docs/` directory:
 
 - **[SQLite Integration](docs/SQLITE_INTEGRATION.md)** - Complete guide to the SQLite wave tags integration, including API endpoints, configuration, and usage examples
 - **[Product Tag Architecture](docs/PRODUCT_TAG_ARCHITECTURE.md)** - Technical architecture documentation for the extensible product tag service system
-
+- **[EC2 Authentication Guide](docs/EC2_AUTHENTICATION_GUIDE.md)** - How the API authenticates EC2 instances using AWS PKCS7 signatures for protected monitoring endpoints
 
 ## Simple Architecture Diagram ( at 04/07/2025 )
 
