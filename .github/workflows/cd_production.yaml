@@ -108,7 +108,7 @@ jobs:
         uses: actions/create-github-app-token@v3
         id: app-token-current-repo
         with:
-          app-id: ${{ vars.DEPLOY_APP_ID }}
+          client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
           private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
 
@@ -124,7 +124,7 @@ jobs:
         uses: actions/create-github-app-token@v3
         id: app-token-appdeploy
         with:
-          app-id: ${{ vars.DEPLOY_APP_ID }}
+          client-id: ${{ vars.DEPLOY_APP_CLIENT_ID }}
           private-key: ${{ secrets.DEPLOY_APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: "appdeploy"
