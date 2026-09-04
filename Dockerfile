@@ -1,6 +1,6 @@
 # Dockerfile for Ocean Current API
 # Environment Variables Required:
-#   - SPRING_PROFILES_ACTIVE: Spring profile (prod, edge)
+#   - SPRING_PROFILES_ACTIVE: Spring profile (dev, edge, production)
 #   - ES_HOST: Elasticsearch host
 #   - ES_API_KEY: Elasticsearch API key
 #   - REMOTE_BASE_URL: Remote Server base URL

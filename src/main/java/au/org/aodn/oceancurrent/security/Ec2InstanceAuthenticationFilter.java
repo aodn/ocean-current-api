@@ -21,11 +21,12 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
  * Authentication filter for internal monitoring endpoints.
- * Only active in production and edge environments.
+ * Only active in the "production" and "edge" profiles
  * <p>
  * Validates EC2 instance identity using:
  * 1. Instance identity document from EC2 metadata service
@@ -38,7 +39,7 @@ import java.util.Set;
  * - Whitelist prevents unauthorised instances from accessing the endpoint
  */
 @Component
-@Profile({"prod", "edge"})
+@Profile({"production", "edge"})
 @Slf4j
 @RequiredArgsConstructor
 public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
@@ -53,7 +54,8 @@ public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
 
     @PostConstruct
     public void init() {
-        this.authorisedInstanceIds = new HashSet<>(monitoringSecurityProperties.getAuthorisedInstanceIds());
+        List<String> configuredIds = monitoringSecurityProperties.getAuthorisedInstanceIds();
+        this.authorisedInstanceIds = configuredIds != null ? new HashSet<>(configuredIds) : Collections.emptySet();
         log.info("Initialized EC2 authentication filter with {} authorised instance IDs", authorisedInstanceIds.size());
     }
 
