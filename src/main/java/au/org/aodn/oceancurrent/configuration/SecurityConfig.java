@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
-        // Add EC2 instance authentication filter if available (only in prod/edge profiles)
+        // Add EC2 instance authentication filter if available (only in production/edge profiles)
         ec2InstanceAuthenticationFilter.ifPresent(filter ->
             httpSecurity.addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
         );

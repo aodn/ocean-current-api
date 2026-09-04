@@ -99,7 +99,7 @@ Every EC2 instance has access to a special metadata service at `http://169.254.1
 
 ### What the Backend Does
 
-- **`Ec2InstanceAuthenticationFilter`** (prod/edge only) intercepts `/api/v1/monitoring/**`:
+- **`Ec2InstanceAuthenticationFilter`** (production/edge only) intercepts `/api/v1/monitoring/**`:
 
   - Parses the JSON body into `MonitoringRequest`
   - Checks `pkcs7` is present
@@ -113,7 +113,7 @@ Every EC2 instance has access to a special metadata service at `http://169.254.1
 
 - **`MonitoringController`** then logs a `[FATAL]` message that monitoring systems (e.g. NewRelic) can pick up.
 
-Authentication is **only enforced in `prod` and `edge` profiles**; in local/dev you can call the endpoint without EC2 metadata.
+Authentication is **only enforced in `production` and `edge` profiles**; in local/dev you can call the endpoint without EC2 metadata.
 
 ## Security Features
 
@@ -202,7 +202,7 @@ Multiple layers of security work together:
 3. **Extraction**: Server extracts document from PKCS7 (prevents tampering)
 4. **Timestamp**: Replay attack prevention
 5. **Whitelist**: Instance-level access control
-6. **Profile**: Only active in prod/edge environments
+6. **Profile**: Only active in production/edge environments
 
 ## Architecture
 
@@ -242,7 +242,7 @@ Multiple layers of security work together:
 - Check extracted instance ID against whitelist
 - Return 401 Unauthorized if validation fails
 
-**Active Profiles**: `prod`, `edge` only (disabled in dev/test)
+**Active Profiles**: `production`, `edge` only (disabled in dev/test)
 
 #### 3. MonitoringSecurityProperties
 
@@ -325,7 +325,7 @@ The whitelisted instance IDs are configured via the `AUTHORISED_INSTANCE_IDS` en
    -Dapp.monitoring-security.authorised-instance-ids=${AUTHORISED_INSTANCE_IDS}
    ```
 
-2. **Configuration** in `application.yaml` / `application-prod.yaml` / `application-edge.yaml`:
+2. **Configuration** in `application.yaml` / `application-production.yaml` / `application-edge.yaml`:
 
    ```yaml
    app:
@@ -366,13 +366,13 @@ aws ec2 describe-instances \
 ### 5. Active Profiles
 
 ```java
-@Profile({"prod", "edge"})
+@Profile({"production", "edge"})
 public class Ec2InstanceAuthenticationFilter extends OncePerRequestFilter {
     // ...
 }
 ```
 
-- **prod/edge**: full authentication (PKCS7 + whitelist) is enforced.
+- **production/edge**: full authentication (PKCS7 + whitelist) is enforced.
 - **local/dev**: the filter is inactive; you can call the endpoint without EC2 metadata:
 
 ```bash
@@ -661,7 +661,7 @@ logging:
 
 When requests fail, verify:
 
-- [ ] Application is running with `prod` or `edge` profile
+- [ ] Application is running with `production` or `edge` profile
 - [ ] Instance ID (extracted from PKCS7) is in `AUTHORISED_INSTANCE_IDS`
 - [ ] Certificate file exists at configured path
 - [ ] Request includes the required `pkcs7` field

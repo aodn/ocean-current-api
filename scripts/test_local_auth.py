@@ -3,7 +3,7 @@
 EC2 Instance Identity Authentication Test
 
 Tests EC2 instance identity PKCS7 signature validation.
-Authentication filter is only active in edge and prod profiles.
+Authentication filter is only active in edge and production profiles.
 
 Usage:
     # Start the app with edge profile (includes auth filter)
@@ -19,7 +19,7 @@ Requirements:
     pip3 install requests
 
 Note:
-    - Auth filter is only active with edge or prod profiles
+    - Auth filter is only active with edge or production profiles
     - Local testing requires SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun
     - EC2 identity validation requires real PKCS7 signatures from EC2 metadata service
 """
@@ -51,7 +51,7 @@ def fetch_ec2_identity(use_ec2_metadata=False):
         print("ℹ️  PKCS7 signatures must be real and cryptographically valid")
         print("   To test EC2 identity validation:")
         print("   - Run on actual EC2 instance with --use-ec2-metadata flag")
-        print("   - Authentication filter is only active in edge/prod profiles")
+        print("   - Authentication filter is only active in edge/production profiles")
         return None
 
     print("ℹ️  Fetching EC2 identity from metadata service...")
@@ -83,7 +83,7 @@ def fetch_ec2_identity(use_ec2_metadata=False):
 
 
 def test_without_auth():
-    """Test endpoint without authentication (should be rejected on edge/prod)."""
+    """Test endpoint without authentication (should be rejected on edge/production)."""
     print("\n1. Testing without authentication:")
 
     try:
@@ -95,11 +95,11 @@ def test_without_auth():
         print(f"   Status: {response.status_code}")
 
         if response.status_code == 401:
-            print("   ✅ Authentication is enforced (expected on edge/prod)")
+            print("   ✅ Authentication is enforced (expected on edge/production)")
             return True
         else:
             print(f"   ❌ Expected 401 but got {response.status_code}")
-            print("      Make sure app is running with edge or prod profile")
+            print("      Make sure app is running with edge or production profile")
             print("      Example: SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun")
             return False
 
