@@ -69,7 +69,7 @@ export OC_API_ENDPOINT="http://localhost:8080/api/v1/monitoring/fatal-log"
 python3 trigger_fatal_log.py "Test error from local"
 ```
 
-> In non‑prod profiles the EC2 authentication filter is disabled, so only the `errorMessage` is used.
+> In non‑production profiles the EC2 authentication filter is disabled, so only the `errorMessage` is used.
 
 ## Additional docs
 

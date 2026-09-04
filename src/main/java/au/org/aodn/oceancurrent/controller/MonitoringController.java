@@ -36,7 +36,7 @@ public class MonitoringController {
     )
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Fatal log generated successfully"),
-            @ApiResponse(responseCode = "401", description = "Unauthorised - EC2 instance authentication required (prod/edge only)")
+            @ApiResponse(responseCode = "401", description = "Unauthorised - EC2 instance authentication required (production/edge only)")
     })
     public ResponseEntity<MonitoringResponse> triggerFatalLog(
             @io.swagger.v3.oas.annotations.parameters.RequestBody(description = "Optional monitoring request with custom error message")
