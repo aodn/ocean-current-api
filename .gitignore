@@ -63,8 +63,7 @@ data/
 *.db
 *.sqlite
 
-# AI files
-CLAUDE.md
+# AI agents
 *.php
 
 # Python virtual environment
