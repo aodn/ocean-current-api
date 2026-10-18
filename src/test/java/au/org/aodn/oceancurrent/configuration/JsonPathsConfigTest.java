@@ -57,4 +57,19 @@ class JsonPathsConfigTest {
                 "/fishsoop/fishSOOP-depthAnomalies.json"
         );
     }
+    @Test
+    void glidersShouldHaveSixJsonPaths() {
+        var entries = config.getProducts().stream()
+                .filter(p -> p.getProduct().equals("Gliders"))
+                .toList();
+        assertThat(entries).hasSize(1);
+        assertThat(entries.get(0).getPaths()).containsExactly(
+                "/gliders/gliders-mission.json",
+                "/gliders/gliders-mission-video.json",
+                "/gliders/gliders-navigation.json",
+                "/gliders/gliders-navigation-video.json",
+                "/gliders/gliders-ts.json",
+                "/gliders/gliders-yearmaps.json"
+        );
+    }
 }

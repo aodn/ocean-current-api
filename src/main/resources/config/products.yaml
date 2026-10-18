@@ -180,3 +180,22 @@ ocean-current:
         - title: "Depth Anomalies"
           id: "fishSOOP-depthAnomalies"
           regionRequired: false
+
+    - title: "Gliders"
+      id: "gliders"
+      type: "ProductGroup"
+      children:
+        - title: "Mission Images"
+          id: "gliders-mission"
+        - title: "Mission Animations"
+          id: "gliders-mission-video"
+        - title: "Navigation Images"
+          id: "gliders-navigation"
+        - title: "Navigation Animations"
+          id: "gliders-navigation-video"
+        - title: "Temperature-Salinity Plots"
+          id: "gliders-ts"
+          regionRequired: false
+        - title: "Annual Maps"
+          id: "gliders-yearmaps"
+          regionRequired: false
