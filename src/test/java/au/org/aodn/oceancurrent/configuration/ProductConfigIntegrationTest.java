@@ -175,4 +175,33 @@ class ProductConfigIntegrationTest {
         assertThat(depthAnomalies).isNotNull();
         assertThat(depthAnomalies.isRegionRequired()).isFalse();
     }
+    @Test
+    void glidersGroupShouldContainExpectedChildrenAndFlags() {
+        Product gliders = productGroupMap.get("gliders");
+        assertThat(gliders).isNotNull();
+        assertThat(gliders.getTitle()).isEqualTo("Gliders");
+        assertThat(gliders.getType()).isEqualTo("ProductGroup");
+        assertThat(productMap).doesNotContainKey("gliders");
+        assertThat(gliders.getChildren()).extracting(Product::getId).containsExactly(
+                "gliders-mission",
+                "gliders-mission-video",
+                "gliders-navigation",
+                "gliders-navigation-video",
+                "gliders-ts",
+                "gliders-yearmaps"
+        );
+        assertThat(gliders.getChildren()).extracting(Product::getTitle).containsExactly(
+                "Mission Images", "Mission Animations", "Navigation Images", "Navigation Animations",
+                "Temperature-Salinity Plots", "Annual Maps"
+        );
+        gliders.getChildren().forEach(child -> {
+            assertThat(productMap.get(child.getId())).isSameAs(child);
+            assertThat(allProductsMap.get(child.getId())).isSameAs(child);
+            assertThat(child.getParentId()).isEqualTo("gliders");
+            assertThat(child.getParentTitle()).isEqualTo("Gliders");
+            assertThat(child.isDepthRequired()).isFalse();
+            assertThat(child.isRegionRequired()).isEqualTo(
+                    !List.of("gliders-ts", "gliders-yearmaps").contains(child.getId()));
+        });
+    }
 }
