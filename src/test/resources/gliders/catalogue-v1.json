@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "source_url": "https://oceancurrent.aodn.org.au/gliders/index.html",
+  "missions": [
+    {
+      "id": "Brisbane20180306A_nrt@3.0.",
+      "mission_id": "Brisbane20180306A",
+      "mission_name": "Brisbane20180306A_nrt",
+      "catalogue_numbers": [
+        "3"
+      ],
+      "processing_version": "3.0.",
+      "is_nrt": true,
+      "dates_raw": null,
+      "start_date": null,
+      "end_date": null,
+      "latitude": null,
+      "longitude": null,
+      "duration_days": null,
+      "distance_travelled_km": null,
+      "glider_id": "Seaglider-2",
+      "visualisations": {
+        "details": [],
+        "animations": []
+      },
+      "temperature_salinity_url": null,
+      "scientific_data_url": null
+    },
+    {
+      "id": "Perth20110626_1@unknown",
+      "mission_id": "Perth20110626_1",
+      "mission_name": "Perth20110626_1",
+      "catalogue_numbers": [
+        "4"
+      ],
+      "processing_version": null,
+      "is_nrt": false,
+      "dates_raw": null,
+      "start_date": null,
+      "end_date": null,
+      "latitude": null,
+      "longitude": null,
+      "duration_days": null,
+      "distance_travelled_km": null,
+      "glider_id": null,
+      "visualisations": {
+        "details": [],
+        "animations": []
+      },
+      "temperature_salinity_url": null,
+      "scientific_data_url": null
+    },
+    {
+      "id": "TwoRocks20260327@5.",
+      "mission_id": "TwoRocks20260327",
+      "mission_name": "TwoRocks20260327",
+      "catalogue_numbers": [
+        "2"
+      ],
+      "processing_version": "5.",
+      "is_nrt": false,
+      "dates_raw": null,
+      "start_date": null,
+      "end_date": null,
+      "latitude": null,
+      "longitude": null,
+      "duration_days": null,
+      "distance_travelled_km": null,
+      "glider_id": "Slocum-1",
+      "visualisations": {
+        "details": [],
+        "animations": []
+      },
+      "temperature_salinity_url": null,
+      "scientific_data_url": null
+    },
+    {
+      "id": "TwoRocks20260327@5.00",
+      "mission_id": "TwoRocks20260327",
+      "mission_name": "TwoRocks20260327",
+      "catalogue_numbers": [
+        "1"
+      ],
+      "processing_version": "5.00",
+      "is_nrt": false,
+      "dates_raw": "27 Mar - 05 Apr 2026",
+      "start_date": "2026-03-27",
+      "end_date": "2026-04-05",
+      "latitude": -31.5,
+      "longitude": 115.3,
+      "duration_days": 9.0,
+      "distance_travelled_km": 130.0,
+      "glider_id": "Slocum-1",
+      "visualisations": {
+        "details": [
+          {
+            "label": "4",
+            "url": "https://oceancurrent.aodn.org.au/gliders/TwoRocks20260327/4.html"
+          }
+        ],
+        "animations": []
+      },
+      "temperature_salinity_url": null,
+      "scientific_data_url": null
+    }
+  ],
+  "orders": {
+    "deployment_date": [
+      "TwoRocks20260327@5.00",
+      "TwoRocks20260327@5.",
+      "Brisbane20180306A_nrt@3.0.",
+      "Perth20110626_1@unknown"
+    ],
+    "mission_name": [
+      "Brisbane20180306A_nrt@3.0.",
+      "Perth20110626_1@unknown",
+      "TwoRocks20260327@5.00"
+    ],
+    "distance_alongshore_to_darwin": [
+      "Perth20110626_1@unknown",
+      "TwoRocks20260327@5.",
+      "TwoRocks20260327@5.00",
+      "Brisbane20180306A_nrt@3.0."
+    ],
+    "event_based_sampling": [
+      "TwoRocks20260327@5.00"
+    ]
+  }
+}

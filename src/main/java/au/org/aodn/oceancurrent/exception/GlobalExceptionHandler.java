@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,6 +25,19 @@ public class GlobalExceptionHandler {
 
     public GlobalExceptionHandler() {
         log.info("GlobalExceptionHandler initialized");
+    }
+
+    @ExceptionHandler(GlidersCatalogueUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorResponse handleGlidersCatalogueUnavailable(GlidersCatalogueUnavailableException ex) {
+        return new ErrorResponse(HttpStatus.SERVICE_UNAVAILABLE.getReasonPhrase(), List.of(ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return new ErrorResponse(HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                List.of("Invalid value for parameter: " + ex.getName()));
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
