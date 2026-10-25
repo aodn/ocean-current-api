@@ -124,3 +124,8 @@ graph TD
     1["Ocean Current API<br>Spring Boot / Java"] -->|fetches data from| 5["Remote JSON Sources<br>External API"]
     1["Ocean Current API<br>Spring Boot / Java"] -->|accesses| 6["SQLite Database<br>Embedded DB"]
 ```
+
+### Gliders mission catalogue
+
+See [Gliders mission catalogue API](docs/GLIDERS_MISSION_CATALOGUE.md) for endpoints,
+parameters, upstream publication requirements, caching, and edge validation.

@@ -74,3 +74,7 @@ app:
     authorised-instance-ids: ${AUTHORISED_INSTANCE_IDS:} # Comma-separated EC2 instance IDs, passed via environment variable
     ec2-identity-cert-path: classpath:aws/ec2-instance-identity.pem # Path to AWS EC2 instance identity certificate downloaded from AWS https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/regions-certs.html
     ec2-identity-timestamp-tolerance-seconds: 300
+
+gliders:
+  catalogue:
+    refresh-interval: ${GLIDERS_CATALOGUE_REFRESH_INTERVAL:1h}
