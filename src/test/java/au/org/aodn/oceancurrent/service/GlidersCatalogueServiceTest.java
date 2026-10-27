@@ -30,7 +30,7 @@ class GlidersCatalogueServiceTest {
     private final AtomicLong time = new AtomicLong();
     private GlidersCatalogueService service;
     private String json;
-    private static final String URL = "https://example.org/resource/gliders/gliders-catalogue.json";
+    private static final String URL = "https://example.org/resource/api/gliders-catalogue.json";
     private static final String ID = "TwoRocks20260327@5.00";
 
     @BeforeEach
