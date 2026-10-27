@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GlidersMissionControllerTest {
     private MockMvc mvc;
     private RestTemplate remote;
-    private static final String URL = "https://example.org/resource/gliders/gliders-catalogue.json";
+    private static final String URL = "https://example.org/resource/api/gliders-catalogue.json";
 
     @BeforeEach
     void setUp() throws Exception {

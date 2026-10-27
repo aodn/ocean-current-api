@@ -50,7 +50,7 @@ public class GlidersCatalogueService {
                             Ticker ticker, Executor executor) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
-        this.catalogueUrl = remote.getResourceBaseUrl().replaceAll("/+$", "") + "/gliders/gliders-catalogue.json";
+        this.catalogueUrl = remote.getResourceBaseUrl().replaceAll("/+$", "") + "/api/gliders-catalogue.json";
         this.cache = Caffeine.newBuilder().maximumSize(1).ticker(ticker).executor(executor)
                 .refreshAfterWrite(properties.getRefreshInterval()).build(key -> loadCatalogue());
     }
