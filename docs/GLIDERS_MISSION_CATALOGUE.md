@@ -3,10 +3,10 @@
 The API reads the version 1 catalogue produced by
 [aodn/data-services PR #1276](https://github.com/aodn/data-services/pull/1276).
 It uses `REMOTE_BASE_URL` + `REMOTE_RESOURCE_PATH` +
-`gliders/gliders-catalogue.json`. The caller cannot override the source URL.
+`api/gliders-catalogue.json`. The caller cannot override the source URL.
 This catalogue is independent of image inventories and Elasticsearch.
-Merging the upstream generator does not run or schedule it: an upstream operator
-must generate and publish the JSON before the API can serve catalogue data.
+The generator uses the existing publication pipeline and schedule. This extension
+does not introduce another endpoint or scheduler.
 
 ## Endpoints and parameters
 
@@ -52,7 +52,12 @@ Illustrative response (fixture data, not a statement of current availability):
       "glider_id": "Slocum-1",
       "visualisations": {
         "details": [{"label": "4", "url": "https://oceancurrent.aodn.org.au/gliders/TwoRocks20260327/4.html"}],
-        "animations": []
+        "animations": [],
+        "latest_images": {
+          "4d": "/gliders/TwoRocks20260327_4d/2026041300.gif",
+          "12d": null,
+          "30d": null
+        }
       },
       "temperature_salinity_url": null,
       "scientific_data_url": null
@@ -145,3 +150,27 @@ Local isolated checks:
 The fixture in `src/test/resources/gliders/catalogue-v1.json` follows the merged
 generator's schema and includes multiple versions, NRT, null optional values and
 orders with different membership. These tests require no Elasticsearch or Docker.
+
+## Latest image rollout and resource contract
+
+Deploy API optional-field support first, then the updated catalogue generator.
+The catalogue stays at schema version 1. Older catalogues without
+`visualisations.latest_images`, and windows with absent/null URLs, remain valid;
+both existing endpoints serialize all three keys with null defaults. Missing
+images alone never cause HTTP 503. The API does not probe GIF resources.
+
+Non-null values are website-root-relative resource paths. A browser prepends
+`/resource`, for example `/resource/gliders/TwoRocks20260327_4d/2026041300.gif`.
+The catalogue generator only exposes the displayed GIF verified in the linked
+mission-window's legacy page, not a guessed most-recent filename.
+
+After deployment, wait for publication and the configured API cache refresh,
+compare `latest_images` on `/api/v1/gliders/missions` and an exact ID lookup with
+`/resource/api/gliders-catalogue.json`, then GET each non-null path through
+`/resource` and confirm HTTP 200 with GIF content. Include missions with missing
+windows and NRT records. Do this through the normal deployment process; this
+implementation does not deploy automatically.
+
+NRT freshness depends on the upstream legacy frame selection and file transfer,
+the unchanged publication schedule, API refresh and HTTP caches. A latest frame
+may be old; no recency guarantee, image-date inference or new polling is added.

@@ -51,6 +51,43 @@ class GlidersMissionControllerTest {
                 .andExpect(jsonPath("$.missions[0].is_nrt").value(false));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"old", "new", "missing", "partial"})
+    void serializesLatestImagesOnBothEndpoints(String format) throws Exception {
+        var mapper = new ObjectMapper();
+        var root = mapper.readTree(new ClassPathResource("gliders/catalogue-v1.json")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        for (var mission : root.path("missions")) {
+            if (!format.equals("old")) {
+                var latest = ((com.fasterxml.jackson.databind.node.ObjectNode) mission.path("visualisations"))
+                        .putObject("latest_images");
+                if (format.equals("new")) {
+                    latest.put("4d", "/gliders/TwoRocks20260327_4d/2026041300.gif");
+                } else {
+                    latest.putNull("4d");
+                }
+                if (!format.equals("partial")) {
+                    latest.putNull("12d");
+                    latest.putNull("30d");
+                }
+            }
+        }
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        for (String endpoint : new String[]{"/gliders/missions", "/gliders/missions/TwoRocks20260327@5.00"}) {
+            String path = endpoint.endsWith("missions") ? "$.missions[0]" : "$";
+            var result = mvc.perform(get(endpoint)).andExpect(status().isOk())
+                    .andExpect(jsonPath(path + ".visualisations.latest_images").isMap())
+                    .andExpect(jsonPath(path + ".visualisations.latest_images['12d']").value(org.hamcrest.Matchers.nullValue()))
+                    .andExpect(jsonPath(path + ".visualisations.latest_images['30d']").value(org.hamcrest.Matchers.nullValue()));
+            if (format.equals("new")) {
+                result.andExpect(jsonPath(path + ".visualisations.latest_images['4d']")
+                        .value("/gliders/TwoRocks20260327_4d/2026041300.gif"));
+            } else {
+                result.andExpect(jsonPath(path + ".visualisations.latest_images['4d']").value(org.hamcrest.Matchers.nullValue()));
+            }
+        }
+    }
+
     @Test
     void filtersOrdersAndPages() throws Exception {
         mvc.perform(get("/gliders/missions").param("order", "mission_name")
