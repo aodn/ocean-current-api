@@ -144,6 +144,14 @@ public class GlidersCatalogueService {
             require(node.has(field) && (node.get(field).isNull() || node.get(field).isNumber()),
                     "Invalid mission " + field);
         }
+        JsonNode latest = node.path("visualisations").path("latest_images");
+        require(latest.isMissingNode() || latest.isNull() || latest.isObject(), "Invalid latest_images");
+        if (latest.isObject()) {
+            for (String window : List.of("4d", "12d", "30d")) {
+                JsonNode image = latest.path(window);
+                require(image.isMissingNode() || image.isNull() || text(image), "Invalid latest image");
+            }
+        }
         for (String kind : List.of("details", "animations")) {
             JsonNode links = node.path("visualisations").path(kind);
             require(links.isArray(), "Missing visualisations " + kind);
