@@ -143,7 +143,7 @@ Reference: the FishSOOP change, PR #78 (`aodn/backlog#8577`).
 
 | Workflow             | Trigger                          | Does                                                                                                                                                                             |
 | -------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yaml`            | push / PR to `main`              | `./gradlew clean build`, plus a separate job running `pytest` on `scripts/` with Python 3.8 (the legacy server's version).     |
+| `ci.yaml`            | push / PR to `main`              | `./gradlew clean build`, plus a separate job running `pytest` on `scripts/cron/` with `uv`. Versions are set in `scripts/cron/pyproject.toml` and match the legacy server. |
 | `cd_edge.yaml`       | CI workflow completion on `main` | jar → Docker → ECR (`:sha`, `:latest`) → SSM `/apps/oceancurrent/edge/image_digest` → dispatch `aodn/appdeploy` (edge). The workflow currently does not check the CI conclusion. |
 | `cd_production.yaml` | tag `v*.*.*`                     | same, image tagged with the version, metadata attached to the GitHub release → `aodn/appdeploy` (`oceancurrent/ecs`, production)                                                 |
 | `ai-code-review.yaml` | PR to `main`, manual dispatch   | Advisory Kiro review via the shared `aodn/common-workflow` workflow; repo-specific direction in `.github/ai-code-review/` (see its `README.md`). Never blocks merging.            |

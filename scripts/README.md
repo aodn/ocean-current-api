@@ -9,9 +9,10 @@ Python scripts that support the Ocean Current API. They are not part of the Spri
 
 ## Tests
 
-CI runs the tests on Python 3.8 with the same `requests` version as the legacy server. See `test-scripts` in [`ci.yaml`](../.github/workflows/ci.yaml) for the exact versions.
+The cron scripts use Python 3.8 and the same `requests` version as the legacy server, set in [`cron/pyproject.toml`](cron/pyproject.toml).
+
+Install [`uv`](https://docs.astral.sh/uv/getting-started/installation/), then run the tests from the repo root. CI runs the same command. `uv` sets up Python and the dependencies on the first run.
 
 ```bash
-python -m pip install pytest requests
-python -m pytest scripts
+uv run --project scripts/cron pytest scripts/cron
 ```

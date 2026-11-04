@@ -17,11 +17,11 @@ Run these from the repo root. `DEV_MODE=true` makes the scripts use the test dat
 
 ```bash
 # Tests
-uv run --no-project --python 3.8 --with pytest==8.3.5 --with requests==2.22.0 pytest scripts/cron
+uv run --project scripts/cron pytest scripts/cron
 
 # Scripts
-DEV_MODE=true uv run --no-project --python 3.8 python scripts/cron/argo_oceancurrent.py
-DEV_MODE=true uv run --no-project --python 3.8 --with requests==2.22.0 python scripts/cron/oceancurrent_file_server_api.py
+DEV_MODE=true uv run --project scripts/cron python scripts/cron/argo_oceancurrent.py
+DEV_MODE=true uv run --project scripts/cron python scripts/cron/oceancurrent_file_server_api.py
 ```
 
 # ARGO Profiles JSON Generator for the Ocean Current website

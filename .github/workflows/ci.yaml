@@ -39,8 +39,7 @@ jobs:
 
   test-scripts:
     name: Test Python Scripts
-    # Pinned because Python 3.8 builds are only published for specific Ubuntu versions
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
 
@@ -48,13 +47,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v10.3.3
         with:
-          python-version: '3.8' # Matches the OceanCurrent legacy server (3.8.10)
+          version: '0.11.8'
 
-      - name: Install dependencies
-        run: python -m pip install pytest==8.3.5 requests==2.22.0 # requests matches the OceanCurrent legacy server
-
+      # Python and dependency versions are set in scripts/cron/pyproject.toml and uv.lock
       - name: Run tests
-        run: python -m pytest scripts
+        run: uv run --locked --project scripts/cron pytest scripts/cron
