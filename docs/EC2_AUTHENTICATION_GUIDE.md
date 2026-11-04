@@ -561,10 +561,10 @@ Use the test script to verify authentication:
 SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun
 
 # Test authentication enforcement
-python3 scripts/test_local_auth.py
+python3 scripts/check_local_auth.py
 
 # Test authentication with actual EC2 metadata (on EC2 instance)
-python3 scripts/test_local_auth.py --use-ec2-metadata
+python3 scripts/check_local_auth.py --use-ec2-metadata
 ```
 
 ## Troubleshooting
