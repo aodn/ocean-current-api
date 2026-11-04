@@ -4,7 +4,12 @@ import re
 import json
 
 # Specify the directory path
-PROFILES_PATH = "/mnt/oceancurrent/website/profiles/"
+# Use local test data if DEV_MODE environment variable is set
+base_path = "/mnt/oceancurrent/website/profiles/"
+if os.getenv("DEV_MODE") == "true":
+    PROFILES_PATH = f"./scripts/cron/tests{base_path}"
+else:
+    PROFILES_PATH = base_path
 
 
 def main():

@@ -11,6 +11,19 @@ Scripts that run on the legacy EC2 server on a schedule and generate the JSON in
 
 Keep this folder flat. See [README_FATAL_LOG_CONFIG.md](README_FATAL_LOG_CONFIG.md) for the scanner's failure notifications.
 
+## Run locally
+
+Run these from the repo root. `DEV_MODE=true` makes the scripts use the test data in `scripts/cron/tests/` instead of `/mnt/oceancurrent/website/`. The JSON files they generate there are ignored by Git.
+
+```bash
+# Tests
+uv run --no-project --python 3.8 --with pytest==8.3.5 --with requests==2.22.0 pytest scripts/cron
+
+# Scripts
+DEV_MODE=true uv run --no-project --python 3.8 python scripts/cron/argo_oceancurrent.py
+DEV_MODE=true uv run --no-project --python 3.8 --with requests==2.22.0 python scripts/cron/oceancurrent_file_server_api.py
+```
+
 # ARGO Profiles JSON Generator for the Ocean Current website
 
 This script processes directories containing `.gif` files and generates a `profiles.json` file per argo platform directory with metadata extracted from the filenames. The filenames follow a specific pattern, and the extracted information includes the date, profile number, and cycle number.

@@ -1,3 +1,4 @@
+import importlib
 import os
 import json
 import shutil
@@ -5,6 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import argo_oceancurrent
 from argo_oceancurrent import main, PROFILES_PATH
 
 
@@ -83,6 +85,25 @@ class TestProfilesJsonGeneration(unittest.TestCase):
             generated_json.sort(key=lambda x: x['date'])
 
             self.assertEqual(generated_json, expected_json, f"The generated profiles.json content in {platform_code} is incorrect")
+
+
+class TestProfilesPath(unittest.TestCase):
+
+    def tearDown(self):
+        # Restore the module to match the real environment
+        importlib.reload(argo_oceancurrent)
+
+    def test_uses_production_path_by_default(self):
+        with patch.dict(os.environ):
+            os.environ.pop('DEV_MODE', None)
+            importlib.reload(argo_oceancurrent)
+            self.assertEqual(argo_oceancurrent.PROFILES_PATH, '/mnt/oceancurrent/website/profiles/')
+
+    def test_uses_local_test_data_in_dev_mode(self):
+        with patch.dict(os.environ, {'DEV_MODE': 'true'}):
+            importlib.reload(argo_oceancurrent)
+            self.assertEqual(argo_oceancurrent.PROFILES_PATH, './scripts/cron/tests/mnt/oceancurrent/website/profiles/')
+
 
 if __name__ == '__main__':
     unittest.main()
