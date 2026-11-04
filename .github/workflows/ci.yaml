@@ -3,9 +3,9 @@ run-name: CI
 
 on:
   push:
-    branches: ["main"]
+    branches: ['main']
   pull_request:
-    branches: ["main"]
+    branches: ['main']
 
 permissions:
   id-token: write
@@ -28,7 +28,7 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
-          distribution: "temurin"
+          distribution: 'temurin'
           java-version: 17
 
       - name: Verify Docker is running
@@ -36,3 +36,26 @@ jobs:
 
       - name: Build and Test with Gradle
         run: ./gradlew clean build
+
+  test-scripts:
+    name: Test Python Scripts
+    # Pinned because Python 3.8 builds are only published for specific Ubuntu versions
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.8' # Matches the OceanCurrent legacy server (3.8.10)
+
+      - name: Install dependencies
+        run: python -m pip install pytest requests
+
+      # pytest exits with 5 when it finds no tests. Allow that until real tests are moved into scripts/, then remove it.
+      - name: Run tests
+        run: python -m pytest scripts || [ $? -eq 5 ]
