@@ -3,6 +3,8 @@
 ## Prerequisites
 
 > JDK 17
+>
+> [uv](https://docs.astral.sh/uv/getting-started/installation/) (only for the Python scripts in `scripts/`)
 
 ## Version Info
 
@@ -66,6 +68,14 @@ AWS_SECRET_ACCESS_KEY="aws-secret-access-key"
   ./gradlew test
   ```
 
+- Python cron scripts, from the repo root
+
+  ```shell
+  uv run --project scripts/cron pytest scripts/cron
+  ```
+
+  `uv` sets up Python 3.8 and the dependencies on the first run. CI runs these tests too.
+
 ### Build
 
 - By IDEA
@@ -86,6 +96,8 @@ For detailed documentation, see the `docs/` directory:
 
 - **[SQLite Integration](docs/SQLITE_INTEGRATION.md)** - Complete guide to the SQLite wave tags integration, including API endpoints, configuration, and usage examples
 - **[Product Tag Architecture](docs/PRODUCT_TAG_ARCHITECTURE.md)** - Technical architecture documentation for the extensible product tag service system
+
+For the Python scripts, see **[scripts/README.md](scripts/README.md)**, which covers the cron jobs on the legacy server and the monitoring helpers.
 
 
 ## Simple Architecture Diagram ( at 04/07/2025 )
