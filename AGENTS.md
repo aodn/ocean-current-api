@@ -10,7 +10,7 @@ The images are produced by a third party (CSIRO) and live on the **legacy Apache
 
 ```
 legacy EC2  /mnt/oceancurrent/website/**.gif
-   │  daily cron (00:00): aodn/data-services ARGO/oceancurrent/oceancurrent_file_server_api.py
+   │  cron: scripts/cron/oceancurrent_file_server_api.py (see the data-services row below)
    │  scans folders per FILE_PATH_CONFIG → writes JSON index files next to the images
    ▼
 this API  (scheduled reindex)
@@ -26,7 +26,7 @@ Related repos:
 | Repo                                                                          | Role                                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [aodn/ocean-current-frontend](https://github.com/aodn/ocean-current-frontend) | React consumer of this API. Its product IDs must match `products.yaml` (or be mapped in its `src/configs/products/id-mapping.ts`).                                                                                                 |
-| [aodn/data-services](https://github.com/aodn/data-services)                   | Only the `ARGO/oceancurrent/` folder is ours. It holds the scanner that produces the JSON this API indexes. The cron on the EC2 runs the script straight from that repo's `master` branch, so **merging there is its deployment**. |
+| [aodn/data-services](https://github.com/aodn/data-services)                   | Only the `ARGO/oceancurrent/` folder is ours, and it is moving to `scripts/cron/` here (`aodn/backlog#9704`). Until the `chef-private` cron jobs are updated, the EC2 still runs the scripts straight from that repo's `master` branch, so **merging there is still their deployment**. |
 | [aodn/appdeploy](https://github.com/aodn/appdeploy)                           | Infrastructure deployment workflow triggered by this repo's CD.                                                                                                                                                                    |
 | [aodn/backlog](https://github.com/aodn/backlog)                               | All issues and tickets. Branch names reference these issue numbers.                                                                                                                                                                |
 
@@ -113,7 +113,7 @@ Note that only `image-list` is evicted on reindex. `latest-files`, `current-mete
   - `latest-dates` only considers filenames matching `\d{8,14}\.gif`.
 - `/products/*` serves the product tree.
 - `/tags/*` (`TagController` → `TagService`) is a coordinator that auto-discovers every `ProductTagService` bean. `SurfaceWavesTagService` is the real implementation; `ArgoTagService` is a stub. To add a product, implement `ProductTagService` and annotate it `@Service`. See `docs/PRODUCT_TAG_ARCHITECTURE.md`.
-- `/monitoring/fatal-log` receives failure reports from the EC2 scanner (and `scripts/trigger_fatal_log.py`).
+- `/monitoring/fatal-log` receives failure reports from the EC2 scanner (and `scripts/monitoring/trigger_fatal_log.py`).
 - `/indexing/*` (manual reindex, S3 index, delete index) and `/debug/*` exist **only in the `dev` and `edge` profiles**, and have no auth there. They are not deployed in production; production indexing is scheduler-only.
 
 **Security:**
@@ -126,7 +126,7 @@ Note that only `image-list` is evicted on reindex. `latest-files`, `current-mete
 
 This is usually **config plus tests only**; no new endpoint is needed.
 
-1. Upstream first: add the scanner rule in [aodn/data-services/ARGO/oceancurrent/oceancurrent_file_server_api.py](https://github.com/aodn/data-services/blob/master/ARGO/oceancurrent/oceancurrent_file_server_api.py), merge it to `master`, and wait for a cron run. Confirm the JSON is reachable under `REMOTE_BASE_URL` plus `REMOTE_RESOURCE_PATH`.
+1. Scanner first: add the rule in `scripts/cron/oceancurrent_file_server_api.py`. Until the cron jobs are repointed, also add it in [aodn/data-services/ARGO/oceancurrent/oceancurrent_file_server_api.py](https://github.com/aodn/data-services/blob/master/ARGO/oceancurrent/oceancurrent_file_server_api.py) and merge it to `master`, because that is the copy production runs. Then wait for a cron run. Confirm the JSON is reachable under `REMOTE_BASE_URL` plus `REMOTE_RESOURCE_PATH`.
 2. Here: add the group or leaf to `products.yaml`, setting `regionRequired`/`depthRequired` where needed. Add the JSON path(s) to `json-paths-config.yaml`.
 3. Tests: extend `ProductConfigIntegrationTest`, `JsonPathsConfigTest` and `ProductServiceTest`.
 4. Deploy only after step 1 is live. Missing upstream data can make the new index fail validation or leave the new product empty.
@@ -143,7 +143,7 @@ Reference: the FishSOOP change, PR #78 (`aodn/backlog#8577`).
 
 | Workflow             | Trigger                          | Does                                                                                                                                                                             |
 | -------------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yaml`            | push / PR to `main`              | `./gradlew clean build`, plus a separate job running `pytest` on `scripts/` with Python 3.8 (the legacy server's version).     |
+| `ci.yaml`            | push / PR to `main`              | `./gradlew clean build`, plus a separate job running `pytest` on `scripts/cron/` with `uv`. Versions are set in `scripts/cron/pyproject.toml` and match the legacy server. |
 | `cd_edge.yaml`       | CI workflow completion on `main` | jar → Docker → ECR (`:sha`, `:latest`) → SSM `/apps/oceancurrent/edge/image_digest` → dispatch `aodn/appdeploy` (edge). The workflow currently does not check the CI conclusion. |
 | `cd_production.yaml` | tag `v*.*.*`                     | same, image tagged with the version, metadata attached to the GitHub release → `aodn/appdeploy` (`oceancurrent/ecs`, production)                                                 |
 | `ai-code-review.yaml` | PR to `main`, manual dispatch   | Advisory Kiro review via the shared `aodn/common-workflow` workflow; repo-specific direction in `.github/ai-code-review/` (see its `README.md`). Never blocks merging.            |

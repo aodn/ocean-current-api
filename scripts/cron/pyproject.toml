@@ -1,0 +1,12 @@
+# Development and CI only. In production, cron runs these scripts on the legacy server's system Python.
+[project]
+name = "ocean-current-cron-scripts"
+version = "0.0.0"
+requires-python = "==3.8.*" # Matches the legacy server (3.8.10)
+dependencies = ["requests==2.22.0"] # Matches the legacy server
+
+[dependency-groups]
+dev = ["pytest==8.3.5"]
+
+[tool.uv]
+package = false # Plain scripts, not an installable package
