@@ -256,7 +256,7 @@ Multiple layers of security work together:
 
 #### 4. Python Client Script
 
-**Location**: [`scripts/trigger_fatal_log.py`](../scripts/trigger_fatal_log.py)
+**Location**: [`scripts/monitoring/trigger_fatal_log.py`](../scripts/monitoring/trigger_fatal_log.py)
 
 **Features**:
 
@@ -528,7 +528,7 @@ Run the integration tests (requires `edge` profile):
 3. **Download the script**:
 
    ```bash
-   wget https://raw.githubusercontent.com/your-repo/scripts/trigger_fatal_log.py
+   wget https://raw.githubusercontent.com/your-repo/scripts/monitoring/trigger_fatal_log.py
    chmod +x trigger_fatal_log.py
    ```
 
@@ -561,10 +561,10 @@ Use the test script to verify authentication:
 SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun
 
 # Test authentication enforcement
-python3 scripts/check_local_auth.py
+python3 scripts/monitoring/check_local_auth.py
 
 # Test authentication with actual EC2 metadata (on EC2 instance)
-python3 scripts/check_local_auth.py --use-ec2-metadata
+python3 scripts/monitoring/check_local_auth.py --use-ec2-metadata
 ```
 
 ## Troubleshooting

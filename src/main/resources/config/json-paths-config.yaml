@@ -1,5 +1,5 @@
 # This file is to configure the JSON paths from the AODN Data Services for indexing in Elasticsearch.
-# https://github.com/aodn/data-services/blob/master/ARGO/oceancurrent/README.md#supporting-products
+# See scripts/cron/README.md#supporting-products
 
 version: "0.4"
 products:

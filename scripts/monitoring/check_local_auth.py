@@ -10,10 +10,10 @@ Usage:
     SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun
 
     # Test authentication enforcement
-    python3 scripts/check_local_auth.py
+    python3 scripts/monitoring/check_local_auth.py
 
     # Test authentication with actual EC2 metadata (on EC2 instance)
-    python3 scripts/check_local_auth.py --use-ec2-metadata
+    python3 scripts/monitoring/check_local_auth.py --use-ec2-metadata
 
 Requirements:
     pip3 install requests
@@ -238,8 +238,8 @@ def main():
 
     print("\nTesting on Different Environments:")
     print("  • Local (edge profile):  SPRING_PROFILES_ACTIVE=edge ./gradlew bootRun")
-    print("  • Then run:              python3 scripts/check_local_auth.py")
-    print("  • EC2 instance:          python3 scripts/check_local_auth.py --use-ec2-metadata")
+    print("  • Then run:              python3 scripts/monitoring/check_local_auth.py")
+    print("  • EC2 instance:          python3 scripts/monitoring/check_local_auth.py --use-ec2-metadata")
     print("  • Production:            trigger_fatal_log.py (runs on EC2 instance)")
     print("=" * 70 + "\n")
 
