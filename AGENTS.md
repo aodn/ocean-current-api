@@ -10,7 +10,7 @@ The images are produced by a third party (CSIRO) and live on the **legacy Apache
 
 ```
 legacy EC2  /mnt/oceancurrent/website/**.gif
-   │  cron: scripts/cron/oceancurrent_file_server_api.py (see the data-services row below)
+   │  cron (every 2 h): scripts/cron/oceancurrent_file_server_api.py, fetched from this repo's main branch
    │  scans folders per FILE_PATH_CONFIG → writes JSON index files next to the images
    ▼
 this API  (scheduled reindex)
@@ -21,12 +21,14 @@ this API  (scheduled reindex)
 aodn/ocean-current-frontend  calls /api/v1/metadata/... and /api/v1/products
 ```
 
+The cron jobs on the EC2 download the scanner and Argo scripts from `scripts/cron/` on `main` each time they run, so **merging a script change to `main` is its deployment**. See `scripts/cron/README.md`.
+
 Related repos:
 
 | Repo                                                                          | Role                                                                                                                                                                                                                               |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | [aodn/ocean-current-frontend](https://github.com/aodn/ocean-current-frontend) | React consumer of this API. Its product IDs must match `products.yaml` (or be mapped in its `src/configs/products/id-mapping.ts`).                                                                                                 |
-| [aodn/data-services](https://github.com/aodn/data-services)                   | Only the `ARGO/oceancurrent/` folder is ours, and it is moving to `scripts/cron/` here (`aodn/backlog#9704`). Until the `chef-private` cron jobs are updated, the EC2 still runs the scripts straight from that repo's `master` branch, so **merging there is still their deployment**. |
+| [aodn/data-services](https://github.com/aodn/data-services)                   | Only the `ARGO/oceancurrent/` folder is ours. The Gliders catalogue and year-map scripts remain there until they move to `scripts/cron/` (`aodn/backlog#9723`), and their cron job still runs them from that repo's `master` branch. The copies of the scanner and Argo scripts there are no longer used by the cron jobs. |
 | [aodn/appdeploy](https://github.com/aodn/appdeploy)                           | Infrastructure deployment workflow triggered by this repo's CD.                                                                                                                                                                    |
 | [aodn/backlog](https://github.com/aodn/backlog)                               | All issues and tickets. Branch names reference these issue numbers.                                                                                                                                                                |
 
@@ -126,7 +128,7 @@ Note that only `image-list` is evicted on reindex. `latest-files`, `current-mete
 
 This is usually **config plus tests only**; no new endpoint is needed.
 
-1. Scanner first: add the rule in `scripts/cron/oceancurrent_file_server_api.py`. Until the cron jobs are repointed, also add it in [aodn/data-services/ARGO/oceancurrent/oceancurrent_file_server_api.py](https://github.com/aodn/data-services/blob/master/ARGO/oceancurrent/oceancurrent_file_server_api.py) and merge it to `master`, because that is the copy production runs. Then wait for a cron run. Confirm the JSON is reachable under `REMOTE_BASE_URL` plus `REMOTE_RESOURCE_PATH`.
+1. Scanner first: add the rule in `scripts/cron/oceancurrent_file_server_api.py`, merge it to `main`, and wait for a cron run. Confirm the JSON is reachable under `REMOTE_BASE_URL` plus `REMOTE_RESOURCE_PATH`.
 2. Here: add the group or leaf to `products.yaml`, setting `regionRequired`/`depthRequired` where needed. Add the JSON path(s) to `json-paths-config.yaml`.
 3. Tests: extend `ProductConfigIntegrationTest`, `JsonPathsConfigTest` and `ProductServiceTest`.
 4. Deploy only after step 1 is live. Missing upstream data can make the new index fail validation or leave the new product empty.
