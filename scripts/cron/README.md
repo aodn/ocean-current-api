@@ -188,10 +188,13 @@ Currently, the script is adaptive to these products:
 | **Current Meters** | | 
 `currentMetersCalendar-48` | `\timeseries\currentMetersCalendar-48.json`
 `currentMetersCalendar-49` | `\timeseries\currentMetersCalendar-49.json`
+`currentMetersCalendar-54` | `\timeseries\currentMetersCalendar-54.json`
 `currentMetersRegion-48` | `\timeseries\currentMetersRegion-48.json`
 `currentMetersRegion-49` | `\timeseries\currentMetersRegion-49.json`
+`currentMetersRegion-54` | `\timeseries\currentMetersRegion-54.json`
 `currentMetersPlot-48` | `\timeseries\currentMetersPlot-48.json`
 `currentMetersPlot-49` | `\timeseries\currentMetersPlot-49.json`
+`currentMetersPlot-54` | `\timeseries\currentMetersPlot-54.json`
 
 
 ## Gliders asset indexes
