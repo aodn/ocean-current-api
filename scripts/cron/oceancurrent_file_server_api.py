@@ -59,7 +59,12 @@ _cached_pkcs7 = None
 
 # Production logging configuration with fallback
 log_format = '%(asctime)s - %(name)s - %(levelname)s - PID:%(process)d - %(funcName)s:%(lineno)d - %(message)s'
-handlers = [logging.StreamHandler(sys.stdout)]
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.addFilter(lambda record: record.levelno < logging.ERROR)
+# Errors go to stderr so the cron job can log and email them without the INFO output
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.ERROR)
+handlers = [stdout_handler, stderr_handler]
 
 # Try to add file handler, fallback to current directory if IMOS log directory is not writable
 imos_log_path = '/var/log/imos/oceancurrent_file_server_api.log'

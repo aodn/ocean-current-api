@@ -2,6 +2,8 @@ import os
 import json
 import tempfile
 import shutil
+import subprocess
+import sys
 import unittest
 import unittest.mock
 from unittest.mock import patch, MagicMock, mock_open
@@ -874,6 +876,32 @@ class TestMonitoringFunctions(unittest.TestCase):
             self.assertEqual(endpoint, 'https://file.example.com/api')
         finally:
             os.unlink(config_file)
+
+
+class TestLoggingStreams(unittest.TestCase):
+
+    def test_errors_go_to_stderr_and_other_levels_to_stdout(self):
+        # Run in a separate process, because pytest's log handlers stop logging.basicConfig from configuring the script
+        code = (
+            "import oceancurrent_file_server_api as scanner;"
+            "scanner.logger.info('info message');"
+            "scanner.logger.warning('warning message');"
+            "scanner.logger.error('error message')"
+        )
+        env = dict(os.environ, PYTHONPATH=os.path.dirname(os.path.abspath(__file__)))
+
+        with tempfile.TemporaryDirectory() as working_dir:
+            result = subprocess.run(
+                [sys.executable, '-c', code],
+                cwd=working_dir, env=env, capture_output=True, text=True, check=True
+            )
+
+        self.assertIn('info message', result.stdout)
+        self.assertIn('warning message', result.stdout)
+        self.assertNotIn('error message', result.stdout)
+        self.assertIn('error message', result.stderr)
+        self.assertNotIn('info message', result.stderr)
+        self.assertNotIn('warning message', result.stderr)
 
 
 if __name__ == '__main__':
