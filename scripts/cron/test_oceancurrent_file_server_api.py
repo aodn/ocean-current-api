@@ -329,6 +329,48 @@ class TestFileServerAPI(unittest.TestCase):
                     ]
                 }
             ],
+            "currentMetersCalendar-54": [
+                {
+                    "path": "/timeseries/ANMN_P54",
+                    "productId": "currentMetersCalendar-54",
+                    "region": None,
+                    "depth": None,
+                    "files": [{"name": "East_2025-28.gif"}]
+                }
+            ],
+            "currentMetersRegion-54": [
+                {
+                    "path": "/timeseries/ANMN_P54/mapst",
+                    "productId": "currentMetersRegion-54",
+                    "region": None,
+                    "depth": None,
+                    "files": [
+                        {"name": "01_Aust_vrms_1.gif"},
+                        {"name": "01_Aust_vrms_1_2026.gif"}
+                    ]
+                }
+            ],
+            "currentMetersPlot-54": [
+                {
+                    "path": "/timeseries/ANMN_P54/BMP120/xyz",
+                    "productId": "currentMetersPlot-54",
+                    "region": "BMP120",
+                    "depth": "xyz",
+                    "files": [
+                        {"name": "BMP120-2602-Sentinel-or-Monitor-Workhorse-ADCP-117p9_xyz.gif"}
+                    ]
+                },
+                {
+                    "path": "/timeseries/ANMN_P54/BMP120/zt",
+                    "productId": "currentMetersPlot-54",
+                    "region": "BMP120",
+                    "depth": "zt",
+                    "files": [
+                        {"name": "BMP120-2602-Sentinel-or-Monitor-Workhorse-ADCP-117p9_zt.gif"},
+                        {"name": "latest.gif"}
+                    ]
+                }
+            ],
             "tidalCurrents-spd": [
                 {
                     "path": "/tides/Darwin_spd/2025",
@@ -699,6 +741,18 @@ class TestFileServerAPI(unittest.TestCase):
             self.verify_json("currentMetersCalendar-49", "timeseries", "currentMetersCalendar-49")
             self.verify_json("currentMetersRegion-49", "timeseries", "currentMetersRegion-49")
             self.verify_json("currentMetersPlot-49", "timeseries", "currentMetersPlot-49")
+            # Exact filenames prove P54 excludes HTML, mapst and time_error_check
+            # from plots, and that the anchored rules skip ANMN_P54_old.
+            for product_id in ("currentMetersCalendar-54", "currentMetersRegion-54", "currentMetersPlot-54"):
+                self.verify_json(product_id, "timeseries", product_id)
+                output = os.path.join(self.file_test_dir, "timeseries", f"{product_id}.json")
+                actual = self.load_and_normalize_json(output)
+                expected = self.prepare_test_cases()[product_id]
+                self.assertEqual(
+                    {item["path"]: sorted(f["name"] for f in item["files"]) for item in actual},
+                    {item["path"]: sorted(f["name"] for f in item["files"]) for item in expected},
+                    f"Unexpected Current Meters filenames in {product_id}",
+                )
             self.verify_json("tidalCurrents-spd", "tides", "tidalCurrents-spd")
             self.verify_json("tidalCurrents-sl", "tides", "tidalCurrents-sl")
             self.verify_json("tidalCurrents-monthplots", "tides", "tidalCurrents-monthplots")

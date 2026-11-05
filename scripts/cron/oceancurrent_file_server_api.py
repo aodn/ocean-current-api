@@ -192,6 +192,16 @@ FILE_PATH_CONFIG = [
         "max_layer": 3
     },
     {
+        "productId": "currentMetersCalendar-54",
+        "include":[
+            {"path": "^timeseries$", "layer": 1},
+            {"path": "^ANMN_P54$", "layer": 2}
+        ],
+        "filetype": ".gif",
+        "max_layer": 2,
+        "save_in_product_folder": True
+    },
+    {
         "productId": "currentMetersCalendar-49",
         "include":[
             {"path": "timeseries", "layer": 1},
@@ -209,6 +219,17 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 2,
+        "save_in_product_folder": True
+    },
+    {
+        "productId": "currentMetersRegion-54",
+        "include":[
+            {"path": "^timeseries$", "layer": 1},
+            {"path": "^ANMN_P54$", "layer": 2},
+            {"path": "^mapst$", "layer": 3}
+        ],
+        "filetype": ".gif",
+        "max_layer": 3,
         "save_in_product_folder": True
     },
     {
@@ -231,6 +252,22 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 3,
+        "save_in_product_folder": True
+    },
+    {
+        "productId": "currentMetersPlot-54",
+        "include":[
+            {"path": "^timeseries$", "layer": 1},
+            {"path": "^ANMN_P54$", "layer": 2},
+            {
+                "path": "^(?!mapst$|time_error_check$).*$",
+                "layer": 3
+            }
+        ],
+        "filetype": ".gif",
+        "region_layer": 3,
+        "depth_layer": 4,
+        "max_layer": 4,
         "save_in_product_folder": True
     },
     {
