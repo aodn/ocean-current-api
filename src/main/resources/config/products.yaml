@@ -117,6 +117,16 @@ ocean-current:
         - title: "Current Meters Region version 49"
           id: "currentMetersRegion-49"
           regionRequired: false
+        # Version 54
+        - title: "Current Meters Plot version 54"
+          id: "currentMetersPlot-54"
+          depthRequired: true
+        - title: "Current Meters Calendar version 54"
+          id: "currentMetersCalendar-54"
+          regionRequired: false
+        - title: "Current Meters Region version 54"
+          id: "currentMetersRegion-54"
+          regionRequired: false
 
     - title: "Surface Waves"
       id: "surfaceWaves"
