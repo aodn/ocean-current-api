@@ -235,6 +235,51 @@ class ProductServiceTest {
     }
 
     @Test
+    public void testIsDepthRequired_trueForCurrentMetersPlot54() {
+        // Given
+        String productId = "currentMetersPlot-54";
+        Product product = Product.builder()
+                .id(productId)
+                .title("Current Meters Plot version 54")
+                .depthRequired(true)
+                .build();
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isDepthRequired(productId)).isTrue();
+    }
+
+    @Test
+    public void testIsRegionRequired_falseForCurrentMetersCalendar54() {
+        // Given
+        String productId = "currentMetersCalendar-54";
+        Product product = Product.builder()
+                .id(productId)
+                .title("Current Meters Calendar version 54")
+                .regionRequired(false)
+                .build();
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isRegionRequired(productId)).isFalse();
+    }
+
+    @Test
+    public void testIsRegionRequired_falseForCurrentMetersRegion54() {
+        // Given
+        String productId = "currentMetersRegion-54";
+        Product product = Product.builder()
+                .id(productId)
+                .title("Current Meters Region version 54")
+                .regionRequired(false)
+                .build();
+        when(productMap.get(productId)).thenReturn(product);
+
+        // When & Then
+        assertThat(productService.isRegionRequired(productId)).isFalse();
+    }
+
+    @Test
     public void testRegionAndDepthRequired_defaultsWhenUnset() {
         // Given
         String productId = "sealCtd-timeseriesTemperature";

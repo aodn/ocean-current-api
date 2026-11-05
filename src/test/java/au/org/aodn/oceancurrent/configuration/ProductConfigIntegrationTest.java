@@ -93,6 +93,25 @@ class ProductConfigIntegrationTest {
     }
 
     @Test
+    void currentMetersVersion54FlagsShouldMatchConfig() {
+        assertThat(productMap.get("currentMetersPlot-54")).isNotNull();
+        assertThat(productMap.get("currentMetersPlot-54").isDepthRequired()).isTrue();
+
+        assertThat(productMap.get("currentMetersCalendar-54")).isNotNull();
+        assertThat(productMap.get("currentMetersCalendar-54").isRegionRequired()).isFalse();
+        assertThat(productMap.get("currentMetersRegion-54")).isNotNull();
+        assertThat(productMap.get("currentMetersRegion-54").isRegionRequired()).isFalse();
+    }
+
+    @Test
+    void currentMetersOlderVersionsShouldStayConfigured() {
+        assertThat(productMap).containsKeys(
+                "currentMetersPlot-48", "currentMetersCalendar-48", "currentMetersRegion-48",
+                "currentMetersPlot-49", "currentMetersCalendar-49", "currentMetersRegion-49"
+        );
+    }
+
+    @Test
     void defaultsShouldApplyWhenFlagsUnset() {
         // Example leaf products without explicit flags in YAML
         Product sealTracks = productMap.get("sealCtd-sealTracks");

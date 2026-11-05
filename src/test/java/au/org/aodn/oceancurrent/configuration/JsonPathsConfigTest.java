@@ -59,6 +59,25 @@ class JsonPathsConfigTest {
     }
 
     @Test
+    void currentMetersShouldIndexVersions48And49And54() {
+        Optional<JsonPath> entry = config.getProducts().stream()
+                .filter(p -> p.getProduct().equals("Current Meters"))
+                .findFirst();
+        assertThat(entry).isPresent();
+        assertThat(entry.get().getPaths()).containsExactlyInAnyOrder(
+                "/timeseries/currentMetersCalendar-48.json",
+                "/timeseries/currentMetersCalendar-49.json",
+                "/timeseries/currentMetersCalendar-54.json",
+                "/timeseries/currentMetersRegion-48.json",
+                "/timeseries/currentMetersRegion-49.json",
+                "/timeseries/currentMetersRegion-54.json",
+                "/timeseries/currentMetersPlot-48.json",
+                "/timeseries/currentMetersPlot-49.json",
+                "/timeseries/currentMetersPlot-54.json"
+        );
+    }
+
+    @Test
     void glidersImageIndexesShouldNotBeConfigured() {
         assertThat(config.getProducts())
                 .noneMatch(p -> p.getProduct().equals("Gliders"));
