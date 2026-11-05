@@ -2,7 +2,7 @@
 
 Scripts that run on the legacy EC2 server on a schedule and generate the JSON index files this API reads.
 
-> **Migration in progress (aodn/backlog#9704):** the cron jobs still fetch these scripts from `ARGO/oceancurrent/` in `aodn/data-services` until the `chef-private` cron jobs are updated. Until then, a change here does not reach production unless it is also made there.
+> **Merging to `main` is the deployment.** The cron jobs download these scripts from `main` on GitHub each time they run, so the next scheduled run uses whatever is merged. The Gliders scripts have not moved here yet, and their cron job still runs them from `ARGO/oceancurrent/` in `aodn/data-services` (aodn/backlog#9723).
 
 | Script | Purpose |
 | --- | --- |
