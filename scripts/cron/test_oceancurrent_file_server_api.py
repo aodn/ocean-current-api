@@ -758,16 +758,20 @@ class TestFileServerAPI(unittest.TestCase):
             self.verify_json("tidalCurrents-monthplots", "tides", "tidalCurrents-monthplots")
             self.verify_json("EACMooringArray", "EAC_array_figures", "EACMooringArray")
             self.verify_json("swotGsla-ssh", "DR_SWOT/SSH", "SSH")
-            self.verify_json("fishSOOP-profiles", "fishsoop", "fishSOOP-profiles")
-            self.verify_json("fishSOOP-quarterlyAnomalies", "fishsoop", "fishSOOP-quarterlyAnomalies")
-            self.verify_json("fishSOOP-depthAnomalies", "fishsoop", "fishSOOP-depthAnomalies")
+            self.verify_json("fishSOOP-profiles", "api/fishsoop", "fishSOOP-profiles")
+            self.verify_json("fishSOOP-quarterlyAnomalies", "api/fishsoop", "fishSOOP-quarterlyAnomalies")
+            self.verify_json("fishSOOP-depthAnomalies", "api/fishsoop", "fishSOOP-depthAnomalies")
             # Exact Gliders paths exclude navigation from standard indexes and
             # unrelated directories. Exact filenames also exclude HTML/JSON/PHP.
             for product_id in ("gliders-mission", "gliders-mission-video",
                                "gliders-navigation", "gliders-navigation-video",
                                "gliders-ts", "gliders-yearmaps"):
-                self.verify_json(product_id, "gliders", product_id)
-                output = os.path.join(self.file_test_dir, "gliders", f"{product_id}.json")
+                self.verify_json(product_id, "api/gliders", product_id)
+                output = os.path.join(self.file_test_dir, "api", "gliders", f"{product_id}.json")
+                # rsync --delete removes JSON from the synced product folder, and
+                # api/gliders-yearmaps.json directly under api/ belongs to the publisher.
+                self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "gliders", f"{product_id}.json")))
+                self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "api", f"{product_id}.json")))
                 actual = self.load_and_normalize_json(output)
                 expected = self.prepare_test_cases()[product_id]
                 self.assertEqual(
@@ -776,7 +780,8 @@ class TestFileServerAPI(unittest.TestCase):
                     f"Unexpected Gliders filenames in {product_id}",
                 )
             # Verify the fishsoop finder maps folder is excluded by the region whitelist
-            fishsoop_json_path = os.path.join(self.file_test_dir, "fishsoop", "fishSOOP-profiles.json")
+            self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "fishsoop", "fishSOOP-profiles.json")))
+            fishsoop_json_path = os.path.join(self.file_test_dir, "api", "fishsoop", "fishSOOP-profiles.json")
             fishsoop_regions = {item["region"] for item in self.load_and_normalize_json(fishsoop_json_path)}
             self.assertNotIn("maps", fishsoop_regions, "Navigation folder 'maps' should not be indexed")
             # Verify unrelated directories under DR_SWOT/SSH are excluded by the region whitelist
