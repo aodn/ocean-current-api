@@ -52,9 +52,9 @@ class JsonPathsConfigTest {
                 .findFirst();
         assertThat(entry).isPresent();
         assertThat(entry.get().getPaths()).containsExactly(
-                "/fishsoop/fishSOOP-profiles.json",
-                "/fishsoop/fishSOOP-quarterlyAnomalies.json",
-                "/fishsoop/fishSOOP-depthAnomalies.json"
+                "/api/fishsoop/fishSOOP-profiles.json",
+                "/api/fishsoop/fishSOOP-quarterlyAnomalies.json",
+                "/api/fishsoop/fishSOOP-depthAnomalies.json"
         );
     }
 
