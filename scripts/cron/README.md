@@ -158,6 +158,7 @@ Optional fields include:
 - `region_layer`: Integer. The layer which indicates the regions of the product. For example, given a path "\Product\Subproduct\Region\example.gif", the `region_layer` is 3.
 - `depth_layer`: Integer. The layer which indicates the depth of the product. For example, given a path "\Product\Subproduct\Region\Depth\example.gif", the `depth_layer` is 4.
 - `save_in_product_folder`: Boolean. True as save the generated JSON file in the product folder. In some cases, there is no product folder but only regional folders in the root path, in that case, the JSON file will be stored at the root path of the file system. 
+- `output_folder`: String. Save the generated JSON file as `<productId>.json` in this folder, relative to the root path. Takes precedence over `save_in_product_folder`. Use it for folders CSIRO syncs with `rsync --delete`, which removes JSON files that CSIRO doesn't have. Use a subfolder of `api/`, because other cron jobs publish their own files directly in `api/`.
 
 ## Supporting Products
 Currently, the script is adaptive to these products:
@@ -205,12 +206,12 @@ future task; this change does not integrate Gliders into the API or frontend.
 
 | Product ID | JSON path relative to the website root | Assets |
 | --- | --- | --- |
-| `gliders-mission` | `/gliders/gliders-mission.json` | Standard mission GIFs |
-| `gliders-mission-video` | `/gliders/gliders-mission-video.json` | Standard mission MP4s |
-| `gliders-navigation` | `/gliders/gliders-navigation.json` | Navigation GIFs |
-| `gliders-navigation-video` | `/gliders/gliders-navigation-video.json` | Navigation MP4s |
-| `gliders-ts` | `/gliders/gliders-ts.json` | GIFs directly under `missionTS/` |
-| `gliders-yearmaps` | `/gliders/gliders-yearmaps.json` | GIFs directly under `yearmaps/` |
+| `gliders-mission` | `/api/gliders/gliders-mission.json` | Standard mission GIFs |
+| `gliders-mission-video` | `/api/gliders/gliders-mission-video.json` | Standard mission MP4s |
+| `gliders-navigation` | `/api/gliders/gliders-navigation.json` | Navigation GIFs |
+| `gliders-navigation-video` | `/api/gliders/gliders-navigation-video.json` | Navigation MP4s |
+| `gliders-ts` | `/api/gliders/gliders-ts.json` | GIFs directly under `missionTS/` |
+| `gliders-yearmaps` | `/api/gliders/gliders-yearmaps.json` | GIFs directly under `yearmaps/` |
 
 Mission directory names start with a letter and contain letters, digits,
 underscores or hyphens, followed by an eight-digit mission date. The date can
@@ -246,5 +247,5 @@ is null; T-S and annual-map records also have null `region`. Example record:
 
 Merging activates these configurations on the next scheduled run because the
 production job downloads the scanner from GitHub at run time. Gliders runs after existing
-products and writes up to six indexes under `gliders/`; check the existing runtime
+products and writes up to six indexes under `api/gliders/`; check the existing runtime
 and memory logs after deployment. No cron or deployment changes are required.

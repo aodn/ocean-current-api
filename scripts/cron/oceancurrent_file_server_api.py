@@ -567,7 +567,7 @@ FILE_PATH_CONFIG = [
         "filetype": ".gif",
         "region_layer": 2,
         "max_layer": 3,
-        "save_in_product_folder": True
+        "output_folder": "api/fishsoop"
     },
     {
         "productId": "fishSOOP-quarterlyAnomalies",
@@ -577,7 +577,7 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/fishsoop"
     },
     {
         "productId": "fishSOOP-depthAnomalies",
@@ -587,7 +587,7 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/fishsoop"
     },
     # Keep Gliders last so existing products are processed first.
     {
@@ -606,7 +606,7 @@ FILE_PATH_CONFIG = [
         "filetype": ".gif",
         "region_layer": 2,
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     },
     {
         "productId": "gliders-mission-video",
@@ -624,7 +624,7 @@ FILE_PATH_CONFIG = [
         "filetype": ".mp4",
         "region_layer": 2,
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     },
     {
         "productId": "gliders-navigation",
@@ -642,7 +642,7 @@ FILE_PATH_CONFIG = [
         "filetype": ".gif",
         "region_layer": 2,
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     },
     {
         "productId": "gliders-navigation-video",
@@ -660,7 +660,7 @@ FILE_PATH_CONFIG = [
         "filetype": ".mp4",
         "region_layer": 2,
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     },
     {
         "productId": "gliders-ts",
@@ -670,7 +670,7 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     },
     {
         "productId": "gliders-yearmaps",
@@ -680,7 +680,7 @@ FILE_PATH_CONFIG = [
         ],
         "filetype": ".gif",
         "max_layer": 2,
-        "save_in_product_folder": True
+        "output_folder": "api/gliders"
     }
 ]
 
@@ -923,7 +923,12 @@ def save_result_as_json(files: List[Path], config: Dict[str, Any], parent_direct
         if len(rel_parts) >= 2:
             second = rel_parts[1]
 
-    if config.get("save_in_product_folder"):
+    if config.get("output_folder"):
+        # Outside folders CSIRO syncs with rsync --delete, which removes files it doesn't have.
+        output_folder = parent_directory / config["output_folder"]
+        output_filename = f"{config['productId']}.json"
+        logger.info(f"JSON file {output_filename} created in output folder: {config['output_folder']}")
+    elif config.get("save_in_product_folder"):
         if second and config["productId"] != "oceanColour-chlA-year" and config["productId"] != "adjustedSeaLevelAnomaly-sst-year":
             output_folder = parent_directory / first
         else:
