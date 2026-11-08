@@ -13,8 +13,10 @@ public record GliderMission(
         Double latitude, Double longitude, Double durationDays, Double distanceTravelledKm,
         String gliderId, Visualisations visualisations, String temperatureSalinityUrl,
         String scientificDataUrl) {
+    /** {@code temperatureSalinityImage} is an optional website-root-relative GIF path, null when unavailable. */
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
-    public record Visualisations(List<Link> details, List<Link> animations, LatestImages latestImages) {
+    public record Visualisations(List<Link> details, List<Link> animations, LatestImages latestImages,
+                                 String temperatureSalinityImage) {
         public Visualisations {
             if (latestImages == null) latestImages = new LatestImages(null, null, null);
         }

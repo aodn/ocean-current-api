@@ -57,7 +57,8 @@ Illustrative response (fixture data, not a statement of current availability):
           "4d": "/gliders/TwoRocks20260327_4d/2026041300.gif",
           "12d": null,
           "30d": null
-        }
+        },
+        "temperature_salinity_image": null
       },
       "temperature_salinity_url": null,
       "scientific_data_url": null
@@ -174,3 +175,17 @@ implementation does not deploy automatically.
 NRT freshness depends on the upstream legacy frame selection and file transfer,
 the unchanged publication schedule, API refresh and HTTP caches. A latest frame
 may be old; no recency guarantee, image-date inference or new polling is added.
+
+## Temperature-salinity diagram
+
+`temperature_salinity_url` is the legacy HTML page
+(`.../gliders/missionTS/<sl|sg>_<mission>.html`), not an image. The catalogue
+generator resolves the GIF that page displays and publishes it as the optional
+`visualisations.temperature_salinity_image`, for example
+`/gliders/missionTS/sl_TwoRocks20260327.gif`. Browsers prepend `/resource`, as
+for `latest_images`. The diagram has no date or time window.
+
+Both endpoints always serialize the key. It is `null` when the catalogue omits
+it (older catalogues) or the generator could not verify the image. A non-text
+or blank value makes the catalogue invalid, like other malformed fields. The
+API does not probe the GIF. Deploy this API change before the updated generator.
