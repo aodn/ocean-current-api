@@ -88,6 +88,29 @@ class GlidersMissionControllerTest {
         }
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"old", "new", "null"})
+    void serializesOptionalTemperatureSalinityImageOnBothEndpoints(String format) throws Exception {
+        var mapper = new ObjectMapper();
+        var root = mapper.readTree(new ClassPathResource("gliders/catalogue-v1.json")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        String image = "/gliders/missionTS/sl_TwoRocks20260327.gif";
+        for (var mission : root.path("missions")) {
+            var visuals = (com.fasterxml.jackson.databind.node.ObjectNode) mission.path("visualisations");
+            if (format.equals("new")) visuals.put("temperature_salinity_image", image);
+            if (format.equals("null")) visuals.putNull("temperature_salinity_image");
+        }
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        for (String endpoint : new String[]{"/gliders/missions", "/gliders/missions/TwoRocks20260327@5.00"}) {
+            String path = (endpoint.endsWith("missions") ? "$.missions[0]" : "$")
+                    + ".visualisations.temperature_salinity_image";
+            mvc.perform(get(endpoint)).andExpect(status().isOk())
+                    .andExpect(jsonPath(path).hasJsonPath())
+                    .andExpect(format.equals("new") ? jsonPath(path).value(image)
+                            : jsonPath(path).value(org.hamcrest.Matchers.nullValue()));
+        }
+    }
+
     @Test
     void filtersOrdersAndPages() throws Exception {
         mvc.perform(get("/gliders/missions").param("order", "mission_name")

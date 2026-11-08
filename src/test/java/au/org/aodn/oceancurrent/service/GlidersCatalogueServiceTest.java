@@ -99,7 +99,7 @@ class GlidersCatalogueServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"version", "overflow-version", "missing-missions", "missing-orders", "bad-order", "unknown-reference", "duplicate-reference", "missing-id", "duplicate-id", "unstable-id", "numeric-version", "bad-visualisations", "missing-nrt", "bad-latest", "bad-image"})
+    @ValueSource(strings = {"version", "overflow-version", "missing-missions", "missing-orders", "bad-order", "unknown-reference", "duplicate-reference", "missing-id", "duplicate-id", "unstable-id", "numeric-version", "bad-visualisations", "missing-nrt", "bad-latest", "bad-image", "bad-ts-image", "blank-ts-image"})
     void rejectsInvalidSchema(String problem) throws Exception {
         ObjectNode root = (ObjectNode) mapper.readTree(json);
         ObjectNode mission = (ObjectNode) root.path("missions").get(0);
@@ -120,6 +120,10 @@ class GlidersCatalogueServiceTest {
             case "bad-latest" -> ((ObjectNode) mission.path("visualisations")).put("latest_images", "wrong");
             case "bad-image" -> ((ObjectNode) mission.path("visualisations"))
                     .putObject("latest_images").put("4d", 123);
+            case "bad-ts-image" -> ((ObjectNode) mission.path("visualisations"))
+                    .putObject("temperature_salinity_image");
+            case "blank-ts-image" -> ((ObjectNode) mission.path("visualisations"))
+                    .put("temperature_salinity_image", " ");
         }
         respond(root.toString());
         assertThatThrownBy(() -> service.mission(ID)).isInstanceOf(GlidersCatalogueUnavailableException.class);

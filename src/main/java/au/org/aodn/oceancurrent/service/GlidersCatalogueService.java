@@ -152,6 +152,8 @@ public class GlidersCatalogueService {
                 require(image.isMissingNode() || image.isNull() || text(image), "Invalid latest image");
             }
         }
+        JsonNode diagram = node.path("visualisations").path("temperature_salinity_image");
+        require(diagram.isMissingNode() || diagram.isNull() || text(diagram), "Invalid temperature_salinity_image");
         for (String kind : List.of("details", "animations")) {
             JsonNode links = node.path("visualisations").path(kind);
             require(links.isArray(), "Missing visualisations " + kind);
