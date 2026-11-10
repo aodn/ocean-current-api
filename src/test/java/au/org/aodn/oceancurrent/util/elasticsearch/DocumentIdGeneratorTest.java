@@ -21,7 +21,34 @@ class DocumentIdGeneratorTest {
         String id = DocumentIdGenerator.generateDocumentId(
                 entry("tidalCurrents-sl", "Bass", "/tides/Bass_hv/2026", "202612310000.gif"));
 
-        assertThat(id).isEqualTo("tidalcurrents-sl_bass__tides_bass_hv_2026_202612310000_gif");
+        assertThat(id).matches("tidalcurrents-sl_bass__tides_bass_hv_2026_202612310000_gif_[0-9a-f]{32}");
+    }
+
+    @Test
+    void generateDocumentId_differsForPathsThatSanitiseToTheSameText() {
+        String slash = DocumentIdGenerator.generateDocumentId(entry("p", "r", "/a/b", "x.gif"));
+        String underscore = DocumentIdGenerator.generateDocumentId(entry("p", "r", "/a_b", "x.gif"));
+
+        assertThat(slash).isNotEqualTo(underscore);
+    }
+
+    @Test
+    void generateDocumentId_differsForComponentsDifferingOnlyByCase() {
+        String lower = DocumentIdGenerator.generateDocumentId(entry("p", "r", "/tides/bass", "a.gif"));
+        String upper = DocumentIdGenerator.generateDocumentId(entry("p", "r", "/tides/Bass", "a.gif"));
+        String upperName = DocumentIdGenerator.generateDocumentId(entry("p", "r", "/tides/bass", "A.gif"));
+
+        assertThat(lower).isNotEqualTo(upper).isNotEqualTo(upperName);
+        assertThat(upper).isNotEqualTo(upperName);
+    }
+
+    @Test
+    void generateDocumentId_differsWhenTextMovesBetweenComponents() {
+        // Same characters overall, split differently between region and path
+        String first = DocumentIdGenerator.generateDocumentId(entry("p", "a_b", "/c", "x.gif"));
+        String second = DocumentIdGenerator.generateDocumentId(entry("p", "a", "b_/c", "x.gif"));
+
+        assertThat(first).isNotEqualTo(second);
     }
 
     @Test
@@ -56,7 +83,7 @@ class DocumentIdGeneratorTest {
     void generateDocumentId_handlesNullPath() {
         String id = DocumentIdGenerator.generateDocumentId(entry("surfaceWaves-wave", "Au", null, "2026110812.gif"));
 
-        assertThat(id).isEqualTo("surfacewaves-wave_au__2026110812_gif");
+        assertThat(id).matches("surfacewaves-wave_au__2026110812_gif_[0-9a-f]{32}");
     }
 
     @Test
