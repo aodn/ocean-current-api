@@ -14,11 +14,11 @@ if ! curl -fsSL --connect-timeout 15 --max-time 120 \
     echo 'Gliders catalogue=1 yearmaps=1 (snapshot download failed)' >&2
     exit 1
 fi
-if ! tar -xzf "$work/scripts.tar.gz" -C "$work" --strip-components=3 \
-    ocean-current-api-main/scripts/cron/gliders_catalogue.py \
-    ocean-current-api-main/scripts/cron/publish_gliders_catalogue.py \
-    ocean-current-api-main/scripts/cron/gliders_yearmaps.py \
-    ocean-current-api-main/scripts/cron/publish_gliders_yearmaps.py; then
+if ! tar -xzf "$work/scripts.tar.gz" -C "$work" --strip-components=4 \
+    ocean-current-api-main/scripts/cron/gliders/gliders_catalogue.py \
+    ocean-current-api-main/scripts/cron/gliders/publish_gliders_catalogue.py \
+    ocean-current-api-main/scripts/cron/gliders/gliders_yearmaps.py \
+    ocean-current-api-main/scripts/cron/gliders/publish_gliders_yearmaps.py; then
     echo 'Gliders catalogue=1 yearmaps=1 (snapshot extraction failed)' >&2
     exit 1
 fi

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 
-SCRIPT = Path(__file__).with_name('run_gliders.sh')
+SCRIPT = Path(__file__).parent / 'gliders' / 'run_gliders.sh'
 MODULES = ('gliders_catalogue', 'publish_gliders_catalogue',
            'gliders_yearmaps', 'publish_gliders_yearmaps')
 
@@ -25,7 +25,7 @@ class RunGlidersTests(unittest.TestCase):
             with tarfile.open(archive, 'w:gz') as tar:
                 for module in MODULES:
                     content = b'# fixture module\n'
-                    member = tarfile.TarInfo('ocean-current-api-main/scripts/cron/' + module + '.py')
+                    member = tarfile.TarInfo('ocean-current-api-main/scripts/cron/gliders/' + module + '.py')
                     member.size = len(content)
                     tar.addfile(member, io.BytesIO(content))
             if corrupt:

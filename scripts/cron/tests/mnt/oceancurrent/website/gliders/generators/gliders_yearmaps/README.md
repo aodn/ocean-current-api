@@ -28,5 +28,5 @@ local frontend Git blob `c355b85c97ce503f3b88768e32d05e1081898d55` (the former
 and unrounded bounds for all 39 successful deployments, plus the Seaglider
 rejection. Python parity tests require no Node installation.
 
-See `../../../../../../../GLIDERS_GENERATORS.md` for measured independent axis marks, observed errors,
+See `../../../../../../../gliders/GLIDERS_GENERATORS.md` for measured independent axis marks, observed errors,
 acceptance thresholds, supported layouts and the JSON URL contract.

@@ -14,7 +14,7 @@ import publish_gliders_catalogue as publisher
 from gliders_catalogue import parse_catalogue
 
 FIXTURE = Path(__file__).parent / "tests" / "mnt" / "oceancurrent" / "website" / "gliders" / "generators" / "gliders_catalogue.html"
-SCRIPT = Path(__file__).with_name("publish_gliders_catalogue.py")
+SCRIPT = Path(__file__).parent / "gliders" / "publish_gliders_catalogue.py"
 
 
 class TestPublication(unittest.TestCase):
