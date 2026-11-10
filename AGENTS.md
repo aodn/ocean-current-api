@@ -79,7 +79,7 @@ Package root: `au.org.aodn.oceancurrent`.
 
 **What gets indexed** is set by `src/main/resources/config/json-paths-config.yaml`. It lists JSON paths on the remote server, grouped by product. Each JSON file is an array of `{path, productId, region, depth, files:[{name}]}` groups. `IndexingService` flattens these into one `ImageMetadataEntry` document per file.
 
-- **Doc ID** = `productId_region_fileName`, lower-cased and sanitised (`DocumentIdGenerator`). Two files with the same product, region and name collide, so choose `region` so that filenames are unique within it.
+- **Doc ID** = `productId_region_path_fileName`, lower-cased and sanitised (`DocumentIdGenerator`). The path is included because the same filename can exist in several folders (e.g. Tidal Currents `2026/` and `2027/` overlap, SealCTD tag folders reuse dated names); without it the last one indexed overwrote the others.
 - `ProductConstants.PRODUCT_ID_MAPPINGS` rewrites some scanner productIds at index time (e.g. `oceanColour-chlA-year` → `oceanColour-chlA`).
 
 **Reindex flow** (`IndexingService.reindexAll`):

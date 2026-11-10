@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.ElasticsearchTestBase;
 import au.org.aodn.oceancurrent.configuration.elasticsearch.ElasticsearchProperties;
 import au.org.aodn.oceancurrent.model.ImageMetadataEntry;
+import au.org.aodn.oceancurrent.util.elasticsearch.BulkRequestProcessor;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,6 +61,36 @@ class IndexingServiceIntegrationTest extends ElasticsearchTestBase {
         );
 
         assertThat(response.hits().total().value()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    void bulkIndexing_keepsSameFileNameFromDifferentFolders() throws Exception {
+        // Tidal Currents year folders overlap: 2026/ and 2027/ both hold 202612310000.gif
+        BulkRequestProcessor processor = new BulkRequestProcessor(100, getTestIndexName(), esClient);
+        processor.addDocument(tidalEntry("/tides/Bass_hv/2026", "202612310000.gif"));
+        processor.addDocument(tidalEntry("/tides/Bass_hv/2027", "202612310000.gif"));
+        // Indexing the same file again must update it, not duplicate it
+        processor.addDocument(tidalEntry("/tides/Bass_hv/2026", "202612310000.gif"));
+        processor.flush();
+        esClient.indices().refresh(r -> r.index(getTestIndexName()));
+
+        SearchResponse<ImageMetadataEntry> response = esClient.search(
+                s -> s.index(getTestIndexName()).size(10),
+                ImageMetadataEntry.class
+        );
+
+        assertThat(response.hits().hits())
+                .extracting(hit -> hit.source().getPath())
+                .containsExactlyInAnyOrder("/tides/Bass_hv/2026", "/tides/Bass_hv/2027");
+    }
+
+    private static ImageMetadataEntry tidalEntry(String path, String fileName) {
+        ImageMetadataEntry entry = new ImageMetadataEntry();
+        entry.setProductId("tidalCurrents-sl");
+        entry.setRegion("Bass");
+        entry.setPath(path);
+        entry.setFileName(fileName);
+        return entry;
     }
 
     @Test
