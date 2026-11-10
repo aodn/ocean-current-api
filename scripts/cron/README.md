@@ -2,14 +2,18 @@
 
 Scripts that run on the legacy EC2 server on a schedule and generate the JSON index files this API reads.
 
-> **Merging to `main` is the deployment.** The cron jobs download these scripts from `main` on GitHub each time they run, so the next scheduled run uses whatever is merged. The Gliders scripts have not moved here yet, and their cron job still runs them from `ARGO/oceancurrent/` in `aodn/data-services` (aodn/backlog#9723).
+> **Merging to `main` is the deployment.** The cron jobs download these scripts from `main` on GitHub each time they run, so the next scheduled run uses whatever is merged. Gliders migration and cron cutover are described below (aodn/backlog#9723).
 
 | Script | Purpose |
 | --- | --- |
+| `gliders/run_gliders.sh` | Entry point for catalogue and year-map publication |
+| `gliders/gliders_catalogue.py`, `gliders/publish_gliders_catalogue.py` | Generate, validate and atomically publish mission metadata |
+| `gliders/gliders_yearmaps.py`, `gliders/publish_gliders_yearmaps.py` | Generate, validate and atomically publish year-map coordinates |
 | `argo_oceancurrent.py` | Generates `profiles.json` for each Argo platform |
 | `oceancurrent_file_server_api.py` | Scans product folders and generates the image index JSON files |
 
-Keep this folder flat. See [README_FATAL_LOG_CONFIG.md](README_FATAL_LOG_CONFIG.md) for the scanner's failure notifications.
+Gliders generators live in [`gliders/`](gliders/README.md). Tests remain alongside the other cron tests;
+fixtures live under `tests/mnt/oceancurrent/website/gliders/generators/`. See [README_FATAL_LOG_CONFIG.md](README_FATAL_LOG_CONFIG.md) for the scanner's failure notifications.
 
 ## Run locally
 
@@ -249,3 +253,7 @@ Merging activates these configurations on the next scheduled run because the
 production job downloads the scanner from GitHub at run time. Gliders runs after existing
 products and writes up to six indexes under `api/gliders/`; check the existing runtime
 and memory logs after deployment. No cron or deployment changes are required.
+
+## Gliders migration and operations
+
+See [gliders/README.md](gliders/README.md) for execution, paths, tests and deployment order.
