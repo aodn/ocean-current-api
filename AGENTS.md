@@ -23,6 +23,28 @@ aodn/ocean-current-frontend  calls /api/v1/metadata/... and /api/v1/products
 
 The cron jobs on the EC2 download the scanner and Argo scripts from `scripts/cron/` on `main` each time they run, so **merging a script change to `main` is its deployment**. See `scripts/cron/README.md`.
 
+### Legacy cron logs
+
+Use these production logs when debugging the jobs. Inspect them read-only over
+SSH; replace `<legacy-server>` below with your approved hostname or local SSH
+alias. Never create, edit, truncate or delete files on the server.
+
+| Job | Log | Contents |
+| --- | --- | --- |
+| Gliders Python publishers | `/var/log/imos/gliders_publishers.log` | Timestamped INFO, WARNING and ERROR records from catalogue and year-map publication |
+| Gliders cron wrapper | `/var/log/imos/cron_po_gliders_catalogue.log` | Download, extraction, timeout and publisher errors only |
+| File-structure scanner | `/var/log/imos/oceancurrent_file_server_api.log` | Timestamped scanner execution logs |
+| Scanner cron wrapper | `/var/log/imos/cron_add_file.log` | Scanner errors captured by cron |
+
+For Gliders, successful output is written to the publisher log without generating
+email. Only stderr/error output reaches the cron-wrapper log and
+`developers@emii.org.au`. Keep production inspection bounded, for example:
+
+```bash
+ssh <legacy-server> 'tail -n 100 /var/log/imos/gliders_publishers.log'
+ssh <legacy-server> 'tail -n 100 /var/log/imos/cron_po_gliders_catalogue.log'
+```
+
 Related repos:
 
 | Repo                                                                          | Role                                                                                                                                                                                                                               |
