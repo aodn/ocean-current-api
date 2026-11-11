@@ -9,6 +9,8 @@ import sys
 import time
 from urllib.parse import quote, urlparse
 
+from gliders_logging import configure_logging
+
 LOG = logging.getLogger("gliders_catalogue_publication")
 
 
@@ -154,7 +156,7 @@ def main(argv=None):
     parser.add_argument("--stability-seconds", type=float, default=30,
                         help="Quiet observation window for periodic checks; default 30, not proof of completion")
     args = parser.parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    configure_logging()
     started = time.monotonic()
     LOG.info("Publication started source=%s destination=%s", args.input, args.output)
     status = 1

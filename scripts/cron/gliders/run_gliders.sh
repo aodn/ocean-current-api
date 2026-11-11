@@ -16,6 +16,7 @@ if ! curl -fsSL --connect-timeout 15 --max-time 120 \
 fi
 if ! tar -xzf "$work/scripts.tar.gz" -C "$work" --strip-components=4 \
     ocean-current-api-main/scripts/cron/gliders/gliders_catalogue.py \
+    ocean-current-api-main/scripts/cron/gliders/gliders_logging.py \
     ocean-current-api-main/scripts/cron/gliders/publish_gliders_catalogue.py \
     ocean-current-api-main/scripts/cron/gliders/gliders_yearmaps.py \
     ocean-current-api-main/scripts/cron/gliders/publish_gliders_yearmaps.py; then
@@ -32,5 +33,9 @@ timeout -k 30s 15m /usr/bin/python3 "$work/publish_gliders_yearmaps.py" \
     --input "$w/gliders/yearmaps" --catalogue "$w/api/gliders-catalogue.json" \
     --output "$w/api/gliders-yearmaps.json" --stability-seconds 30
 b=$?
-echo "Gliders catalogue=$a yearmaps=$b" >&2
-[ "$a" -eq 0 ] && [ "$b" -eq 0 ]
+if [ "$a" -eq 0 ] && [ "$b" -eq 0 ]; then
+    echo "Gliders catalogue=$a yearmaps=$b"
+else
+    echo "Gliders catalogue=$a yearmaps=$b" >&2
+    exit 1
+fi

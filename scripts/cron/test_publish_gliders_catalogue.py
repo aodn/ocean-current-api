@@ -349,18 +349,24 @@ class TestPublication(unittest.TestCase):
     def test_cli_without_site_packages_and_source_log_failures(self):
         args = [str(SCRIPT), "--input", str(self.source),
                 "--output", str(self.destination), "--source-complete"]
+        log_path = Path(self.folder.name) / "gliders.log"
+        environment = dict(os.environ, GLIDERS_LOG_PATH=str(log_path))
         # -S excludes site-packages, including BeautifulSoup, for a first publication.
-        result = subprocess.run([sys.executable, "-S"] + args, capture_output=True, text=True)
+        result = subprocess.run([sys.executable, "-S"] + args, capture_output=True, text=True, env=environment)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("status=0", result.stderr)
+        self.assertIn("status=0", result.stdout)
+        self.assertEqual(result.stderr, "")
         self.assertEqual(json.loads(self.destination.read_text()), parse_catalogue(self.html))
         original = self.destination.read_bytes()
         self.source.unlink()
-        result = subprocess.run([sys.executable] + args, capture_output=True, text=True)
+        result = subprocess.run([sys.executable] + args, capture_output=True, text=True, env=environment)
         self.assertEqual(result.returncode, 1)
         self.assertIn("No such file", result.stderr)
-        self.assertIn("duration_seconds=", result.stderr)
+        self.assertIn("duration_seconds=", result.stdout)
         self.assertEqual(self.destination.read_bytes(), original)
+        persisted = log_path.read_text()
+        self.assertIn("INFO gliders_catalogue_publication Publication completed status=0", persisted)
+        self.assertIn("ERROR gliders_catalogue_publication Validation/publication failed", persisted)
 
 
 if __name__ == "__main__":

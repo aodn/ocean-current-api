@@ -2,6 +2,7 @@ import copy
 from pathlib import Path
 import shutil
 import json
+import os
 import re
 import subprocess
 import sys
@@ -461,19 +462,28 @@ class PublicationTests(unittest.TestCase):
     def test_cli_independent_execution_status_and_logging(self):
         args = ['--input', str(self.source),
                 '--catalogue', str(self.catalogue), '--output', str(self.output), '--source-complete']
+        log_path = self.root / 'gliders.log'
+        environment = dict(os.environ, GLIDERS_LOG_PATH=str(log_path))
         for script in (publisher.__file__, generator.__file__):
             with self.subTest(script=script):
-                success = subprocess.run([sys.executable, '-S', script] + args, capture_output=True, text=True)
+                success = subprocess.run([sys.executable, '-S', script] + args, capture_output=True, text=True,
+                                         env=environment)
                 self.assertEqual(success.returncode, 0, success.stderr)
                 for expected in ['maps=3', 'deployments=43', 'missing_bounds=0', 'status=0']:
-                    self.assertIn(expected, success.stderr)
+                    self.assertIn(expected, success.stdout)
+                self.assertIn('catalogue=' + str(self.catalogue), success.stdout)
+                self.assertEqual(success.stderr, '')
         original = self.output.read_bytes()
         (self.source / NAME).unlink()
-        failure = subprocess.run([sys.executable, '-S', publisher.__file__] + args, capture_output=True, text=True)
+        failure = subprocess.run([sys.executable, '-S', publisher.__file__] + args, capture_output=True, text=True,
+                                 env=environment)
         self.assertEqual(failure.returncode, 1)
         self.assertIn('previous output preserved', failure.stderr)
-        self.assertIn('status=1', failure.stderr)
+        self.assertIn('status=1', failure.stdout)
         self.assertEqual(self.output.read_bytes(), original)
+        persisted = log_path.read_text()
+        self.assertIn('INFO gliders_yearmaps_publication Publication completed status=0', persisted)
+        self.assertIn('ERROR gliders_yearmaps_publication Year-map validation/publication failed', persisted)
 
 
 if __name__ == '__main__':

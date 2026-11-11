@@ -8,9 +8,10 @@ Captured fixtures and byte-for-byte expected JSON are in
 The scanner, its inventories and all consumers are outside this migration.
 
 `run_gliders.sh` downloads one GitHub repository archive from `main` with a 15-second
-connection limit and 120-second overall limit. A single archive fixes all four Python
+connection limit and 120-second overall limit. A single archive fixes all Python
 modules to one Git revision, even if `main` advances during execution. Extraction is
-limited to the four modules; the archive and modules are removed on exit or handled signals.
+limited to the publisher modules and their logging helper; the archive and modules
+are removed on exit or handled signals.
 The bootstrap script is also fetched on every cron execution from
 `https://raw.githubusercontent.com/aodn/ocean-current-api/main/scripts/cron/gliders/run_gliders.sh`.
 Update the prepared Chef command to this path before deploying the cron cutover. There is no assumed
@@ -23,6 +24,14 @@ validates the previously published catalogue. Both statuses are logged, and eith
 failure makes the entry point return nonzero. Download/extraction failure logs both
 stages as failed and does not publish. Validation, source stability checks, schema checks and atomic
 replacement remain in the Python publishers.
+
+Both publishers append timestamped INFO, WARNING and ERROR records to
+`/var/log/imos/gliders_publishers.log`. INFO and WARNING records also go to stdout;
+ERROR records go to stderr. The Chef cron discards stdout and tees stderr to
+`/var/log/imos/cron_po_gliders_catalogue.log`, so successful runs remain available
+on the host without generating email. Download, extraction, timeout and publisher
+failures are retained in the cron log, emailed to `developers@emii.org.au`, and keep
+their nonzero monitoring result through Bash `pipefail`.
 
 Paths remain:
 

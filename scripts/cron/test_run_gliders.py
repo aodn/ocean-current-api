@@ -9,7 +9,7 @@ import unittest
 
 
 SCRIPT = Path(__file__).parent / 'gliders' / 'run_gliders.sh'
-MODULES = ('gliders_catalogue', 'publish_gliders_catalogue',
+MODULES = ('gliders_catalogue', 'gliders_logging', 'publish_gliders_catalogue',
            'gliders_yearmaps', 'publish_gliders_yearmaps')
 
 
@@ -63,7 +63,10 @@ esac
             with self.subTest(catalogue=catalogue, yearmaps=yearmaps):
                 result, calls = self.run_entry(catalogue, yearmaps)
                 self.assertEqual(result.returncode, int(bool(catalogue or yearmaps)))
-                self.assertIn('Gliders catalogue={} yearmaps={}'.format(catalogue, yearmaps), result.stderr)
+                stream = result.stdout if catalogue == yearmaps == 0 else result.stderr
+                self.assertIn('Gliders catalogue={} yearmaps={}'.format(catalogue, yearmaps), stream)
+                if catalogue == yearmaps == 0:
+                    self.assertEqual(result.stderr, '')
                 self.assertEqual(len(calls), 3)
                 self.assertIn('publish_gliders_catalogue.py --input /mnt/oceancurrent/website/gliders/index.html', calls[1])
                 self.assertIn('--output /mnt/oceancurrent/website/api/gliders-catalogue.json', calls[1])

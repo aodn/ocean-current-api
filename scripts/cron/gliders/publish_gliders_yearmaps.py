@@ -9,6 +9,7 @@ import sys
 import time
 
 from gliders_catalogue import MISSION, _snapshot, write_catalogue
+from gliders_logging import configure_logging
 from gliders_yearmaps import generate_yearmaps, map_metadata, valid_mission_path
 from publish_gliders_catalogue import validate_catalogue
 
@@ -112,9 +113,10 @@ def main(argv=None):
     parser.add_argument("--source-complete", action="store_true", help="Manual confirmation; skip stability wait")
     parser.add_argument("--stability-seconds", type=float, default=30)
     args = parser.parse_args(argv)
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    configure_logging()
     started = time.monotonic()
-    LOG.info("Publication started source=%s destination=%s", args.input, args.output)
+    LOG.info("Publication started source=%s catalogue=%s destination=%s",
+             args.input, args.catalogue, args.output)
     status = 1
     try:
         publish_yearmaps(args.input, args.catalogue, args.output,
