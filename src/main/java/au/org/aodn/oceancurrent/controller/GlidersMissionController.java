@@ -1,7 +1,7 @@
 package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.dto.GliderMissionPage;
-import au.org.aodn.oceancurrent.model.gliders.GliderMission;
+import au.org.aodn.oceancurrent.dto.GliderMissionDetail;
 import au.org.aodn.oceancurrent.service.GlidersCatalogueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,7 +35,7 @@ public class GlidersMissionController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a mission by its exact stable catalogue ID")
-    public GliderMission mission(@PathVariable String id) {
+    public GliderMissionDetail mission(@PathVariable String id) {
         return catalogueService.mission(id);
     }
 }

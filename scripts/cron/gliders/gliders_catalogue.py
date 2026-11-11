@@ -1,9 +1,10 @@
 """Generate mission metadata from the legacy OceanCurrent Gliders catalogue."""
 import argparse
-from datetime import date
+from datetime import date, datetime
 from html.parser import HTMLParser
 import json
 import math
+import logging
 import os
 from pathlib import Path
 import re
@@ -298,17 +299,9 @@ def resolve_latest_images(catalogue, input_path):
         visuals = record["visualisations"]
         for window in ("4d", "12d", "30d"):
             candidates = set()
-            folders = {record["mission_name"] + "_" + window}
-            if record["is_nrt"]:
-                folders.add(record["mission_id"] + "_" + window + "_nrt")
-            for link in visuals["details"] + visuals["animations"]:
-                url = urlparse(link["url"])
-                parts = unquote(url.path[len(prefix):]).split("/")
-                if (url.netloc != source.netloc or not url.path.startswith(prefix)
-                        or len(parts) != 2 or parts[0] not in folders):
-                    continue
+            for folder, page_url in mission_windows(record, source, prefix, window):
                 try:
-                    image = _latest_image(base / parts[0], urljoin(link["url"], "latest.html"))
+                    image = _latest_image(base / folder, page_url)
                     if image:
                         candidates.add(image)
                 except (OSError, ValueError, UnicodeError):
@@ -316,6 +309,98 @@ def resolve_latest_images(catalogue, input_path):
             visuals["latest_images"][window] = next(iter(candidates)) if len(candidates) == 1 else None
         visuals["temperature_salinity_image"] = _temperature_salinity_image(
             record["temperature_salinity_url"], source, prefix, base)
+    return catalogue
+
+
+
+def mission_windows(record, source, prefix, window):
+    """Resolve only published links belonging to this mission and window."""
+    folders = {record["mission_name"] + "_" + window}
+    if record["is_nrt"]:
+        folders.add(record["mission_id"] + "_" + window + "_nrt")
+    links = record["visualisations"]["details"] + record["visualisations"]["animations"]
+    candidates = set()
+    for link in links:
+        url = urlparse(link["url"])
+        parts = unquote(url.path[len(prefix):]).split("/")
+        if (url.netloc == source.netloc and url.path.startswith(prefix)
+                and not url.query and not url.fragment
+                and len(parts) == 2 and parts[0] in folders):
+            candidates.add((parts[0], urljoin(link["url"], "latest.html")))
+    return sorted(candidates)
+
+
+def validate_image_history(history, record):
+    """Validate compact history, including its mission/window association."""
+    if not isinstance(history, dict) or set(history) - {"4d", "12d", "30d"}:
+        raise ValueError("Invalid image_history windows")
+    for window, group in history.items():
+        folders = {record["mission_name"] + "_" + window}
+        if record["is_nrt"]:
+            folders.add(record["mission_id"] + "_" + window + "_nrt")
+        if not isinstance(group, dict) or group.get("path") not in {"/gliders/" + f for f in folders}:
+            raise ValueError("Invalid image_history path")
+        files = group.get("files")
+        if not isinstance(files, list) or not all(isinstance(f, str) for f in files):
+            raise ValueError("Invalid image_history files")
+        if files != sorted(set(files)):
+            raise ValueError("Unordered or duplicate image_history")
+        for filename in files:
+            if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", filename):
+                raise ValueError("Invalid history filename")
+            datetime.strptime(filename[:10], "%Y%m%d%H")
+
+
+def resolve_image_history(catalogue, input_path):
+    """Read dated GIFs in linked folders without loading full image contents."""
+    source = urlparse(catalogue["source_url"])
+    prefix = source.path.rsplit("/", 1)[0] + "/"
+    base = Path(input_path).parent
+    log = logging.getLogger("gliders_catalogue")
+    for record in catalogue["missions"]:
+        history = {}
+        for window in ("4d", "12d", "30d"):
+            folders = {folder for folder, _ in mission_windows(record, source, prefix, window)}
+            if len(folders) != 1:
+                continue
+            folder = base / next(iter(folders))
+            try:
+                if folder.resolve() != base.resolve() / folder.name:
+                    raise ValueError("Mission folder resolves outside its expected path")
+                files = []
+                with os.scandir(folder) as entries:
+                    for entry in entries:
+                        if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", entry.name):
+                            continue
+                        try:
+                            datetime.strptime(entry.name[:10], "%Y%m%d%H")
+                            path = Path(entry.path)
+                            if path.resolve().parent != folder.resolve():
+                                raise ValueError("Image resolves outside its mission folder")
+                            before = path.stat()
+                            with path.open("rb") as stream:
+                                header = stream.read(6)
+                                stream.seek(-1, os.SEEK_END)
+                                trailer = stream.read(1)
+                            after = path.stat()
+                            before_signature = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                            after_signature = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+                            if (before_signature != after_signature or before.st_size < 14
+                                    or header not in (b"GIF87a", b"GIF89a") or trailer != b";"):
+                                raise ValueError("Incomplete or changing GIF")
+                            files.append(entry.name)
+                        except (OSError, ValueError):
+                            log.warning("Skipping unavailable history image %s", entry.path)
+                if files:
+                    history[window] = {"path": "/gliders/" + folder.name, "files": sorted(set(files))}
+            except FileNotFoundError:
+                continue
+            except (OSError, ValueError):
+                log.warning("Skipping unavailable history folder %s", folder)
+        if history:
+            record["image_history"] = history
+        else:
+            record.pop("image_history", None)
     return catalogue
 
 
@@ -342,6 +427,7 @@ def generate_catalogue(input_path, output_path, source_url=SOURCE_URL):
         raise ValueError("Input and output paths must differ")
     catalogue = parse_catalogue(input_path.read_text(encoding="utf-8"), source_url)
     resolve_latest_images(catalogue, input_path)
+    resolve_image_history(catalogue, input_path)
     write_catalogue(catalogue, output_path)
     return catalogue
 

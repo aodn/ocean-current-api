@@ -39,6 +39,34 @@ class GlidersMissionControllerTest {
     }
 
     @Test
+    void returnsHistoryOnlyOnMissionDetail() throws Exception {
+        var mapper = new ObjectMapper();
+        var root = mapper.readTree(new ClassPathResource("gliders/catalogue-v1.json")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        var mission = (com.fasterxml.jackson.databind.node.ObjectNode) java.util.stream.StreamSupport
+                .stream(root.path("missions").spliterator(), false)
+                .filter(node -> node.path("id").asText().equals("TwoRocks20260327@5.00"))
+                .findFirst().orElseThrow();
+        mission.putObject("image_history").putObject("4d")
+                .put("path", "/gliders/TwoRocks20260327_4d")
+                .putArray("files").add("2026041200.gif").add("2026041312.gif");
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        mvc.perform(get("/gliders/missions/TwoRocks20260327@5.00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mission_name").value("TwoRocks20260327"))
+                .andExpect(jsonPath("$.image_history['4d'][0].date").value("2026-04-12T00:00:00"))
+                .andExpect(jsonPath("$.image_history['4d'][1].url")
+                        .value("/gliders/TwoRocks20260327_4d/2026041312.gif"))
+                .andExpect(jsonPath("$.image_history['12d']").isEmpty());
+        mvc.perform(get("/gliders/missions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.missions[0].image_history").doesNotExist());
+        mvc.perform(get("/gliders/missions/Perth20110626_1@unknown"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.image_history['4d']").isEmpty());
+    }
+
+    @Test
     void defaultsAndResponseContract() throws Exception {
         mvc.perform(get("/gliders/missions"))
                 .andExpect(status().isOk())

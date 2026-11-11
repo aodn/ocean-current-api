@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from gliders_catalogue import parse_catalogue, resolve_latest_images
+from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history
 from publish_gliders_catalogue import publish_catalogue, validate_catalogue
 
 FIXTURES = Path(__file__).parent / 'tests' / 'mnt' / 'oceancurrent' / 'website' / 'gliders' / 'generators'
@@ -34,6 +34,79 @@ class TestLatestImages(unittest.TestCase):
 
     def publish(self):
         return publish_catalogue(self.source, self.output, source_complete=True)
+
+    def test_history_is_sorted_and_ignores_invalid_frames(self):
+        for name in ("2026041212.gif", "2026041200.gif", "2026023000.gif", "notes.gif"):
+            (self.window / name).write_bytes(GIF)
+        (self.window / "2026041100.gif").write_bytes(b"GIF89a incomplete")
+        (self.window / "2026041000.gif").symlink_to(self.source)
+        result = self.publish()
+        mission = next(m for m in result["missions"] if m["mission_name"] == "TwoRocks20260327")
+        self.assertEqual(mission["image_history"]["4d"], {
+            "path": "/gliders/TwoRocks20260327_4d",
+            "files": ["2026041200.gif", "2026041212.gif", "2026041300.gif"],
+        })
+        self.assertNotIn("12d", mission["image_history"])
+        validate_catalogue(result)
+
+    def test_history_keeps_windows_and_missions_separate(self):
+        for window in ("12d", "30d"):
+            folder = self.root / ("TwoRocks20260327_" + window)
+            folder.mkdir()
+            (folder / "2026041212.gif").write_bytes(GIF)
+        result = self.publish()
+        mission = next(m for m in result["missions"] if m["mission_name"] == "TwoRocks20260327")
+        self.assertEqual(set(mission["image_history"]), {"4d", "12d", "30d"})
+        self.assertEqual(mission["image_history"]["12d"]["files"], ["2026041212.gif"])
+        self.assertTrue(all("image_history" not in m for m in result["missions"]
+                            if m["mission_name"] != "TwoRocks20260327"))
+
+    def test_history_only_change_triggers_atomic_publication(self):
+        self.publish()
+        before = self.output.read_bytes()
+        (self.window / "2026041200.gif").write_bytes(GIF)
+        self.publish()
+        self.assertNotEqual(self.output.read_bytes(), before)
+        unchanged = self.output.stat().st_mtime_ns
+        self.publish()
+        self.assertEqual(self.output.stat().st_mtime_ns, unchanged)
+
+    def test_old_nrt_folder_and_unlinked_folders(self):
+        catalogue = parse_catalogue(self.source.read_text())
+        mission = next(m for m in catalogue["missions"] if m["mission_name"] == "Brisbane20180306A_nrt")
+        folder = self.root / "Brisbane20180306A_4d_nrt"
+        folder.mkdir()
+        (folder / "2018031500.gif").write_bytes(GIF)
+        mission["visualisations"]["animations"] = []
+        mission["visualisations"]["details"] = [
+            {"label": "4", "url": "https://oceancurrent.aodn.org.au/gliders/" + folder.name + "/latest.html"}]
+        resolve_image_history(catalogue, self.source)
+        self.assertEqual(mission["image_history"]["4d"]["files"], ["2018031500.gif"])
+        mission["visualisations"] = {"details": [], "animations": []}
+        resolve_image_history(catalogue, self.source)
+        self.assertNotIn("image_history", mission)
+
+    def test_history_changes_during_publication_are_deferred(self):
+        from gliders_catalogue import resolve_image_history
+        def changing(catalogue, source):
+            result = resolve_image_history(catalogue, source)
+            (self.window / "2026041300.gif").unlink(missing_ok=True)
+            return result
+        with patch("gliders_catalogue.resolve_image_history", side_effect=changing):
+            result = self.publish()
+        mission = next(m for m in result["missions"] if m["mission_name"] == "TwoRocks20260327")
+        self.assertEqual(mission["image_history"]["4d"]["files"], [])
+
+    def test_invalid_history_is_rejected(self):
+        result = self.publish()
+        mission = next(m for m in result["missions"] if m["mission_name"] == "TwoRocks20260327")
+        for path, files in [
+                ("/gliders/Other20260327_4d", ["2026041300.gif"]),
+                ("/gliders/TwoRocks20260327_4d", ["2026023000.gif"]),
+                ("/gliders/TwoRocks20260327_4d", ["2026041300.gif", "2026041300.gif"])]:
+            mission["image_history"] = {"4d": {"path": path, "files": files}}
+            with self.assertRaises(ValueError):
+                validate_catalogue(result)
 
     def test_real_legacy_page_and_symlink(self):
         self.assertEqual(self.resolve(), {'4d': '/gliders/TwoRocks20260327_4d/2026041300.gif', '12d': None, '30d': None})

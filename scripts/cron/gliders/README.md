@@ -41,8 +41,14 @@ Publication paths:
 
 ### Moving the published JSON files
 
-The scanner publishes `api/gliders/gliders-mission.json`. The catalogue and geographic
-yearmaps publishers write the other two files in that directory.
+The catalogue publisher includes dated mission images in `image_history`, grouped
+by the linked 4d, 12d and 30d folders. The scanner no longer generates Gliders indexes.
+The catalogue and geographic yearmaps are the two published JSON files in this directory.
+Both continue to refresh at 02:00 and 14:00 in the server timezone.
+
+Deploy API support before the expanded catalogue is published. Once the mission detail
+endpoint returns its history correctly, remove the retired `api/gliders/gliders-mission.json`.
+The generator reads local GIF files directly and does not depend on this retired index.
 
 1. Coordinate the API rollout with the file move. Ensure the old scanner has finished
    and can no longer write the GIF inventory to `api/gliders/gliders-yearmaps.json`.

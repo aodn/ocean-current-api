@@ -185,3 +185,26 @@ Both endpoints always serialize the key. It is `null` when the catalogue omits
 it (older catalogues) or the generator could not verify the image. A non-text
 or blank value makes the catalogue invalid, like other malformed fields. The
 API does not probe the GIF. Deploy this API change before the updated generator.
+
+## Dated mission image history
+
+The catalogue optionally stores `image_history` on each mission, with keys `4d`,
+`12d` and `30d`. Each populated window contains a website-root-relative `path`
+and a sorted `files` list of dated GIF basenames. Empty windows may be omitted.
+Only folders linked from that catalogue mission are scanned, including historical
+NRT folder naming. Unlisted mission directories are outside this catalogue.
+
+`GET /api/v1/gliders/missions/{id}` adds `image_history` to the existing flat
+mission response. Each window is an array of `{"date": "2026-04-13T00:00:00",
+"url": "/gliders/TwoRocks20260327_4d/2026041300.gif"}` entries, oldest first.
+Dates retain the product's local clock, without UTC conversion or timezone suffix.
+Prepend the existing resource proxy prefix when loading these URLs.
+
+The paginated mission listing keeps its existing response and omits histories.
+Old schema-version-1 catalogues remain accepted; absent history produces empty
+arrays for all three windows on the detail endpoint. Existing latest-image
+selection, T-S diagrams and animations remain available.
+
+Deploy the compatible API first, then publish the expanded catalogue using the
+existing 02:00/14:00 cron. Verify detail history and the unchanged listing before
+removing the retired `api/gliders/gliders-mission.json` file on the legacy host.

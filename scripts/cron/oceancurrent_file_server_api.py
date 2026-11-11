@@ -589,25 +589,7 @@ FILE_PATH_CONFIG = [
         "max_layer": 2,
         "output_folder": "api/fishsoop"
     },
-    # Keep Gliders last so existing products are processed first.
-    {
-        "productId": "gliders-mission",
-        "include": [
-            {"path": "^gliders$", "layer": 1},
-            {
-                "path": (
-                    "^(?!nav)[A-Za-z][A-Za-z0-9_-]*[0-9]{8}"
-                    "(?:[A-Za-z]|_[12])?"
-                    "(?:_nrt_(?:4|12|30)d|_(?:4|12|30)d(?:_nrt)?)$"
-                ),
-                "layer": 2
-            }
-        ],
-        "filetype": ".gif",
-        "region_layer": 2,
-        "max_layer": 2,
-        "output_folder": "api/gliders"
-    }
+
 ]
 
 

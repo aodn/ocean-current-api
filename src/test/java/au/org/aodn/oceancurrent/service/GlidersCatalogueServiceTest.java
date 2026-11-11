@@ -48,13 +48,33 @@ class GlidersCatalogueServiceTest {
         doReturn(ResponseEntity.ok(body)).when(remote).getForEntity(URL, String.class);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"bad-date", "cross-mission", "duplicate", "unordered", "bad-window"})
+    void rejectsInvalidHistory(String problem) throws Exception {
+        ObjectNode root = (ObjectNode) mapper.readTree(json);
+        var mission = (com.fasterxml.jackson.databind.node.ObjectNode) java.util.stream.StreamSupport
+                .stream(root.path("missions").spliterator(), false)
+                .filter(node -> node.path("id").asText().equals("TwoRocks20260327@5.00"))
+                .findFirst().orElseThrow();
+        var history = mission.putObject("image_history");
+        var group = history.putObject(problem.equals("bad-window") ? "8d" : "4d");
+        group.put("path", problem.equals("cross-mission") ? "/gliders/Other20260327_4d"
+                : "/gliders/TwoRocks20260327_4d");
+        var files = group.putArray("files");
+        files.add(problem.equals("bad-date") ? "2026023000.gif" : "2026041300.gif");
+        if (problem.equals("duplicate")) files.add("2026041300.gif");
+        if (problem.equals("unordered")) files.add("2026041200.gif");
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        assertThatThrownBy(() -> service.mission(ID)).isInstanceOf(GlidersCatalogueUnavailableException.class);
+    }
+
     @Test
     void loadsAndPreservesMissionIdentityAndOptionalMetadata() {
-        var mission = service.mission(ID);
+        var mission = service.mission(ID).mission();
         assertThat(mission.processingVersion()).isEqualTo("5.00");
-        assertThat(service.mission("TwoRocks20260327@5.").processingVersion()).isEqualTo("5.");
-        assertThat(service.mission("Brisbane20180306A_nrt@3.0.").processingVersion()).isEqualTo("3.0.");
-        assertThat(service.mission("Perth20110626_1@unknown").processingVersion()).isNull();
+        assertThat(service.mission("TwoRocks20260327@5.").mission().processingVersion()).isEqualTo("5.");
+        assertThat(service.mission("Brisbane20180306A_nrt@3.0.").mission().processingVersion()).isEqualTo("3.0.");
+        assertThat(service.mission("Perth20110626_1@unknown").mission().processingVersion()).isNull();
         assertThat(mission.visualisations().details()).hasSize(1);
         assertThat(mission.latitude()).isEqualTo(-31.5);
         assertThat(mission.startDate()).isEqualTo("2026-03-27");
@@ -83,7 +103,7 @@ class GlidersCatalogueServiceTest {
         }
         respond(root.toString());
         assertThat(service.missions("event_based_sampling", null, null, 0, 25).total()).isZero();
-        assertThat(service.mission(ID).visualisations().details().get(0).label()).isEmpty();
+        assertThat(service.mission(ID).mission().visualisations().details().get(0).label()).isEmpty();
     }
 
     @Test
@@ -146,7 +166,7 @@ class GlidersCatalogueServiceTest {
         for (int i = 0; i < 3; i++) {
             assertThatThrownBy(() -> service.mission(ID)).isInstanceOf(GlidersCatalogueUnavailableException.class);
         }
-        assertThat(service.mission(ID).id()).isEqualTo(ID);
+        assertThat(service.mission(ID).mission().id()).isEqualTo(ID);
     }
 
     @Test
@@ -161,7 +181,7 @@ class GlidersCatalogueServiceTest {
         assertThat(service.mission(ID)).isEqualTo(original);
         respond(json.replace("Slocum-1", "Updated"));
         service.mission(ID); // refresh request may receive the previous snapshot
-        assertThat(service.mission(ID).gliderId()).isEqualTo("Updated");
+        assertThat(service.mission(ID).mission().gliderId()).isEqualTo("Updated");
         verify(remote, times(4)).getForEntity(URL, String.class);
     }
 

@@ -16,7 +16,7 @@ LOG = logging.getLogger("gliders_catalogue_publication")
 
 def validate_catalogue(catalogue):
     """Validate generated JSON and any previously published catalogue."""
-    from gliders_catalogue import MISSION, VIEWS
+    from gliders_catalogue import MISSION, VIEWS, validate_image_history
 
     def require(condition, message):
         if not condition:
@@ -71,6 +71,8 @@ def validate_catalogue(catalogue):
                 require(image_path(value), "Invalid latest image URL")
         if "temperature_salinity_image" in visuals:
             require(image_path(visuals["temperature_salinity_image"]), "Invalid temperature_salinity_image")
+        if "image_history" in record:
+            validate_image_history(record["image_history"], record)
         ids.append(record["id"])
     require(len(ids) == len(set(ids)), "Duplicate mission ids")
     orders = catalogue.get("orders")
@@ -100,7 +102,7 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     Quiet snapshots cannot prove upstream completion. Executions may overlap;
     atomic replacement prevents partial JSON reads but does not serialize updates.
     """
-    from gliders_catalogue import parse_catalogue, resolve_latest_images, write_catalogue
+    from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history, write_catalogue
 
     source, destination = Path(source), Path(destination)
     if not math.isfinite(stability_seconds) or stability_seconds <= 0:
@@ -116,6 +118,7 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
             raise ValueError("Source changed during stability observation; retry on the next check")
     catalogue = parse_catalogue(html.decode("utf-8"))
     resolve_latest_images(catalogue, source)
+    resolve_image_history(catalogue, source)
     new_count = validate_catalogue(catalogue)
     previous_bytes = destination.read_bytes() if destination.exists() else None
     previous = json.loads(previous_bytes) if previous_bytes is not None else None
@@ -136,6 +139,12 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
                 latest[window] = None
         if visuals["temperature_salinity_image"] != rechecked["temperature_salinity_image"]:
             visuals["temperature_salinity_image"] = None
+    # Intersect snapshots so files added or removed during generation wait for the next run.
+    history_check = resolve_image_history(copy.deepcopy(catalogue), source)
+    for record, observed in zip(catalogue["missions"], history_check["missions"]):
+        for window, group in record.get("image_history", {}).items():
+            current = observed.get("image_history", {}).get(window, {})
+            group["files"] = sorted(set(group["files"]) & set(current.get("files", [])))
     current_html, current_signature = _read_source(source)
     if current_html != html or current_signature != signature:
         raise ValueError("Source changed during generation; publication aborted")
