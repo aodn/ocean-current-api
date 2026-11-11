@@ -38,6 +38,9 @@ printf '%s\\n' "$*" >> "$CALLS"
 [ "$DOWNLOAD" = 0 ] || exit "$DOWNLOAD"
 cp "$ARCHIVE" "${@: -1}"
 ''')
+            (bin_dir / 'mkdir').write_text('''#!/bin/bash
+[ "$*" = '-p /mnt/oceancurrent/website/api/gliders' ]
+''')
             (bin_dir / 'timeout').write_text('''#!/bin/bash
 printf '%s\\n' "$*" >> "$CALLS"
 [ "$1 $2 $3 $4" = '-k 30s 15m /usr/bin/python3' ] || exit 99
@@ -69,10 +72,10 @@ esac
                     self.assertEqual(result.stderr, '')
                 self.assertEqual(len(calls), 3)
                 self.assertIn('publish_gliders_catalogue.py --input /mnt/oceancurrent/website/gliders/index.html', calls[1])
-                self.assertIn('--output /mnt/oceancurrent/website/api/gliders-catalogue.json', calls[1])
+                self.assertIn('--output /mnt/oceancurrent/website/api/gliders/gliders-catalogue.json', calls[1])
                 self.assertIn('publish_gliders_yearmaps.py --input /mnt/oceancurrent/website/gliders/yearmaps', calls[2])
-                self.assertIn('--catalogue /mnt/oceancurrent/website/api/gliders-catalogue.json', calls[2])
-                self.assertIn('--output /mnt/oceancurrent/website/api/gliders-yearmaps.json', calls[2])
+                self.assertIn('--catalogue /mnt/oceancurrent/website/api/gliders/gliders-catalogue.json', calls[2])
+                self.assertIn('--output /mnt/oceancurrent/website/api/gliders/gliders-yearmaps.json', calls[2])
                 for call in calls[1:]:
                     self.assertTrue(call.endswith('--stability-seconds 30'))
 

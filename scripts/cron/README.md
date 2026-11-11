@@ -204,18 +204,9 @@ Currently, the script is adaptive to these products:
 
 ## Gliders asset indexes
 
-The scanner discovers assets under `/mnt/oceancurrent/website/gliders/`.
-Registering these proposed product IDs in `ocean-current-api` is a separate
-future task; this change does not integrate Gliders into the API or frontend.
-
-| Product ID | JSON path relative to the website root | Assets |
-| --- | --- | --- |
-| `gliders-mission` | `/api/gliders/gliders-mission.json` | Standard mission GIFs |
-| `gliders-mission-video` | `/api/gliders/gliders-mission-video.json` | Standard mission MP4s |
-| `gliders-navigation` | `/api/gliders/gliders-navigation.json` | Navigation GIFs |
-| `gliders-navigation-video` | `/api/gliders/gliders-navigation-video.json` | Navigation MP4s |
-| `gliders-ts` | `/api/gliders/gliders-ts.json` | GIFs directly under `missionTS/` |
-| `gliders-yearmaps` | `/api/gliders/gliders-yearmaps.json` | GIFs directly under `yearmaps/` |
+The scanner indexes mission GIFs under `website/gliders/` and publishes
+`/api/gliders/gliders-mission.json`. The catalogue and geographic yearmaps
+are produced by the [Gliders publishers](gliders/README.md).
 
 Mission directory names start with a letter and contain letters, digits,
 underscores or hyphens, followed by an eight-digit mission date. The date can
@@ -229,15 +220,15 @@ have a single-letter suffix or a `_1` / `_2` mission leg. Supported periods are
 - `Cooktown20160217_4d_nrt`
 
 Navigation directories use the same format with a `nav` prefix and are excluded
-from standard mission indexes. Only files directly inside matching directories
-are indexed. GIF and MP4 extensions are case insensitive; HTML, JSON, PHP,
+from the mission index. Only GIF files directly inside matching directories
+are indexed. The extension is case insensitive; HTML, JSON, PHP,
 unsupported periods, scientific variant suffixes and auxiliary folders are excluded.
-Missing periods or animations are allowed. An index is written only when matching
+Missing periods are allowed. The index is written only when matching
 assets exist; the existing scanner does not remove stale indexes when assets disappear.
 
 Each mission directory is preserved in `path` and used verbatim as `region`,
 so identical filenames from different missions remain distinguishable. `depth`
-is null; T-S and annual-map records also have null `region`. Example record:
+is null. Example record:
 
 ```json
 {
@@ -248,11 +239,6 @@ is null; T-S and annual-map records also have null `region`. Example record:
     "files": [{"name": "2026101500.gif"}]
 }
 ```
-
-Merging activates these configurations on the next scheduled run because the
-production job downloads the scanner from GitHub at run time. Gliders runs after existing
-products and writes up to six indexes under `api/gliders/`; check the existing runtime
-and memory logs after deployment. No cron or deployment changes are required.
 
 ## Gliders migration and operations
 

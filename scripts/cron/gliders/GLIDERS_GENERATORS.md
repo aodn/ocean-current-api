@@ -226,7 +226,7 @@ resource separately because a cached snapshot can conceal an upstream failure.
 ### Latest mission images (schema version 1 extension)
 
 The current publication target is
-`/mnt/oceancurrent/website/api/gliders-catalogue.json` (the earlier
+`/mnt/oceancurrent/website/api/gliders/gliders-catalogue.json` (the earlier
 `gliders/gliders-catalogue.json` examples above describe the initial proposal).
 Continue using the existing publication pipeline and schedule; no additional
 cronjob is needed for this extension.
@@ -263,7 +263,7 @@ catalogue. Optional image failures do not block valid metadata publication.
 
 Deploy the API's optional-field support first, then the generator through the
 existing process. After the next publication and API cache refresh, check
-`/resource/api/gliders-catalogue.json`, both existing mission API endpoints, and
+`/resource/api/gliders/gliders-catalogue.json`, both existing mission API endpoints, and
 `/resource` plus each non-null image path. Inspect all available windows, a
 missing-window mission and an NRT mission. No production deployment is performed
 by these changes.
@@ -301,12 +301,12 @@ python3 -m unittest discover -s ARGO/oceancurrent -p 'test*gliders*.py'
 ### Gliders year-map geographic index
 
 `publish_gliders_yearmaps.py` publishes
-`/mnt/oceancurrent/website/api/gliders-yearmaps.json`. It reads only immediate
+`/mnt/oceancurrent/website/api/gliders/gliders-yearmaps.json`. It reads only immediate
 HTML year-maps under `/mnt/oceancurrent/website/gliders/yearmaps/` and the local
-`/mnt/oceancurrent/website/api/gliders-catalogue.json`. It never reads GIFs or
+`/mnt/oceancurrent/website/api/gliders/gliders-catalogue.json`. It never reads GIFs or
 scans mission directories. The catalogue generator and its schema are unchanged.
 
-The frontend fetches `/resource/api/gliders-yearmaps.json` through the existing
+The frontend fetches `/resource/api/gliders/gliders-yearmaps.json` through the existing
 resource proxy. Schema version 1 contains `maps`, each with `id`, `year`,
 `platform`, `variable`, `window`, `is_nrt`, and `deployments`. Each deployment
 contains only `mission_name`, `pixel_rect`, `bbox`, and the original mission
@@ -314,8 +314,7 @@ contains only `mission_name`, `pixel_rect`, `bbox`, and the original mission
 `[west,south,east,north]`. No GIF paths/dimensions, calendar regions, calibration
 configuration or duplicate mission metadata are included. `/gliders/...` mission
 links are website-root-relative; prepend `/resource` when opening them through
-the resource proxy. The existing `/gliders/gliders-yearmaps.json` GIF asset list
-is unrelated to this API JSON.
+the resource proxy. The geographic JSON uses the former scanner inventory path.
 
 Run with saved real fixtures (no network or GIFs required):
 

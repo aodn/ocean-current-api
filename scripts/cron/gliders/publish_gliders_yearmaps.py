@@ -108,8 +108,8 @@ def publish_yearmaps(directory, catalogue, destination, *, source_complete=False
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, default=Path("/mnt/oceancurrent/website/gliders/yearmaps"))
-    parser.add_argument("--catalogue", type=Path, default=Path("/mnt/oceancurrent/website/api/gliders-catalogue.json"))
-    parser.add_argument("--output", type=Path, default=Path("/mnt/oceancurrent/website/api/gliders-yearmaps.json"))
+    parser.add_argument("--catalogue", type=Path, default=Path("/mnt/oceancurrent/website/api/gliders/gliders-catalogue.json"))
+    parser.add_argument("--output", type=Path, default=Path("/mnt/oceancurrent/website/api/gliders/gliders-yearmaps.json"))
     parser.add_argument("--source-complete", action="store_true", help="Manual confirmation; skip stability wait")
     parser.add_argument("--stability-seconds", type=float, default=30)
     args = parser.parse_args(argv)

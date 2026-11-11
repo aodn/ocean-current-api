@@ -25,13 +25,14 @@ if ! tar -xzf "$work/scripts.tar.gz" -C "$work" --strip-components=4 \
 fi
 
 w=/mnt/oceancurrent/website
+mkdir -p "$w/api/gliders" || exit 1
 timeout -k 30s 15m /usr/bin/python3 "$work/publish_gliders_catalogue.py" \
-    --input "$w/gliders/index.html" --output "$w/api/gliders-catalogue.json" --stability-seconds 30
+    --input "$w/gliders/index.html" --output "$w/api/gliders/gliders-catalogue.json" --stability-seconds 30
 a=$?
 # Deliberately continue after catalogue failure: the publisher validates the previous catalogue.
 timeout -k 30s 15m /usr/bin/python3 "$work/publish_gliders_yearmaps.py" \
-    --input "$w/gliders/yearmaps" --catalogue "$w/api/gliders-catalogue.json" \
-    --output "$w/api/gliders-yearmaps.json" --stability-seconds 30
+    --input "$w/gliders/yearmaps" --catalogue "$w/api/gliders/gliders-catalogue.json" \
+    --output "$w/api/gliders/gliders-yearmaps.json" --stability-seconds 30
 b=$?
 if [ "$a" -eq 0 ] && [ "$b" -eq 0 ]; then
     echo "Gliders catalogue=$a yearmaps=$b"

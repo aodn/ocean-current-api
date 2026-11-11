@@ -580,79 +580,6 @@ class TestFileServerAPI(unittest.TestCase):
                     "files": [{"name": "2018051000.gif"}]
                 },
             ],
-            "gliders-mission-video": [
-                {
-                    "path": "/gliders/TasEastCoast20260922_nrt_4d",
-                    "productId": "gliders-mission-video",
-                    "region": "TasEastCoast20260922_nrt_4d",
-                    "depth": None,
-                    "files": [{"name": "TasEastCoast20260922_nrt_4d.mp4"}]
-                },
-            ],
-            "gliders-navigation": [
-                {
-                    "path": "/gliders/navTasEastCoast20260922_nrt_4d",
-                    "productId": "gliders-navigation",
-                    "region": "navTasEastCoast20260922_nrt_4d",
-                    "depth": None,
-                    "files": [{"name": "2026101500.gif"}]
-                },
-                {
-                    "path": "/gliders/navBrisbane20180306A_nrt_4d",
-                    "productId": "gliders-navigation",
-                    "region": "navBrisbane20180306A_nrt_4d",
-                    "depth": None,
-                    "files": [{"name": "2018031500.gif"}]
-                },
-                {
-                    "path": "/gliders/navPerth20110626_1_4d",
-                    "productId": "gliders-navigation",
-                    "region": "navPerth20110626_1_4d",
-                    "depth": None,
-                    "files": [{"name": "2011070100.gif"}]
-                },
-                {
-                    "path": "/gliders/navCooktown20160217_4d_nrt",
-                    "productId": "gliders-navigation",
-                    "region": "navCooktown20160217_4d_nrt",
-                    "depth": None,
-                    "files": [{"name": "2016022000.gif"}]
-                },
-                {
-                    "path": "/gliders/navJervisBay20180503a_nrt_12d",
-                    "productId": "gliders-navigation",
-                    "region": "navJervisBay20180503a_nrt_12d",
-                    "depth": None,
-                    "files": [{"name": "2018051000.gif"}]
-                },
-            ],
-            "gliders-navigation-video": [
-                {
-                    "path": "/gliders/navTasEastCoast20260922_nrt_4d",
-                    "productId": "gliders-navigation-video",
-                    "region": "navTasEastCoast20260922_nrt_4d",
-                    "depth": None,
-                    "files": [{"name": "navTasEastCoast20260922_nrt_4d.mp4"}]
-                },
-            ],
-            "gliders-ts": [
-                {
-                    "path": "/gliders/missionTS",
-                    "productId": "gliders-ts",
-                    "region": None,
-                    "depth": None,
-                    "files": [{"name": "sl_TasEastCoast20260922_nrt.gif"}]
-                },
-            ],
-            "gliders-yearmaps": [
-                {
-                    "path": "/gliders/yearmaps",
-                    "productId": "gliders-yearmaps",
-                    "region": None,
-                    "depth": None,
-                    "files": [{"name": "2026_sl_temp_nrt.gif"}]
-                },
-            ],
         }
 
     def load_and_normalize_json(self, file_path):
@@ -761,24 +688,20 @@ class TestFileServerAPI(unittest.TestCase):
             self.verify_json("fishSOOP-profiles", "api/fishsoop", "fishSOOP-profiles")
             self.verify_json("fishSOOP-quarterlyAnomalies", "api/fishsoop", "fishSOOP-quarterlyAnomalies")
             self.verify_json("fishSOOP-depthAnomalies", "api/fishsoop", "fishSOOP-depthAnomalies")
-            # Exact Gliders paths exclude navigation from standard indexes and
-            # unrelated directories. Exact filenames also exclude HTML/JSON/PHP.
-            for product_id in ("gliders-mission", "gliders-mission-video",
-                               "gliders-navigation", "gliders-navigation-video",
-                               "gliders-ts", "gliders-yearmaps"):
-                self.verify_json(product_id, "api/gliders", product_id)
-                output = os.path.join(self.file_test_dir, "api", "gliders", f"{product_id}.json")
-                # rsync --delete removes JSON from the synced product folder, and
-                # api/gliders-yearmaps.json directly under api/ belongs to the publisher.
-                self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "gliders", f"{product_id}.json")))
-                self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "api", f"{product_id}.json")))
-                actual = self.load_and_normalize_json(output)
-                expected = self.prepare_test_cases()[product_id]
-                self.assertEqual(
-                    {item["path"]: sorted(f["name"] for f in item["files"]) for item in actual},
-                    {item["path"]: sorted(f["name"] for f in item["files"]) for item in expected},
-                    f"Unexpected Gliders filenames in {product_id}",
-                )
+            self.verify_json("gliders-mission", "api/gliders", "gliders-mission")
+            mission_index = os.path.join(self.file_test_dir, "api", "gliders", "gliders-mission.json")
+            actual = self.load_and_normalize_json(mission_index)
+            expected = self.prepare_test_cases()["gliders-mission"]
+            self.assertEqual(
+                {item["path"]: sorted(f["name"] for f in item["files"]) for item in actual},
+                {item["path"]: sorted(f["name"] for f in item["files"]) for item in expected},
+            )
+            self.assertEqual(
+                os.listdir(os.path.join(self.file_test_dir, "api", "gliders")),
+                ["gliders-mission.json"],
+            )
+            self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "gliders", "gliders-mission.json")))
+            self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "api", "gliders-mission.json")))
             # Verify the fishsoop finder maps folder is excluded by the region whitelist
             self.assertFalse(os.path.exists(os.path.join(self.file_test_dir, "fishsoop", "fishSOOP-profiles.json")))
             fishsoop_json_path = os.path.join(self.file_test_dir, "api", "fishsoop", "fishSOOP-profiles.json")

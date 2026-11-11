@@ -3,7 +3,7 @@
 The API reads the version 1 catalogue produced by
 [aodn/data-services PR #1276](https://github.com/aodn/data-services/pull/1276).
 It uses `REMOTE_BASE_URL` + `REMOTE_RESOURCE_PATH` +
-`api/gliders-catalogue.json`. The caller cannot override the source URL.
+`api/gliders/gliders-catalogue.json`. The caller cannot override the source URL.
 This catalogue is independent of image inventories and Elasticsearch.
 The generator uses the existing publication pipeline and schedule. This extension
 does not introduce another endpoint or scheduler.
@@ -121,14 +121,10 @@ on subsequent requests. Refresh failures are logged.
 
 ## Edge validation after publication
 
-On 2026-10-19, the edge resource URL returned HTTP 404:
-`https://oceancurrent-edge.aodn.org.au/resource/api/gliders-catalogue.json`.
-No remote catalogue was assumed available during implementation.
-
 After the upstream operator publishes the JSON and this API change is deployed
 to edge through the normal review process:
 
-1. Fetch `/resource/api/gliders-catalogue.json` on the edge host and confirm
+1. Fetch `/resource/api/gliders/gliders-catalogue.json` on the edge host and confirm
    HTTP 200, `schema_version: 1`, nonempty missions, and the four order arrays.
    Confirm the edge API's `REMOTE_BASE_URL` and resource path target that resource.
 2. Request `/api/v1/gliders/missions` and each supported order with `size=100`.
@@ -167,7 +163,7 @@ mission-window's legacy page, not a guessed most-recent filename.
 
 After deployment, wait for publication and the configured API cache refresh,
 compare `latest_images` on `/api/v1/gliders/missions` and an exact ID lookup with
-`/resource/api/gliders-catalogue.json`, then GET each non-null path through
+`/resource/api/gliders/gliders-catalogue.json`, then GET each non-null path through
 `/resource` and confirm HTTP 200 with GIF content. Include missions with missing
 windows and NRT records. Do this through the normal deployment process; this
 implementation does not deploy automatically.
