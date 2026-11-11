@@ -257,3 +257,21 @@ and memory logs after deployment. No cron or deployment changes are required.
 ## Gliders migration and operations
 
 See [gliders/README.md](gliders/README.md) for execution, paths, tests and deployment order.
+
+On the legacy server, debug scheduled publication using these logs:
+
+| Log | Contents |
+| --- | --- |
+| `/var/log/imos/gliders_publishers.log` | All timestamped INFO, WARNING and ERROR records from both Python publishers |
+| `/var/log/imos/cron_po_gliders_catalogue.log` | Download, extraction, timeout and publisher errors captured by the cron wrapper |
+
+A successful run writes normal output only to `gliders_publishers.log` and does
+not send email. Error output is also appended to the cron-wrapper log and emailed
+to `developers@emii.org.au`; the wrapper preserves a nonzero status for monitoring.
+Inspect production read-only with bounded commands such as the following, replacing
+`<legacy-server>` with your approved hostname or local SSH alias:
+
+```bash
+ssh <legacy-server> 'tail -n 100 /var/log/imos/gliders_publishers.log'
+ssh <legacy-server> 'tail -n 100 /var/log/imos/cron_po_gliders_catalogue.log'
+```
