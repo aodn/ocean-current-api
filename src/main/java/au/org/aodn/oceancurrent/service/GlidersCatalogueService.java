@@ -3,6 +3,7 @@ package au.org.aodn.oceancurrent.service;
 import au.org.aodn.oceancurrent.configuration.GlidersCatalogueProperties;
 import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.dto.GliderMissionPage;
+import au.org.aodn.oceancurrent.dto.GliderMissionDetail;
 import au.org.aodn.oceancurrent.exception.GlidersCatalogueUnavailableException;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.gliders.GliderMission;
@@ -20,6 +21,10 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.ResolverStyle;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -75,8 +80,8 @@ public class GlidersCatalogueService {
         return new GliderMissionPage(matching.subList(from, to), matching.size(), page, size, order);
     }
 
-    public GliderMission mission(String id) {
-        GliderMission mission = cache.get("catalogue").missions().get(id);
+    public GliderMissionDetail mission(String id) {
+        GliderMissionDetail mission = cache.get("catalogue").details().get(id);
         if (mission == null) {
             throw new ResourceNotFoundException("Gliders mission", id);
         }
@@ -98,9 +103,13 @@ public class GlidersCatalogueService {
             require(root.path("missions").isArray() && !root.path("missions").isEmpty(), "Missing missions");
             require(root.path("orders").isObject(), "Missing orders");
             Map<String, GliderMission> missions = new LinkedHashMap<>();
+            Map<String, GliderMissionDetail> details = new LinkedHashMap<>();
             for (JsonNode node : root.path("missions")) {
                 validateMission(node);
-                GliderMission mission = objectMapper.treeToValue(node, GliderMission.class);
+                var summary = ((com.fasterxml.jackson.databind.node.ObjectNode) node).deepCopy();
+                summary.remove("image_history");
+                GliderMission mission = objectMapper.treeToValue(summary, GliderMission.class);
+                details.put(mission.id(), new GliderMissionDetail(mission, history(node, mission)));
                 String version = mission.processingVersion() == null ? "unknown" : mission.processingVersion();
                 String expectedId = UriUtils.encode(mission.missionName(), StandardCharsets.UTF_8) + "@"
                         + UriUtils.encode(version, StandardCharsets.UTF_8);
@@ -120,11 +129,43 @@ public class GlidersCatalogueService {
                 orders.put(order, objectMapper.convertValue(values,
                         new TypeReference<List<String>>() {}));
             }
-            return new Catalogue(Map.copyOf(missions), Map.copyOf(orders));
+            return new Catalogue(Map.copyOf(missions), Map.copyOf(orders), Map.copyOf(details));
         } catch (Exception ex) {
             log.warn("Unable to load Gliders mission catalogue: {}", ex.getMessage());
             throw new GlidersCatalogueUnavailableException(ex);
         }
+    }
+
+    private Map<String, List<GliderMissionDetail.Frame>> history(JsonNode node, GliderMission mission) {
+        JsonNode history = node.path("image_history");
+        require(history.isMissingNode() || history.isObject(), "Invalid image_history");
+        var windows = List.of("4d", "12d", "30d");
+        history.fieldNames().forEachRemaining(key -> require(windows.contains(key), "Invalid history window"));
+        Map<String, List<GliderMissionDetail.Frame>> result = new LinkedHashMap<>();
+        var timestamp = DateTimeFormatter.ofPattern("uuuuMMddHH").withResolverStyle(ResolverStyle.STRICT);
+        for (String window : windows) {
+            JsonNode group = history.path(window);
+            List<GliderMissionDetail.Frame> frames = new ArrayList<>();
+            if (!group.isMissingNode()) {
+                String path = group.path("path").asText();
+                boolean correctPath = path.equals("/gliders/" + mission.missionName() + "_" + window)
+                        || (mission.isNrt() && path.equals("/gliders/" + mission.missionId() + "_" + window + "_nrt"));
+                require(group.isObject() && correctPath && group.path("files").isArray(), "Invalid history group");
+                String previous = "";
+                for (JsonNode file : group.path("files")) {
+                    require(text(file) && file.textValue().matches("[0-9]{10}\\.[gG][iI][fF]"),
+                            "Invalid history filename");
+                    String name = file.textValue();
+                    require(name.compareTo(previous) > 0, "Unordered or duplicate history");
+                    LocalDateTime date = LocalDateTime.parse(name.substring(0, 10), timestamp);
+                    frames.add(new GliderMissionDetail.Frame(date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            path + "/" + name));
+                    previous = name;
+                }
+            }
+            result.put(window, List.copyOf(frames));
+        }
+        return java.util.Collections.unmodifiableMap(result);
     }
 
     private void validateMission(JsonNode node) {
@@ -170,5 +211,6 @@ public class GlidersCatalogueService {
         if (!valid) throw new IllegalArgumentException(message);
     }
 
-    private record Catalogue(Map<String, GliderMission> missions, Map<String, List<String>> orders) {}
+    private record Catalogue(Map<String, GliderMission> missions, Map<String, List<String>> orders,
+                             Map<String, GliderMissionDetail> details) {}
 }

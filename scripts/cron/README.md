@@ -202,44 +202,6 @@ Currently, the script is adaptive to these products:
 `currentMetersPlot-54` | `\timeseries\currentMetersPlot-54.json`
 
 
-## Gliders asset indexes
-
-The scanner indexes mission GIFs under `website/gliders/` and publishes
-`/api/gliders/gliders-mission.json`. The catalogue and geographic yearmaps
-are produced by the [Gliders publishers](gliders/README.md).
-
-Mission directory names start with a letter and contain letters, digits,
-underscores or hyphens, followed by an eight-digit mission date. The date can
-have a single-letter suffix or a `_1` / `_2` mission leg. Supported periods are
-`_4d`, `_12d` and `_30d`, with optional `_nrt` before or after the period:
-
-- `TasEastCoast20260922_nrt_4d`
-- `Brisbane20180306A_4d`
-- `JervisBay20180503a_nrt_12d`
-- `Perth20110626_1_4d`
-- `Cooktown20160217_4d_nrt`
-
-Navigation directories use the same format with a `nav` prefix and are excluded
-from the mission index. Only GIF files directly inside matching directories
-are indexed. The extension is case insensitive; HTML, JSON, PHP,
-unsupported periods, scientific variant suffixes and auxiliary folders are excluded.
-Missing periods are allowed. The index is written only when matching
-assets exist; the existing scanner does not remove stale indexes when assets disappear.
-
-Each mission directory is preserved in `path` and used verbatim as `region`,
-so identical filenames from different missions remain distinguishable. `depth`
-is null. Example record:
-
-```json
-{
-    "path": "/gliders/TasEastCoast20260922_nrt_4d",
-    "productId": "gliders-mission",
-    "region": "TasEastCoast20260922_nrt_4d",
-    "depth": null,
-    "files": [{"name": "2026101500.gif"}]
-}
-```
-
 ## Gliders migration and operations
 
 See [gliders/README.md](gliders/README.md) for execution, paths, tests and deployment order.
