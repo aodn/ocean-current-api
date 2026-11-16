@@ -26,6 +26,9 @@ class TestLatestImages(unittest.TestCase):
         (self.window / '2026041300.gif').write_bytes(GIF)
         (self.window / 'latest.html').symlink_to('2026041300.html')
         self.output = self.root / 'catalogue.json'
+        ts = self.root / 'missionTS'
+        ts.mkdir()
+        (ts / 'index.html').write_text('<a href="sg_Historical20010101.html">Historical</a>')
 
     def resolve(self):
         catalogue = resolve_latest_images(parse_catalogue(self.source.read_text()), self.source)
@@ -195,7 +198,12 @@ class TestLatestImages(unittest.TestCase):
         self.assertEqual(self.output.stat().st_ino, stat.st_ino)
 
     def test_optional_missing_or_changing_images_publish_metadata(self):
-        with patch('gliders_catalogue._snapshot', side_effect=ValueError('changing')):
+        from gliders_catalogue import _snapshot
+        def changing_images(path):
+            if path == self.root / 'missionTS' / 'index.html':
+                return _snapshot(path)
+            raise ValueError('changing')
+        with patch('gliders_catalogue._snapshot', side_effect=changing_images):
             result = self.publish()
         self.assertEqual(len(result['missions']), 8)
         self.assertTrue(all(m['visualisations']['latest_images']['4d'] is None for m in result['missions']))
@@ -231,9 +239,34 @@ class TestTemperatureSalinityImage(unittest.TestCase):
         shutil.copy(FIXTURES / 'gliders_catalogue.html', self.source)
         self.folder = self.root / 'missionTS'
         self.folder.mkdir()
+        (self.folder / "index.html").write_text('<a href="sl_TwoRocks20260327.html">T-S</a>')
         self.page = self.folder / 'sl_TwoRocks20260327.html'
         shutil.copy(FIXTURES / 'gliders_ts' / self.page.name, self.page)
         (self.folder / 'sl_TwoRocks20260327.gif').write_bytes(GIF)
+
+    def test_complete_index_retains_historical_diagrams_and_source_order(self):
+        from gliders_catalogue import resolve_ts_diagrams
+        (self.folder / 'index.html').write_text(
+            '<a href="sl_TwoRocks20260327.html">Current</a>'
+            '<a href="sg_Historical20010101.html">Historical</a>'
+            '<a href="sl_TwoRocks20260327.html">Duplicate</a>'
+            '<a href="../escape.html">Ignore</a>')
+        catalogue = resolve_ts_diagrams(parse_catalogue(self.source.read_text()), self.source)
+        validate_catalogue(catalogue)
+        current, historical = catalogue['temperature_salinity_diagrams']
+        self.assertEqual(current['id'], 'sl_TwoRocks20260327')
+        self.assertEqual(current['image_url'], '/gliders/missionTS/sl_TwoRocks20260327.gif')
+        self.assertTrue(current['mission_ids'])
+        self.assertEqual(historical, {'id': 'sg_Historical20010101', 'image_url': None, 'mission_ids': []})
+
+    def test_invalid_ts_index_preserves_published_catalogue(self):
+        output = self.root / 'catalogue.json'
+        publish_catalogue(self.source, output, source_complete=True)
+        original = output.read_bytes()
+        (self.folder / 'index.html').write_text('<html>Maintenance</html>')
+        with self.assertRaises(ValueError):
+            publish_catalogue(self.source, output, source_complete=True)
+        self.assertEqual(output.read_bytes(), original)
 
     def resolve(self, name='TwoRocks20260327'):
         catalogue = resolve_latest_images(parse_catalogue(self.source.read_text()), self.source)

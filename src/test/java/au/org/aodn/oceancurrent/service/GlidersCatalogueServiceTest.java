@@ -49,6 +49,19 @@ class GlidersCatalogueServiceTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"identifier", "image", "reference", "duplicate"})
+    void rejectsMalformedTsIndex(String problem) throws Exception {
+        var root = (ObjectNode) mapper.readTree(json);
+        var diagrams = root.putArray("temperature_salinity_diagrams");
+        var diagram = diagrams.addObject().put("id", problem.equals("identifier") ? "../escape" : "sg_Historical20010101");
+        diagram.put("image_url", problem.equals("image") ? "https://other.example/image.gif" : "/gliders/missionTS/historical.gif");
+        diagram.putArray("mission_ids").add(problem.equals("reference") ? "missing" : ID);
+        if (problem.equals("duplicate")) diagrams.add(diagram.deepCopy());
+        respond(root.toString());
+        assertThatThrownBy(() -> service.tsDiagrams()).isInstanceOf(GlidersCatalogueUnavailableException.class);
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"bad-date", "cross-mission", "duplicate", "unordered", "bad-window"})
     void rejectsInvalidHistory(String problem) throws Exception {
         ObjectNode root = (ObjectNode) mapper.readTree(json);

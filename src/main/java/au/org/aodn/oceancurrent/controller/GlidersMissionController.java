@@ -2,6 +2,7 @@ package au.org.aodn.oceancurrent.controller;
 
 import au.org.aodn.oceancurrent.dto.GliderMissionPage;
 import au.org.aodn.oceancurrent.dto.GliderMissionDetail;
+import au.org.aodn.oceancurrent.dto.GliderTsDiagrams;
 import au.org.aodn.oceancurrent.service.GlidersCatalogueService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -13,13 +14,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/gliders/missions")
+@RequestMapping("/gliders")
 @RequiredArgsConstructor
 @Tag(name = "Gliders Missions", description = "Browse the upstream Gliders mission catalogue")
 public class GlidersMissionController {
     private final GlidersCatalogueService catalogueService;
 
-    @GetMapping
+    @GetMapping("/missions")
     @Operation(summary = "Filter and paginate a source-defined mission browsing order")
     public GliderMissionPage missions(
             @RequestParam(defaultValue = "deployment_date") String order,
@@ -33,7 +34,13 @@ public class GlidersMissionController {
         return catalogueService.missions(order, q, nrt == null ? null : Boolean.valueOf(nrt), page, size);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/ts-diagrams")
+    @Operation(summary = "Get the complete legacy temperature-salinity diagram index in source order")
+    public GliderTsDiagrams tsDiagrams() {
+        return catalogueService.tsDiagrams();
+    }
+
+    @GetMapping("/missions/{id}")
     @Operation(summary = "Get a mission by its exact stable catalogue ID")
     public GliderMissionDetail mission(@PathVariable String id) {
         return catalogueService.mission(id);

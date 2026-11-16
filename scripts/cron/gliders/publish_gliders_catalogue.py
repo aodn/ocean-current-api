@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import math
+import re
 from pathlib import Path
 import sys
 import time
@@ -82,6 +83,22 @@ def validate_catalogue(catalogue):
         require(isinstance(order, list) and all(isinstance(item, str) for item in order), "Missing or invalid order: " + view)
         require(len(order) == len(set(order)) and set(order).issubset(ids), "Invalid order references: " + view)
         require(bool(order) or view == "event_based_sampling", "Empty order: " + view)
+    if "temperature_salinity_diagrams" in catalogue:
+        diagrams = catalogue["temperature_salinity_diagrams"]
+        require(isinstance(diagrams, list) and bool(diagrams), "Empty T-S index")
+        seen = set()
+        for diagram in diagrams:
+            require(isinstance(diagram, dict), "Invalid T-S diagram")
+            identifier = diagram.get("id")
+            require(isinstance(identifier, str) and re.fullmatch(r"(?:sg|sl)_[A-Za-z0-9_-]+", identifier)
+                    and identifier not in seen, "Invalid or duplicate T-S id")
+            seen.add(identifier)
+            image = diagram.get("image_url")
+            require("image_url" in diagram and (image is None or isinstance(image, str)
+                    and re.fullmatch(r"/gliders/missionTS/[A-Za-z0-9_-]+\.[gG][iI][fF]", image)), "Invalid T-S image")
+            references = diagram.get("mission_ids")
+            require(isinstance(references, list) and all(isinstance(value, str) and value in ids for value in references)
+                    and len(references) == len(set(references)), "Invalid T-S mission references")
     return len(missions)
 
 
@@ -102,7 +119,7 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     Quiet snapshots cannot prove upstream completion. Executions may overlap;
     atomic replacement prevents partial JSON reads but does not serialize updates.
     """
-    from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history, write_catalogue
+    from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history, resolve_ts_diagrams, write_catalogue
 
     source, destination = Path(source), Path(destination)
     if not math.isfinite(stability_seconds) or stability_seconds <= 0:
@@ -119,6 +136,7 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     catalogue = parse_catalogue(html.decode("utf-8"))
     resolve_latest_images(catalogue, source)
     resolve_image_history(catalogue, source)
+    resolve_ts_diagrams(catalogue, source)
     new_count = validate_catalogue(catalogue)
     previous_bytes = destination.read_bytes() if destination.exists() else None
     previous = json.loads(previous_bytes) if previous_bytes is not None else None

@@ -4,6 +4,7 @@ import au.org.aodn.oceancurrent.configuration.GlidersCatalogueProperties;
 import au.org.aodn.oceancurrent.configuration.remoteJson.RemoteServiceProperties;
 import au.org.aodn.oceancurrent.dto.GliderMissionPage;
 import au.org.aodn.oceancurrent.dto.GliderMissionDetail;
+import au.org.aodn.oceancurrent.dto.GliderTsDiagrams;
 import au.org.aodn.oceancurrent.exception.GlidersCatalogueUnavailableException;
 import au.org.aodn.oceancurrent.exception.ResourceNotFoundException;
 import au.org.aodn.oceancurrent.model.gliders.GliderMission;
@@ -80,6 +81,15 @@ public class GlidersCatalogueService {
         return new GliderMissionPage(matching.subList(from, to), matching.size(), page, size, order);
     }
 
+    /** Unavailable (503) until the publisher adds the index to the catalogue. */
+    public GliderTsDiagrams tsDiagrams() {
+        GliderTsDiagrams diagrams = cache.get("catalogue").diagrams();
+        if (diagrams == null) {
+            throw new GlidersCatalogueUnavailableException(new IllegalStateException("T-S index unavailable"));
+        }
+        return diagrams;
+    }
+
     public GliderMissionDetail mission(String id) {
         GliderMissionDetail mission = cache.get("catalogue").details().get(id);
         if (mission == null) {
@@ -129,7 +139,26 @@ public class GlidersCatalogueService {
                 orders.put(order, objectMapper.convertValue(values,
                         new TypeReference<List<String>>() {}));
             }
-            return new Catalogue(Map.copyOf(missions), Map.copyOf(orders), Map.copyOf(details));
+            JsonNode diagrams = root.get("temperature_salinity_diagrams");
+            GliderTsDiagrams tsDiagrams = null;
+            if (diagrams != null) {
+                require(diagrams.isArray() && !diagrams.isEmpty(), "Invalid T-S index");
+                var seenDiagrams = new HashSet<String>();
+                for (JsonNode diagram : diagrams) {
+                    require(text(diagram.path("id")) && diagram.path("id").asText().matches("(?:sg|sl)_[A-Za-z0-9_-]+")
+                            && seenDiagrams.add(diagram.path("id").asText()), "Invalid T-S identifier");
+                    JsonNode image = diagram.path("image_url");
+                    require(image.isNull() || image.isTextual() && image.asText().matches("/gliders/missionTS/[A-Za-z0-9_-]+\\.[gG][iI][fF]"), "Invalid T-S image");
+                    require(diagram.path("mission_ids").isArray(), "Invalid T-S mission references");
+                    var seenReferences = new HashSet<String>();
+                    for (JsonNode id : diagram.path("mission_ids")) {
+                        require(text(id) && missions.containsKey(id.asText()) && seenReferences.add(id.asText()), "Invalid T-S mission reference");
+                    }
+                }
+                tsDiagrams = new GliderTsDiagrams(List.copyOf(objectMapper.convertValue(diagrams,
+                        new TypeReference<List<GliderTsDiagrams.Diagram>>() {})));
+            }
+            return new Catalogue(Map.copyOf(missions), Map.copyOf(orders), Map.copyOf(details), tsDiagrams);
         } catch (Exception ex) {
             log.warn("Unable to load Gliders mission catalogue: {}", ex.getMessage());
             throw new GlidersCatalogueUnavailableException(ex);
@@ -212,5 +241,5 @@ public class GlidersCatalogueService {
     }
 
     private record Catalogue(Map<String, GliderMission> missions, Map<String, List<String>> orders,
-                             Map<String, GliderMissionDetail> details) {}
+                             Map<String, GliderMissionDetail> details, GliderTsDiagrams diagrams) {}
 }

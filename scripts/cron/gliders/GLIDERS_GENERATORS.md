@@ -417,3 +417,22 @@ python3 -m unittest discover -s ARGO/oceancurrent -p 'test*gliders*.py'
 # From chef-private:
 python3 bin/test_gliders_workflow.py
 ```
+
+### Complete temperature–salinity browsing index
+
+The catalogue publisher also reads `gliders/missionTS/index.html`. The additive
+`temperature_salinity_diagrams` array preserves that index's order and includes
+historical diagrams absent from the mission catalogue. Entries contain `id`
+(the HTML filename stem), `image_url` (a verified `/gliders/missionTS/*.gif`
+path or null), and `mission_ids` (exact catalogue associations, possibly empty).
+Unavailable images retain their place in the index. Duplicate links retain their
+first position. An absent, invalid or changing index aborts publication and keeps
+the previous catalogue. No additional cron job is required.
+
+The API exposes the complete array as `{ "diagrams": [...] }` at
+`GET /api/v1/gliders/ts-diagrams`, sharing the mission catalogue cache.
+Old schema-version-1 catalogues remain valid for mission endpoints; the new
+endpoint returns 503 until the publisher supplies the index. Verify publication
+and the endpoint before deploying the frontend navigation. Browsing is circular
+and independent of deployment-table filters. The existing Gliders feature flag
+continues to control frontend access.

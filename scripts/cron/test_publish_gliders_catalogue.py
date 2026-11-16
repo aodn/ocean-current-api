@@ -26,6 +26,9 @@ class TestPublication(unittest.TestCase):
         self.html = FIXTURE.read_text(encoding="utf-8")
         self.source.write_text(self.html, encoding="utf-8")
         self.count = len(parse_catalogue(self.html)["missions"])
+        ts = Path(self.folder.name) / "missionTS"
+        ts.mkdir()
+        (ts / "index.html").write_text('<a href="sg_Historical20010101.html">Historical</a>')
 
     def publish(self, **kwargs):
         options = dict(source_complete=True)
@@ -40,7 +43,7 @@ class TestPublication(unittest.TestCase):
     def test_initial_publication_and_unchanged_output(self):
         with self.assertLogs(publisher.LOG, level="INFO") as logs:
             result = self.publish()
-        self.assertEqual(json.loads(self.destination.read_text()), parse_catalogue(self.html))
+        self.assertEqual({k: v for k, v in json.loads(self.destination.read_text()).items() if k != "temperature_salinity_diagrams"}, parse_catalogue(self.html))
         self.assertEqual(len(result["missions"]), self.count)
         self.assertEqual(self.destination.stat().st_mode & 0o777, 0o644)
         self.assertIn("previous=None new=8", "\n".join(logs.output))
@@ -153,7 +156,7 @@ class TestPublication(unittest.TestCase):
 
         self.publish()
         original = self.destination.read_bytes()
-        self.assertEqual(original, FIXTURE.with_suffix(".json").read_bytes())
+        self.assertEqual({k: v for k, v in json.loads(original).items() if k != "temperature_salinity_diagrams"}, json.loads(FIXTURE.with_suffix(".json").read_text()))
         self.source.write_text(self.html.replace("SG540", "SG541"))
         replace = writer_os.replace
         snapshots = []
@@ -170,7 +173,7 @@ class TestPublication(unittest.TestCase):
         replaced.assert_called_once()
         self.assertEqual(snapshots, [result])
         self.assertEqual(json.loads(self.destination.read_text()), result)
-        self.assertEqual(set(Path(self.folder.name).iterdir()), {self.source, self.destination})
+        self.assertEqual(set(Path(self.folder.name).iterdir()), {self.source, self.destination, Path(self.folder.name) / "missionTS"})
 
     def test_missing_unreadable_and_changing_source(self):
         self.publish()
@@ -186,6 +189,8 @@ class TestPublication(unittest.TestCase):
         calls = []
 
         def changed_source(path):
+            if path != self.source:
+                return read_source(path)
             if calls:
                 path.write_text(self.html + "<!-- new publication -->")
             calls.append(True)
@@ -249,7 +254,7 @@ class TestPublication(unittest.TestCase):
         with patch.object(publisher.time, "sleep") as sleep:
             self.publish()
         sleep.assert_not_called()
-        self.assertEqual(set(Path(self.folder.name).iterdir()), {self.source, self.destination})
+        self.assertEqual(set(Path(self.folder.name).iterdir()), {self.source, self.destination, Path(self.folder.name) / "missionTS"})
 
     def test_periodic_check_waits_and_publishes_only_stable_source(self):
         with patch.object(publisher.time, "sleep") as sleep:
@@ -324,7 +329,7 @@ class TestPublication(unittest.TestCase):
                 self.publish()
         self.assertEqual(self.destination.read_bytes(), original)
         self.assertEqual({p.name for p in Path(self.folder.name).iterdir()},
-                         {self.source.name, self.destination.name})
+                         {self.source.name, self.destination.name, "missionTS"})
 
     def test_cli_exit_codes_and_logging(self):
         args = ["--input", str(self.source), "--output", str(self.destination),
@@ -356,7 +361,7 @@ class TestPublication(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("status=0", result.stdout)
         self.assertEqual(result.stderr, "")
-        self.assertEqual(json.loads(self.destination.read_text()), parse_catalogue(self.html))
+        self.assertEqual({k: v for k, v in json.loads(self.destination.read_text()).items() if k != "temperature_salinity_diagrams"}, parse_catalogue(self.html))
         original = self.destination.read_bytes()
         self.source.unlink()
         result = subprocess.run([sys.executable] + args, capture_output=True, text=True, env=environment)
