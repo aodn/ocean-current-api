@@ -136,6 +136,8 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     catalogue = parse_catalogue(html.decode("utf-8"))
     resolve_latest_images(catalogue, source)
     resolve_image_history(catalogue, source)
+    ts_index = source.parent / "missionTS" / "index.html"
+    ts_snapshot = _read_source(ts_index)
     resolve_ts_diagrams(catalogue, source)
     new_count = validate_catalogue(catalogue)
     previous_bytes = destination.read_bytes() if destination.exists() else None
@@ -166,6 +168,8 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     current_html, current_signature = _read_source(source)
     if current_html != html or current_signature != signature:
         raise ValueError("Source changed during generation; publication aborted")
+    if _read_source(ts_index) != ts_snapshot:
+        raise ValueError("T-S index changed during generation; publication aborted")
     # Semantic equality avoids rewriting even a differently formatted valid baseline.
     changed = previous != catalogue
     if changed:

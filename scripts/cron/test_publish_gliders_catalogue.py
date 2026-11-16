@@ -125,6 +125,44 @@ class TestPublication(unittest.TestCase):
                     self.publish()
                 self.assertFalse(self.destination.exists())
 
+    def test_ts_index_changed_after_resolution_aborts_publication(self):
+        from gliders_catalogue import resolve_ts_diagrams
+
+        index = self.source.parent / "missionTS" / "index.html"
+        original_index = index.read_text()
+        for existing in (False, True):
+            self.source.write_text(self.html)
+            index.write_text(original_index)
+            if existing:
+                self.publish()
+            previous = self.destination.read_bytes() if existing else None
+            self.source.write_text(self.html.replace("SG540", "SG541"))
+            for change in ("overwrite", "replace", "remove"):
+                with self.subTest(existing=existing, change=change):
+                    index.write_text(original_index)
+
+                    def resolve_then_change(catalogue, source):
+                        result = resolve_ts_diagrams(catalogue, source)
+                        if change == "remove":
+                            index.unlink()
+                        elif change == "replace":
+                            replacement = index.with_suffix(".tmp")
+                            replacement.write_text(original_index)
+                            replacement.replace(index)
+                        else:
+                            index.write_text(original_index + "<!-- upstream update -->")
+                        return result
+
+                    with patch("gliders_catalogue.resolve_ts_diagrams", side_effect=resolve_then_change):
+                        with patch("gliders_catalogue.write_catalogue") as write:
+                            with self.assertRaises((ValueError, OSError)):
+                                self.publish()
+                        write.assert_not_called()
+                    if existing:
+                        self.assertEqual(self.destination.read_bytes(), previous)
+                    else:
+                        self.assertFalse(self.destination.exists())
+
     def test_invalid_generated_catalogue_rejected_before_any_write(self):
         valid = parse_catalogue(self.html)
         changes = [lambda c: c.update(schema_version=2),
