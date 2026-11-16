@@ -49,16 +49,21 @@ class GlidersCatalogueServiceTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"identifier", "image", "reference", "duplicate"})
-    void rejectsMalformedTsIndex(String problem) throws Exception {
+    @ValueSource(strings = {"identifier", "image", "reference", "duplicate", "empty", "not-array", "null"})
+    void malformedTsIndexDoesNotDisableMissions(String problem) throws Exception {
         var root = (ObjectNode) mapper.readTree(json);
         var diagrams = root.putArray("temperature_salinity_diagrams");
         var diagram = diagrams.addObject().put("id", problem.equals("identifier") ? "../escape" : "sg_Historical20010101");
         diagram.put("image_url", problem.equals("image") ? "https://other.example/image.gif" : "/gliders/missionTS/historical.gif");
         diagram.putArray("mission_ids").add(problem.equals("reference") ? "missing" : ID);
         if (problem.equals("duplicate")) diagrams.add(diagram.deepCopy());
+        if (problem.equals("empty")) diagrams.removeAll();
+        if (problem.equals("not-array")) root.putObject("temperature_salinity_diagrams");
+        if (problem.equals("null")) root.putNull("temperature_salinity_diagrams");
         respond(root.toString());
         assertThatThrownBy(() -> service.tsDiagrams()).isInstanceOf(GlidersCatalogueUnavailableException.class);
+        assertThat(service.mission(ID).mission().id()).isEqualTo(ID);
+        assertThat(service.missions("deployment_date", null, null, 0, 25).total()).isEqualTo(4);
     }
 
     @ParameterizedTest

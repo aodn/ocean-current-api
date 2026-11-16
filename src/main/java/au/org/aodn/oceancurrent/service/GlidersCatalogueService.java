@@ -139,29 +139,36 @@ public class GlidersCatalogueService {
                 orders.put(order, objectMapper.convertValue(values,
                         new TypeReference<List<String>>() {}));
             }
-            JsonNode diagrams = root.get("temperature_salinity_diagrams");
-            GliderTsDiagrams tsDiagrams = null;
-            if (diagrams != null) {
-                require(diagrams.isArray() && !diagrams.isEmpty(), "Invalid T-S index");
-                var seenDiagrams = new HashSet<String>();
-                for (JsonNode diagram : diagrams) {
-                    require(text(diagram.path("id")) && diagram.path("id").asText().matches("(?:sg|sl)_[A-Za-z0-9_-]+")
-                            && seenDiagrams.add(diagram.path("id").asText()), "Invalid T-S identifier");
-                    JsonNode image = diagram.path("image_url");
-                    require(image.isNull() || image.isTextual() && image.asText().matches("/gliders/missionTS/[A-Za-z0-9_-]+\\.[gG][iI][fF]"), "Invalid T-S image");
-                    require(diagram.path("mission_ids").isArray(), "Invalid T-S mission references");
-                    var seenReferences = new HashSet<String>();
-                    for (JsonNode id : diagram.path("mission_ids")) {
-                        require(text(id) && missions.containsKey(id.asText()) && seenReferences.add(id.asText()), "Invalid T-S mission reference");
-                    }
-                }
-                tsDiagrams = new GliderTsDiagrams(List.copyOf(objectMapper.convertValue(diagrams,
-                        new TypeReference<List<GliderTsDiagrams.Diagram>>() {})));
-            }
+            var tsDiagrams = readTsDiagrams(root.get("temperature_salinity_diagrams"), missions);
             return new Catalogue(Map.copyOf(missions), Map.copyOf(orders), Map.copyOf(details), tsDiagrams);
         } catch (Exception ex) {
             log.warn("Unable to load Gliders mission catalogue: {}", ex.getMessage());
             throw new GlidersCatalogueUnavailableException(ex);
+        }
+    }
+
+    /** Invalid optional diagrams must not discard otherwise valid mission data. */
+    private GliderTsDiagrams readTsDiagrams(JsonNode diagrams, Map<String, GliderMission> missions) {
+        if (diagrams == null) return null;
+        try {
+            require(diagrams.isArray() && !diagrams.isEmpty(), "Invalid T-S index");
+            var seenDiagrams = new HashSet<String>();
+            for (JsonNode diagram : diagrams) {
+                require(text(diagram.path("id")) && diagram.path("id").asText().matches("(?:sg|sl)_[A-Za-z0-9_-]+")
+                        && seenDiagrams.add(diagram.path("id").asText()), "Invalid T-S identifier");
+                JsonNode image = diagram.path("image_url");
+                require(image.isNull() || image.isTextual() && image.asText().matches("/gliders/missionTS/[A-Za-z0-9_-]+\\.[gG][iI][fF]"), "Invalid T-S image");
+                require(diagram.path("mission_ids").isArray(), "Invalid T-S mission references");
+                var seenReferences = new HashSet<String>();
+                for (JsonNode id : diagram.path("mission_ids")) {
+                    require(text(id) && missions.containsKey(id.asText()) && seenReferences.add(id.asText()), "Invalid T-S mission reference");
+                }
+            }
+            return new GliderTsDiagrams(List.copyOf(objectMapper.convertValue(diagrams,
+                    new TypeReference<List<GliderTsDiagrams.Diagram>>() {})));
+        } catch (IllegalArgumentException ex) {
+            log.warn("Ignoring invalid Gliders T-S index: {}", ex.getMessage());
+            return null;
         }
     }
 

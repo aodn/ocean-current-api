@@ -250,7 +250,8 @@ class TestTemperatureSalinityImage(unittest.TestCase):
             '<a href="sl_TwoRocks20260327.html">Current</a>'
             '<a href="sg_Historical20010101.html">Historical</a>'
             '<a href="sl_TwoRocks20260327.html">Duplicate</a>'
-            '<a href="../escape.html">Ignore</a>')
+            '<a href="../escape.html">Ignore</a>'
+            '<a href>Missing value</a><a href="">Empty value</a><a>No href</a>')
         catalogue = resolve_ts_diagrams(parse_catalogue(self.source.read_text()), self.source)
         validate_catalogue(catalogue)
         current, historical = catalogue['temperature_salinity_diagrams']
@@ -259,14 +260,47 @@ class TestTemperatureSalinityImage(unittest.TestCase):
         self.assertTrue(current['mission_ids'])
         self.assertEqual(historical, {'id': 'sg_Historical20010101', 'image_url': None, 'mission_ids': []})
 
-    def test_invalid_ts_index_preserves_published_catalogue(self):
+    def test_invalid_ts_index_does_not_block_missions(self):
         output = self.root / 'catalogue.json'
         publish_catalogue(self.source, output, source_complete=True)
-        original = output.read_bytes()
+        self.source.write_text(self.source.read_text().replace('SG540', 'SG541'))
         (self.folder / 'index.html').write_text('<html>Maintenance</html>')
-        with self.assertRaises(ValueError):
-            publish_catalogue(self.source, output, source_complete=True)
-        self.assertEqual(output.read_bytes(), original)
+        with self.assertLogs('gliders_catalogue_publication', level='WARNING'):
+            result = publish_catalogue(self.source, output, source_complete=True)
+        self.assertNotIn('temperature_salinity_diagrams', result)
+        self.assertTrue(any(m['glider_id'] == 'SG541' for m in result['missions']))
+
+    def test_diagram_images_are_rechecked_before_publication(self):
+        from gliders_catalogue import resolve_ts_diagrams
+        image = self.folder / 'sl_TwoRocks20260327.gif'
+        historical = self.folder / 'sg_Historical20010101.gif'
+        historical.write_bytes(GIF)
+        (self.folder / 'sg_Historical20010101.html').write_text('<img src=sg_Historical20010101.gif>')
+        (self.folder / 'index.html').write_text(
+            '<a href="sl_TwoRocks20260327.html">Current</a>'
+            '<a href="sg_Historical20010101.html">Historical</a>')
+
+        def resolve_then_truncate(catalogue, source):
+            result = resolve_ts_diagrams(catalogue, source)
+            image.write_bytes(b'GIF89a incomplete')
+            historical.write_bytes(b'GIF89a incomplete')
+            return result
+
+        with patch('gliders_catalogue.resolve_ts_diagrams', side_effect=resolve_then_truncate):
+            result = publish_catalogue(self.source, self.root / 'catalogue.json', source_complete=True)
+        self.assertTrue(all(d['image_url'] is None for d in result['temperature_salinity_diagrams']))
+        mission = next(m for m in result['missions'] if m['mission_name'] == 'TwoRocks20260327')
+        self.assertIsNone(mission['visualisations']['temperature_salinity_image'])
+        validate_catalogue(result)
+
+    def test_diagram_image_read_failures_are_logged(self):
+        from gliders_catalogue import resolve_ts_diagrams
+        catalogue = parse_catalogue(self.source.read_text())
+        with patch('gliders_catalogue._latest_image', side_effect=OSError('unreadable image')):
+            with self.assertLogs('gliders_catalogue', level='WARNING') as logs:
+                resolve_ts_diagrams(catalogue, self.source)
+        self.assertIsNone(catalogue['temperature_salinity_diagrams'][0]['image_url'])
+        self.assertIn(self.page.name, '\n'.join(logs.output))
 
     def resolve(self, name='TwoRocks20260327'):
         catalogue = resolve_latest_images(parse_catalogue(self.source.read_text()), self.source)

@@ -426,13 +426,16 @@ historical diagrams absent from the mission catalogue. Entries contain `id`
 (the HTML filename stem), `image_url` (a verified `/gliders/missionTS/*.gif`
 path or null), and `mission_ids` (exact catalogue associations, possibly empty).
 Unavailable images retain their place in the index. Duplicate links retain their
-first position. An absent, invalid or changing index aborts publication and keeps
-the previous catalogue. No additional cron job is required.
+first position. Diagram images are rechecked before publication; an image that
+becomes unavailable is published as null. An absent, unreadable, invalid or
+changing index is logged and omitted, so valid mission updates still publish.
+No additional cron job is required.
 
 The API exposes the complete array as `{ "diagrams": [...] }` at
 `GET /api/v1/gliders/ts-diagrams`, sharing the mission catalogue cache.
 Old schema-version-1 catalogues remain valid for mission endpoints; the new
-endpoint returns 503 until the publisher supplies the index. Verify publication
+endpoint returns 503 until the publisher supplies a valid index. Invalid T-S
+metadata is ignored by the API without disabling mission endpoints. Verify publication
 and the endpoint before deploying the frontend navigation. Browsing is circular
 and independent of deployment-table filters. The existing Gliders feature flag
 continues to control frontend access.

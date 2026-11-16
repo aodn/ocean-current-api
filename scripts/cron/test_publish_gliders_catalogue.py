@@ -125,7 +125,7 @@ class TestPublication(unittest.TestCase):
                     self.publish()
                 self.assertFalse(self.destination.exists())
 
-    def test_ts_index_changed_after_resolution_aborts_publication(self):
+    def test_ts_index_changed_after_resolution_only_disables_ts(self):
         from gliders_catalogue import resolve_ts_diagrams
 
         index = self.source.parent / "missionTS" / "index.html"
@@ -135,7 +135,6 @@ class TestPublication(unittest.TestCase):
             index.write_text(original_index)
             if existing:
                 self.publish()
-            previous = self.destination.read_bytes() if existing else None
             self.source.write_text(self.html.replace("SG540", "SG541"))
             for change in ("overwrite", "replace", "remove"):
                 with self.subTest(existing=existing, change=change):
@@ -154,14 +153,44 @@ class TestPublication(unittest.TestCase):
                         return result
 
                     with patch("gliders_catalogue.resolve_ts_diagrams", side_effect=resolve_then_change):
-                        with patch("gliders_catalogue.write_catalogue") as write:
-                            with self.assertRaises((ValueError, OSError)):
-                                self.publish()
-                        write.assert_not_called()
+                        with self.assertLogs(publisher.LOG, level="WARNING"):
+                            result = self.publish()
+                    self.assertNotIn("temperature_salinity_diagrams", result)
+                    self.assertEqual(json.loads(self.destination.read_text()), result)
+                    self.assertTrue(any(m["glider_id"] == "SG541" for m in result["missions"]))
+
+    def test_unavailable_ts_index_does_not_block_initial_or_updated_missions(self):
+        index = self.source.parent / "missionTS" / "index.html"
+        original_index = index.read_bytes()
+        read_bytes = Path.read_bytes
+        for existing in (False, True):
+            for problem in ("missing", "unreadable", "invalid", "encoding"):
+                with self.subTest(existing=existing, problem=problem):
+                    self.source.write_text(self.html)
+                    index.write_bytes(original_index)
+                    if self.destination.exists():
+                        self.destination.unlink()
                     if existing:
-                        self.assertEqual(self.destination.read_bytes(), previous)
-                    else:
-                        self.assertFalse(self.destination.exists())
+                        self.publish()
+                    self.source.write_text(self.html.replace("SG540", "SG541"))
+                    if problem == "missing":
+                        index.unlink()
+                    elif problem == "invalid":
+                        index.write_text('<a href="./sg_Historical20010101.html">Unsupported link</a>')
+                    elif problem == "encoding":
+                        index.write_bytes(b"\xff")
+
+                    def read(path):
+                        if problem == "unreadable" and path == index:
+                            raise PermissionError("T-S index is unreadable")
+                        return read_bytes(path)
+
+                    with patch.object(Path, "read_bytes", read):
+                        with self.assertLogs(publisher.LOG, level="WARNING"):
+                            result = self.publish()
+                    self.assertNotIn("temperature_salinity_diagrams", result)
+                    self.assertEqual(json.loads(self.destination.read_text()), result)
+                    self.assertTrue(any(m["glider_id"] == "SG541" for m in result["missions"]))
 
     def test_invalid_generated_catalogue_rejected_before_any_write(self):
         valid = parse_catalogue(self.html)

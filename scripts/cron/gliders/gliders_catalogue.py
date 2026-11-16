@@ -323,7 +323,7 @@ def resolve_ts_diagrams(catalogue, input_path):
     diagrams = []
     seen = set()
     for element in parser.elements:
-        href = element.attrs.get("href", "")
+        href = element.attrs.get("href") or ""
         if element.tag != "a" or not re.fullmatch(r"(?:sg|sl)_[A-Za-z0-9_-]+\.html", href):
             continue
         identifier = href[:-5]
@@ -332,7 +332,8 @@ def resolve_ts_diagrams(catalogue, input_path):
         seen.add(identifier)
         try:
             image = _latest_image(folder, urljoin(catalogue["source_url"], "missionTS/" + href), href)
-        except (OSError, ValueError, UnicodeError):
+        except (OSError, ValueError, UnicodeError) as error:
+            logging.getLogger("gliders_catalogue").warning("Unable to resolve T-S image %s: %s", href, error)
             image = None
         page_url = urlparse(urljoin(catalogue["source_url"], "missionTS/" + href))
         ids = []
