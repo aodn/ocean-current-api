@@ -313,6 +313,42 @@ def resolve_latest_images(catalogue, input_path):
 
 
 
+def resolve_ts_diagrams(catalogue, input_path):
+    """Publish the original complete T-S index independently of mission membership."""
+    folder = Path(input_path).parent / "missionTS"
+    content, signature = _snapshot(folder / "index.html")
+    parser = _CatalogueParser()
+    parser.feed(content.decode("utf-8"))
+    parser.close()
+    diagrams = []
+    seen = set()
+    for element in parser.elements:
+        href = element.attrs.get("href") or ""
+        if element.tag != "a" or not re.fullmatch(r"(?:sg|sl)_[A-Za-z0-9_-]+\.html", href):
+            continue
+        identifier = href[:-5]
+        if identifier in seen:
+            continue
+        seen.add(identifier)
+        try:
+            image = _latest_image(folder, urljoin(catalogue["source_url"], "missionTS/" + href), href)
+        except (OSError, ValueError, UnicodeError) as error:
+            logging.getLogger("gliders_catalogue").warning("Unable to resolve T-S image %s: %s", href, error)
+            image = None
+        page_url = urlparse(urljoin(catalogue["source_url"], "missionTS/" + href))
+        ids = []
+        for mission in catalogue["missions"]:
+            reference = urlparse(mission.get("temperature_salinity_url") or "")
+            if (reference.netloc == page_url.netloc and reference.path == page_url.path
+                    and not reference.query and not reference.fragment):
+                ids.append(mission["id"])
+        diagrams.append({"id": identifier, "image_url": image, "mission_ids": ids})
+    if not diagrams or _snapshot(folder / "index.html")[1] != signature:
+        raise ValueError("Missing or changing T-S index")
+    catalogue["temperature_salinity_diagrams"] = diagrams
+    return catalogue
+
+
 def mission_windows(record, source, prefix, window):
     """Resolve only published links belonging to this mission and window."""
     folders = {record["mission_name"] + "_" + window}

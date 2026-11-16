@@ -39,6 +39,30 @@ class GlidersMissionControllerTest {
     }
 
     @Test
+    void returnsCompleteTsIndexIncludingUnassociatedHistory() throws Exception {
+        var mapper = new ObjectMapper();
+        var root = (com.fasterxml.jackson.databind.node.ObjectNode) mapper.readTree(
+                new ClassPathResource("gliders/catalogue-v1.json").getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        var diagrams = root.putArray("temperature_salinity_diagrams");
+        diagrams.addObject().put("id", "sg_Historical20010101").putNull("image_url").putArray("mission_ids");
+        diagrams.addObject().put("id", "sl_TwoRocks20260327")
+                .put("image_url", "/gliders/missionTS/sl_TwoRocks20260327.gif")
+                .putArray("mission_ids").add("TwoRocks20260327@5.00");
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        mvc.perform(get("/gliders/ts-diagrams")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.diagrams[0].id").value("sg_Historical20010101"))
+                .andExpect(jsonPath("$.diagrams[0].image_url").isEmpty())
+                .andExpect(jsonPath("$.diagrams[0].mission_ids").isEmpty())
+                .andExpect(jsonPath("$.diagrams[1].mission_ids[0]").value("TwoRocks20260327@5.00"));
+    }
+
+    @Test
+    void oldCatalogueSupportsMissionsWhileTsIndexIsUnavailable() throws Exception {
+        mvc.perform(get("/gliders/ts-diagrams")).andExpect(status().isServiceUnavailable());
+        mvc.perform(get("/gliders/missions")).andExpect(status().isOk());
+    }
+
+    @Test
     void returnsHistoryOnlyOnMissionDetail() throws Exception {
         var mapper = new ObjectMapper();
         var root = mapper.readTree(new ClassPathResource("gliders/catalogue-v1.json")

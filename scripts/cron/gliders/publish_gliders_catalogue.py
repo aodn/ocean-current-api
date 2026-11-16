@@ -4,6 +4,7 @@ import copy
 import json
 import logging
 import math
+import re
 from pathlib import Path
 import sys
 import time
@@ -82,6 +83,22 @@ def validate_catalogue(catalogue):
         require(isinstance(order, list) and all(isinstance(item, str) for item in order), "Missing or invalid order: " + view)
         require(len(order) == len(set(order)) and set(order).issubset(ids), "Invalid order references: " + view)
         require(bool(order) or view == "event_based_sampling", "Empty order: " + view)
+    if "temperature_salinity_diagrams" in catalogue:
+        diagrams = catalogue["temperature_salinity_diagrams"]
+        require(isinstance(diagrams, list) and bool(diagrams), "Empty T-S index")
+        seen = set()
+        for diagram in diagrams:
+            require(isinstance(diagram, dict), "Invalid T-S diagram")
+            identifier = diagram.get("id")
+            require(isinstance(identifier, str) and re.fullmatch(r"(?:sg|sl)_[A-Za-z0-9_-]+", identifier)
+                    and identifier not in seen, "Invalid or duplicate T-S id")
+            seen.add(identifier)
+            image = diagram.get("image_url")
+            require("image_url" in diagram and (image is None or isinstance(image, str)
+                    and re.fullmatch(r"/gliders/missionTS/[A-Za-z0-9_-]+\.[gG][iI][fF]", image)), "Invalid T-S image")
+            references = diagram.get("mission_ids")
+            require(isinstance(references, list) and all(isinstance(value, str) and value in ids for value in references)
+                    and len(references) == len(set(references)), "Invalid T-S mission references")
     return len(missions)
 
 
@@ -102,7 +119,7 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     Quiet snapshots cannot prove upstream completion. Executions may overlap;
     atomic replacement prevents partial JSON reads but does not serialize updates.
     """
-    from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history, write_catalogue
+    from gliders_catalogue import parse_catalogue, resolve_latest_images, resolve_image_history, resolve_ts_diagrams, write_catalogue
 
     source, destination = Path(source), Path(destination)
     if not math.isfinite(stability_seconds) or stability_seconds <= 0:
@@ -120,6 +137,14 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
     resolve_latest_images(catalogue, source)
     resolve_image_history(catalogue, source)
     new_count = validate_catalogue(catalogue)
+    ts_index = source.parent / "missionTS" / "index.html"
+    try:
+        ts_snapshot = _read_source(ts_index)
+        resolve_ts_diagrams(catalogue, source)
+        validate_catalogue(catalogue)
+    except (OSError, ValueError) as error:
+        catalogue.pop("temperature_salinity_diagrams", None)
+        LOG.warning("Omitting optional T-S index: %s", error)
     previous_bytes = destination.read_bytes() if destination.exists() else None
     previous = json.loads(previous_bytes) if previous_bytes is not None else None
     previous_count = validate_catalogue(previous) if previous_bytes is not None else None
@@ -145,6 +170,19 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
         for window, group in record.get("image_history", {}).items():
             current = observed.get("image_history", {}).get(window, {})
             group["files"] = sorted(set(group["files"]) & set(current.get("files", [])))
+    if "temperature_salinity_diagrams" in catalogue:
+        try:
+            checked_diagrams = resolve_ts_diagrams(copy.deepcopy(catalogue), source)
+            images = {d["id"]: d["image_url"] for d in checked_diagrams["temperature_salinity_diagrams"]}
+            for diagram in catalogue["temperature_salinity_diagrams"]:
+                if diagram["image_url"] != images.get(diagram["id"]):
+                    LOG.warning("T-S image changed during generation: %s", diagram["id"])
+                    diagram["image_url"] = None
+            if _read_source(ts_index) != ts_snapshot:
+                raise ValueError("T-S index changed during generation")
+        except (OSError, ValueError) as error:
+            catalogue.pop("temperature_salinity_diagrams", None)
+            LOG.warning("Omitting optional T-S index: %s", error)
     current_html, current_signature = _read_source(source)
     if current_html != html or current_signature != signature:
         raise ValueError("Source changed during generation; publication aborted")
