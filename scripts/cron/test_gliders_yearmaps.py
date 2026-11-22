@@ -347,16 +347,19 @@ class PublicationTests(unittest.TestCase):
 
     def test_deterministic_unchanged_and_reference_json(self):
         (self.source / 'index.html').write_text('<html>Directory listing</html>')
-        expected_file = FIXTURES / 'expected.json'
-        baseline = json.loads(expected_file.read_bytes())
-        for entry in baseline['maps']:
-            for deployment in entry['deployments']:
-                del deployment['plot_pixel_rects']
-        self.output.write_text(json.dumps(baseline))
-        self.publish()
-        # The reference covers the additive image URLs, map/deployment order, links, and bounds.
-        expected = expected_file.read_bytes()
-        self.assertEqual(self.output.read_bytes(), expected)
+        expected = (FIXTURES / 'expected.json').read_bytes()
+        for has_image_url in (False, True):
+            with self.subTest(has_image_url=has_image_url):
+                baseline = json.loads(expected)
+                for entry in baseline['maps']:
+                    if not has_image_url:
+                        del entry['image_url']
+                    for deployment in entry['deployments']:
+                        del deployment['plot_pixel_rects']
+                self.output.write_text(json.dumps(baseline))
+                self.publish()
+                self.assertEqual(self.output.read_bytes(), expected)
+
         previous = self.output.stat()
         self.publish()
         self.assertEqual(self.output.read_bytes(), expected)
