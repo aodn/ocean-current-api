@@ -34,6 +34,7 @@ class ParsingTests(unittest.TestCase):
                 self.assertEqual(len(deployments), 1)
                 self.assertEqual(deployments[0]['pixel_rect'],
                                  list(map(int, re.split(r'[\s,]+', coords))))
+                self.assertEqual(deployments[0]['plot_pixel_rects'], [[1231, 70, 1245, 95]])
                 self.assertEqual(deployments[0]['url'], '/gliders/TimorSea20181017a_4d/latest.html')
                 self.assertIsNone(deployments[0]['bbox'])
 
@@ -76,6 +77,7 @@ class ParsingTests(unittest.TestCase):
         _, deployments = generator.parse_yearmap((FIXTURES / NAME).read_text(), NAME)
         esperance = next(d for d in deployments if d['mission_name'] == 'Esperance20260526_nrt')
         self.assertEqual(esperance['pixel_rect'], [204, 368, 232, 393])
+        self.assertEqual(esperance['plot_pixel_rects'], [[997, 455, 1051, 486]])
         self.assertEqual(esperance['url'], '/gliders/Esperance20260526_nrt_4d/latest.html')
 
     def test_malformed_incomplete_and_mismatched_html(self):
@@ -98,16 +100,27 @@ class ParsingTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 generator.map_metadata(name)
 
-    def test_title_only_legacy_labels_and_ignored_non_geographic_areas(self):
+    def test_title_only_legacy_labels(self):
         for name in ['2018_sg_temp_04d.html', NAME]:
             html = (FIXTURES / name).read_text()
             expected = generator.parse_yearmap(html, name)[1]
             title_only = re.sub(r' alt="[^"]*"', '', html)
             self.assertEqual(generator.parse_yearmap(title_only, name)[1], expected)
-        # Neither non-geographic coordinates nor the displayed GIF participates in geometry.
-        html = html.replace('997   455  1051   486', 'not geographic coordinates')
-        html = html.replace('2026_sl_temp_nrt.gif', 'missing.gif')
-        self.assertEqual(generator.parse_yearmap(html, NAME)[1], expected)
+
+    def test_invalid_plot_area_preserves_map_rectangle(self):
+        html = (FIXTURES / NAME).read_text()
+        plot_coords = '997   455  1051   486'
+        plot_link = f'{plot_coords}" href="../Esperance20260526_nrt_4d/latest.html"'
+        for original, replacement in (
+            (plot_coords, 'not plot coordinates'),
+            (plot_link, plot_link.replace('Esperance20260526_nrt', 'other')),
+        ):
+            with self.subTest(replacement=replacement):
+                with self.assertLogs(generator.LOG, level='WARNING'):
+                    _, deployments = generator.parse_yearmap(html.replace(original, replacement), NAME)
+                esperance = next(d for d in deployments if d['mission_name'] == 'Esperance20260526_nrt')
+                self.assertEqual(esperance['pixel_rect'], [204, 368, 232, 393])
+                self.assertNotIn('plot_pixel_rects', esperance)
 
 
 class GeographyTests(unittest.TestCase):
@@ -317,7 +330,8 @@ class PublicationTests(unittest.TestCase):
         legacy = next(m for m in result['maps'] if m['id'] == LEGACY_NAME[:-5])
         self.assertEqual(legacy['deployments'], [dict(
             mission_name='TimorSea20181017a', pixel_rect=[268, -40, 289, -22],
-            bbox=None, url='/gliders/TimorSea20181017a_4d/latest.html')])
+            bbox=None, url='/gliders/TimorSea20181017a_4d/latest.html',
+            plot_pixel_rects=[[1231, 70, 1245, 95]])])
         self.assertIsNone(legacy['image_url'])
         self.assertEqual(json.loads(self.output.read_text()), result)
         # The signed rectangle is also accepted when validating the published baseline.
@@ -336,7 +350,8 @@ class PublicationTests(unittest.TestCase):
         expected_file = FIXTURES / 'expected.json'
         baseline = json.loads(expected_file.read_bytes())
         for entry in baseline['maps']:
-            del entry['image_url']
+            for deployment in entry['deployments']:
+                del deployment['plot_pixel_rects']
         self.output.write_text(json.dumps(baseline))
         self.publish()
         # The reference covers the additive image URLs, map/deployment order, links, and bounds.
@@ -458,6 +473,8 @@ class PublicationTests(unittest.TestCase):
                    lambda d: d['maps'].append(d['maps'][0]),
                    lambda d: d['maps'][0].update(image_url='/gliders/yearmaps/2000_sg_temp.gif'),
                    lambda d: d['maps'][0]['deployments'][0].update(pixel_rect=[1, 2, 0, 3]),
+                   lambda d: d['maps'][0]['deployments'][0].update(plot_pixel_rects=[1, 2, 3, 4]),
+                   lambda d: d['maps'][0]['deployments'][0].update(plot_pixel_rects=[[1, 2, 0, 3]]),
                    lambda d: d['maps'][0]['deployments'][0].update(url='https://other/'),
                    lambda d: d['maps'][0]['deployments'][0].update(bbox=[-200, -40, 120, -30])]
         for change in changes:
