@@ -308,13 +308,19 @@ scans mission directories. The catalogue generator and its schema are unchanged.
 
 The frontend fetches `/resource/api/gliders/gliders-yearmaps.json` through the existing
 resource proxy. Schema version 1 contains `maps`, each with `id`, `year`,
-`platform`, `variable`, `window`, `is_nrt`, and `deployments`. Each deployment
+`platform`, `variable`, `window`, `is_nrt`, `image_url`, and `deployments`. The
+image URL is read from the original GIF attached to the HTML image map and is
+null when the association cannot be verified. Each deployment
 contains only `mission_name`, `pixel_rect`, `bbox`, and the original mission
-`url`. Pixel coordinates use `[x1,y1,x2,y2]`; WGS84 bounds use
-`[west,south,east,north]`. No GIF paths/dimensions, calendar regions, calibration
-configuration or duplicate mission metadata are included. `/gliders/...` mission
-links are website-root-relative; prepend `/resource` when opening them through
-the resource proxy. The geographic JSON uses the former scanner inventory path.
+`url`. Pixel coordinates use `[x1,y1,x2,y2]` on the original GIF and identify
+the first mission rectangle in the map. WGS84 bounds use `[west,south,east,north]`.
+The figure and mission paths are website-root-relative. Prepend `/resource`
+when opening them through the resource proxy.
+
+Run the Gliders publisher after the generator reaches `main`, or wait for its
+next scheduled run, before releasing Annual plots. Each run regenerates the
+whole index from the legacy HTML, including all historical year-maps. Existing
+schema version 1 files remain valid as publication baselines.
 
 Run with saved real fixtures (no network or GIFs required):
 

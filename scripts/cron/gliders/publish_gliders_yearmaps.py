@@ -10,7 +10,7 @@ import time
 
 from gliders_catalogue import MISSION, _snapshot, write_catalogue
 from gliders_logging import configure_logging
-from gliders_yearmaps import generate_yearmaps, map_metadata, valid_mission_path
+from gliders_yearmaps import generate_yearmaps, map_metadata, valid_mission_path, yearmap_image_name
 from publish_gliders_catalogue import validate_catalogue
 
 LOG = logging.getLogger("gliders_yearmaps_publication")
@@ -31,6 +31,8 @@ def validate_yearmaps(document):
         require(isinstance(entry, dict) and isinstance(entry.get("id"), str), "Invalid map")
         metadata = map_metadata(entry["id"] + ".html")
         require(all(type(entry.get(k)) is type(v) and entry[k] == v for k, v in metadata.items()), "Invalid map identity")
+        require(entry.get("image_url") in (None, "/gliders/yearmaps/" + yearmap_image_name(metadata)),
+                "Invalid year-map image URL")
         ids.append(entry["id"])
         deployments = entry.get("deployments")
         require(isinstance(deployments, list), "Invalid deployments")

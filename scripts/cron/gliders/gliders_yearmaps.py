@@ -119,9 +119,13 @@ def source_image(html, filename):
     images = [e for e in parser.elements if e.tag == "img" and e.attrs.get("usemap")]
     if len(maps) != 1 or len(images) != 1 or images[0].attrs["usemap"] != "#" + maps[0].attrs.get("name", ""):
         return None
-    expected = "%d_%s_%s%s.gif" % (metadata["year"], metadata["platform"], metadata["variable"],
-                                   "_nrt" if metadata["is_nrt"] else "")
+    expected = yearmap_image_name(metadata)
     return expected if images[0].attrs.get("src", "").strip() == expected else None
+
+
+def yearmap_image_name(metadata):
+    return "%d_%s_%s%s.gif" % (metadata["year"], metadata["platform"], metadata["variable"],
+                               "_nrt" if metadata["is_nrt"] else "")
 
 
 def inside(rect, panel):
@@ -233,6 +237,8 @@ def generate_yearmaps(sources, catalogue):
     for filename in sorted(sources):
         html = sources[filename].decode("utf-8")
         metadata, deployments = parse_yearmap(html, filename)
+        image = source_image(html, filename)
+        metadata["image_url"] = "/gliders/yearmaps/" + image if image else None
         try:
             panel = PANELS.get((metadata["platform"], metadata["year"]))
             if panel is None:
@@ -251,7 +257,7 @@ def generate_yearmaps(sources, catalogue):
                      calibration["samples"], calibration["max_error"], calibration["rms_error"], calibration["held_out_error"])
         except ValueError as error:
             # Maps the per-map fit cannot verify may reuse their source image's reviewed layout.
-            layout = VERIFIED_IMAGES.get(source_image(html, filename))
+            layout = VERIFIED_IMAGES.get(image)
             try:
                 if layout is None:
                     raise ValueError("source image layout not verified")

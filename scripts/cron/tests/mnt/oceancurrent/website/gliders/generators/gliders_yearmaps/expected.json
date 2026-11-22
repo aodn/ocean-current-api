@@ -8,6 +8,7 @@
       "variable": "temp",
       "window": "04d",
       "is_nrt": false,
+      "image_url": "/gliders/yearmaps/2018_sg_temp.gif",
       "deployments": [
         {
           "mission_name": "Brisbane20180306A",
@@ -82,6 +83,7 @@
       "variable": "temp",
       "window": "04d",
       "is_nrt": false,
+      "image_url": "/gliders/yearmaps/2025_sl_temp.gif",
       "deployments": [
         {
           "mission_name": "Adelaide20251128",
@@ -524,6 +526,7 @@
       "variable": "temp",
       "window": "04d",
       "is_nrt": true,
+      "image_url": "/gliders/yearmaps/2026_sl_temp_nrt.gif",
       "deployments": [
         {
           "mission_name": "CapricornChannel20260723_nrt",

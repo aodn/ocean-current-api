@@ -318,6 +318,7 @@ class PublicationTests(unittest.TestCase):
         self.assertEqual(legacy['deployments'], [dict(
             mission_name='TimorSea20181017a', pixel_rect=[268, -40, 289, -22],
             bbox=None, url='/gliders/TimorSea20181017a_4d/latest.html')])
+        self.assertIsNone(legacy['image_url'])
         self.assertEqual(json.loads(self.output.read_text()), result)
         # The signed rectangle is also accepted when validating the published baseline.
         with self.assertLogs(generator.LOG, level='WARNING'):
@@ -332,9 +333,14 @@ class PublicationTests(unittest.TestCase):
 
     def test_deterministic_unchanged_and_reference_json(self):
         (self.source / 'index.html').write_text('<html>Directory listing</html>')
+        expected_file = FIXTURES / 'expected.json'
+        baseline = json.loads(expected_file.read_bytes())
+        for entry in baseline['maps']:
+            del entry['image_url']
+        self.output.write_text(json.dumps(baseline))
         self.publish()
-        expected = (FIXTURES / 'expected.json').read_bytes()
-        # The reference covers map/deployment order, links, geographic bounds and null fallbacks.
+        # The reference covers the additive image URLs, map/deployment order, links, and bounds.
+        expected = expected_file.read_bytes()
         self.assertEqual(self.output.read_bytes(), expected)
         previous = self.output.stat()
         self.publish()
@@ -450,6 +456,7 @@ class PublicationTests(unittest.TestCase):
                 self.publish(stability_seconds=seconds)
         changes = [lambda d: d.update(schema_version=True), lambda d: d.update(maps=[]),
                    lambda d: d['maps'].append(d['maps'][0]),
+                   lambda d: d['maps'][0].update(image_url='/gliders/yearmaps/2000_sg_temp.gif'),
                    lambda d: d['maps'][0]['deployments'][0].update(pixel_rect=[1, 2, 0, 3]),
                    lambda d: d['maps'][0]['deployments'][0].update(url='https://other/'),
                    lambda d: d['maps'][0]['deployments'][0].update(bbox=[-200, -40, 120, -30])]
