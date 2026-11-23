@@ -54,13 +54,26 @@ def valid_mission_path(name, path, metadata):
             path in {"/gliders/" + folder + "/latest.html" for folder in folders})
 
 
-def parse_yearmap(html, filename):
-    """Read the first mission-labelled rectangle; later links are not geometry.
+def _mission_area(attrs, name, filename, metadata):
+    if attrs.get("shape", "").lower() != "rect":
+        raise ValueError("Unsupported mission area shape: " + name)
+    parts = re.split(r"[\s,]+", attrs.get("coords", "").strip())
+    if len(parts) != 4 or any(not re.fullmatch(r"[+-]?[0-9]+", p) for p in parts):
+        raise ValueError("Malformed mission rectangle: " + name)
+    x1, y1, x2, y2 = rect = list(map(int, parts))
+    if x1 >= x2 or y1 >= y2:
+        raise ValueError("Reversed or empty mission rectangle: " + name)
+    href = attrs.get("href", "")
+    if not re.fullmatch(r"(?:\.\./|/gliders/)[A-Za-z0-9_-]+/latest\.html", href):
+        raise ValueError("Unexpected mission link: " + name)
+    path = urljoin("/gliders/yearmaps/" + filename, href)
+    if not valid_mission_path(name, path, metadata):
+        raise ValueError("Unexpected mission link: " + name)
+    return rect, path
 
-    In the saved CSIRO sources the geographic rectangle precedes other links for
-    that mission. Mission labels (title or alt) and URL must agree. Panel
-    position is geographic eligibility, checked per mission when generating. SL*/SG* text links are excluded. No GIF or calendar data is read.
-    """
+
+def parse_yearmap(html, filename):
+    """Read the geographic rectangle followed by plot rectangles for each mission."""
     metadata = map_metadata(filename)
     if not re.search(r"</html\s*>\s*$", html, re.I):
         raise ValueError("Incomplete year-map HTML: " + filename)
@@ -84,23 +97,18 @@ def parse_yearmap(html, filename):
         if len(labels) != 1:
             raise ValueError("Conflicting mission labels")
         name = labels.pop()
-        if name in deployments:
+        deployment = deployments.get(name)
+        try:
+            rect, path = _mission_area(attrs, name, filename, metadata)
+        except ValueError as error:
+            if deployment is None:
+                raise
+            LOG.warning("Skipping invalid plot area map=%s: %s", metadata["id"], error)
             continue
-        if attrs.get("shape", "").lower() != "rect":
-            raise ValueError("Unsupported mission area shape: " + name)
-        parts = re.split(r"[\s,]+", attrs.get("coords", "").strip())
-        if len(parts) != 4 or any(not re.fullmatch(r"[+-]?[0-9]+", p) for p in parts):
-            raise ValueError("Malformed mission rectangle: " + name)
-        x1, y1, x2, y2 = rect = list(map(int, parts))
-        if x1 >= x2 or y1 >= y2:
-            raise ValueError("Reversed or empty mission rectangle: " + name)
-        href = attrs.get("href", "")
-        if not re.fullmatch(r"(?:\.\./|/gliders/)[A-Za-z0-9_-]+/latest\.html", href):
-            raise ValueError("Unexpected mission link: " + name)
-        path = urljoin("/gliders/yearmaps/" + filename, href)
-        if not valid_mission_path(name, path, metadata):
-            raise ValueError("Unexpected mission link: " + name)
-        deployments[name] = dict(mission_name=name, pixel_rect=rect, bbox=None, url=path)
+        if deployment is None:
+            deployments[name] = dict(mission_name=name, pixel_rect=rect, bbox=None, url=path)
+        elif rect != deployment["pixel_rect"] and rect not in deployment.get("plot_pixel_rects", []):
+            deployment.setdefault("plot_pixel_rects", []).append(rect)
     return metadata, [deployments[name] for name in sorted(deployments)]
 
 

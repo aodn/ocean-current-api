@@ -311,9 +311,10 @@ resource proxy. Schema version 1 contains `maps`, each with `id`, `year`,
 `platform`, `variable`, `window`, `is_nrt`, `image_url`, and `deployments`. The
 image URL is read from the original GIF attached to the HTML image map and is
 null when the association cannot be verified. Each deployment
-contains only `mission_name`, `pixel_rect`, `bbox`, and the original mission
+contains `mission_name`, `pixel_rect`, `bbox`, optional `plot_pixel_rects`, and the original mission
 `url`. Pixel coordinates use `[x1,y1,x2,y2]` on the original GIF and identify
-the first mission rectangle in the map. WGS84 bounds use `[west,south,east,north]`.
+the first mission rectangle on the map and any subsequent mission rectangles on
+the time plots. WGS84 bounds use `[west,south,east,north]` and apply to the map rectangle.
 The figure and mission paths are website-root-relative. Prepend `/resource`
 when opening them through the resource proxy.
 

@@ -22,6 +22,10 @@ def validate_yearmaps(document):
         if not condition:
             raise ValueError(message)
 
+    def validate_rect(rect, field):
+        require(isinstance(rect, list) and len(rect) == 4 and all(type(v) is int for v in rect), "Invalid " + field)
+        require(rect[0] < rect[2] and rect[1] < rect[3], "Invalid rectangle extent")
+
     require(isinstance(document, dict) and type(document.get("schema_version")) is int
             and document["schema_version"] == 1, "Expected schema_version == 1")
     maps = document.get("maps")
@@ -42,9 +46,11 @@ def validate_yearmaps(document):
             name = deployment.get("mission_name")
             require(isinstance(name, str) and MISSION.fullmatch(name), "Invalid mission name")
             names.append(name)
-            rect = deployment.get("pixel_rect")
-            require(isinstance(rect, list) and len(rect) == 4 and all(type(v) is int for v in rect), "Invalid pixel_rect")
-            require(rect[0] < rect[2] and rect[1] < rect[3], "Invalid rectangle extent")
+            validate_rect(deployment.get("pixel_rect"), "pixel_rect")
+            plots = deployment.get("plot_pixel_rects", [])
+            require(isinstance(plots, list), "Invalid plot_pixel_rects")
+            for rect in plots:
+                validate_rect(rect, "plot_pixel_rects")
             require(valid_mission_path(name, deployment.get("url"), metadata), "Invalid deployment URL")
             require("bbox" in deployment, "Missing bbox")
             bbox = deployment["bbox"]
