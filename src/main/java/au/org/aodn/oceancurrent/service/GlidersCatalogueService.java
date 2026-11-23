@@ -187,6 +187,7 @@ public class GlidersCatalogueService {
                 boolean correctPath = path.equals("/gliders/" + mission.missionName() + "_" + window)
                         || (mission.isNrt() && path.equals("/gliders/" + mission.missionId() + "_" + window + "_nrt"));
                 require(group.isObject() && correctPath && group.path("files").isArray(), "Invalid history group");
+                var projections = projectedTracks(group.path("projected_tracks"), mission, window);
                 String previous = "";
                 for (JsonNode file : group.path("files")) {
                     require(text(file) && file.textValue().matches("[0-9]{10}\\.[gG][iI][fF]"),
@@ -195,13 +196,32 @@ public class GlidersCatalogueService {
                     require(name.compareTo(previous) > 0, "Unordered or duplicate history");
                     LocalDateTime date = LocalDateTime.parse(name.substring(0, 10), timestamp);
                     frames.add(new GliderMissionDetail.Frame(date.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                            path + "/" + name));
+                            path + "/" + name, projections.get(name.substring(0, 10))));
                     previous = name;
                 }
             }
             result.put(window, List.copyOf(frames));
         }
         return java.util.Collections.unmodifiableMap(result);
+    }
+
+    private Map<String, String> projectedTracks(JsonNode group, GliderMission mission, String window) {
+        if (group.isMissingNode() || !mission.isNrt()) return Map.of();
+        String path = group.path("path").asText();
+        boolean correctPath = path.equals("/gliders/nav" + mission.missionName() + "_" + window)
+                || path.equals("/gliders/nav" + mission.missionId() + "_" + window + "_nrt");
+        if (!correctPath || !group.path("files").isArray()) return Map.of();
+
+        Map<String, String> images = new LinkedHashMap<>();
+        var ambiguous = new HashSet<String>();
+        for (JsonNode file : group.path("files")) {
+            String name = file.asText();
+            if (!file.isTextual() || !name.matches("[0-9]{10}\\.[gG][iI][fF]")) continue;
+            String hour = name.substring(0, 10);
+            if (images.putIfAbsent(hour, path + "/" + name) != null) ambiguous.add(hour);
+        }
+        ambiguous.forEach(images::remove);
+        return images;
     }
 
     private void validateMission(JsonNode node) {

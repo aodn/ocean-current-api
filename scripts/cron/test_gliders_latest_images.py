@@ -38,6 +38,36 @@ class TestLatestImages(unittest.TestCase):
     def publish(self):
         return publish_catalogue(self.source, self.output, source_complete=True)
 
+    def test_publishes_matching_nrt_projection_frames(self):
+        source = self.source.read_text()
+        catalogue = parse_catalogue(source)
+        mission = next(m for m in catalogue["missions"] if m["is_nrt"])
+        name = mission["mission_name"]
+        for window in ("4d", "12d", "30d"):
+            profile = self.root / (name + "_" + window)
+            profile.mkdir()
+            for hour in ("2026101500", "2026101512"):
+                (profile / (hour + ".gif")).write_bytes(GIF)
+            nav = self.root / ("nav" + (mission["mission_id"] + "_" + window + "_nrt"
+                                       if window == "12d" else profile.name))
+            nav.mkdir()
+            (nav / "2026101500.GIF").write_bytes(GIF)
+            (nav / "2026101512.gif").write_bytes(b"GIF89a incomplete")
+            (nav / "2026101600.gif").write_bytes(GIF)
+        mission["visualisations"]["details"] = [
+            {"label": window, "url": f"https://oceancurrent.aodn.org.au/gliders/{name}_{window}/latest.html"}
+            for window in ("4d", "12d", "30d")]
+        with patch("gliders_catalogue.parse_catalogue", return_value=catalogue):
+            result = self.publish()
+        for window, group in mission["image_history"].items():
+            expected = (mission["mission_id"] + "_12d_nrt" if window == "12d" else name + "_" + window)
+            self.assertEqual(group["projected_tracks"], {
+                "path": "/gliders/nav" + expected, "files": ["2026101500.GIF"],
+            })
+        self.assertEqual(len(mission["image_history"]), 3)
+        delayed = next(m for m in result["missions"] if m["mission_name"] == "TwoRocks20260327")
+        self.assertNotIn("projected_tracks", delayed["image_history"]["4d"])
+
     def test_history_is_sorted_and_ignores_invalid_frames(self):
         for name in ("2026041212.gif", "2026041200.gif", "2026023000.gif", "notes.gif"):
             (self.window / name).write_bytes(GIF)

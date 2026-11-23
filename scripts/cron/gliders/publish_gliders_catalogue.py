@@ -170,6 +170,14 @@ def publish_catalogue(source, destination, *, source_complete=False, stability_s
         for window, group in record.get("image_history", {}).items():
             current = observed.get("image_history", {}).get(window, {})
             group["files"] = sorted(set(group["files"]) & set(current.get("files", [])))
+            projected = group.pop("projected_tracks", None)
+            observed_tracks = current.get("projected_tracks", {})
+            if projected and projected["path"] == observed_tracks.get("path"):
+                hours = {file[:10] for file in group["files"]}
+                verified = set(projected["files"]) & set(observed_tracks["files"])
+                files = sorted(file for file in verified if file[:10] in hours)
+                if files:
+                    group["projected_tracks"] = {"path": projected["path"], "files": files}
     if "temperature_salinity_diagrams" in catalogue:
         try:
             checked_diagrams = resolve_ts_diagrams(copy.deepcopy(catalogue), source)
