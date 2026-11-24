@@ -1,5 +1,6 @@
 """Generate mission metadata from the legacy OceanCurrent Gliders catalogue."""
 import argparse
+from collections import Counter
 from datetime import date, datetime
 from html.parser import HTMLParser
 import json
@@ -366,6 +367,22 @@ def mission_windows(record, source, prefix, window):
     return sorted(candidates)
 
 
+def _projection_folders(record, window):
+    return {"nav" + record["mission_name"] + "_" + window,
+            "nav" + record["mission_id"] + "_" + window + "_nrt"}
+
+
+def _validate_history_files(files):
+    if not isinstance(files, list) or not all(isinstance(f, str) for f in files):
+        raise ValueError("Invalid image_history files")
+    if files != sorted(set(files)):
+        raise ValueError("Unordered or duplicate image_history")
+    for filename in files:
+        if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", filename):
+            raise ValueError("Invalid history filename")
+        datetime.strptime(filename[:10], "%Y%m%d%H")
+
+
 def validate_image_history(history, record):
     """Validate compact history, including its mission/window association."""
     if not isinstance(history, dict) or set(history) - {"4d", "12d", "30d"}:
@@ -376,15 +393,50 @@ def validate_image_history(history, record):
             folders.add(record["mission_id"] + "_" + window + "_nrt")
         if not isinstance(group, dict) or group.get("path") not in {"/gliders/" + f for f in folders}:
             raise ValueError("Invalid image_history path")
-        files = group.get("files")
-        if not isinstance(files, list) or not all(isinstance(f, str) for f in files):
-            raise ValueError("Invalid image_history files")
-        if files != sorted(set(files)):
-            raise ValueError("Unordered or duplicate image_history")
-        for filename in files:
-            if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", filename):
-                raise ValueError("Invalid history filename")
-            datetime.strptime(filename[:10], "%Y%m%d%H")
+        _validate_history_files(group.get("files"))
+        if "projected_tracks" in group:
+            projected = group["projected_tracks"]
+            if (not record["is_nrt"] or not isinstance(projected, dict)
+                    or projected.get("path") not in {"/gliders/" + f for f in _projection_folders(record, window)}):
+                raise ValueError("Invalid projected tracks path")
+            _validate_history_files(projected.get("files"))
+
+
+def _history_files(base, folder):
+    log = logging.getLogger("gliders_catalogue")
+    try:
+        if folder.resolve() != base.resolve() / folder.name:
+            raise ValueError("Mission folder resolves outside its expected path")
+        files = []
+        with os.scandir(folder) as entries:
+            for entry in entries:
+                if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", entry.name):
+                    continue
+                try:
+                    datetime.strptime(entry.name[:10], "%Y%m%d%H")
+                    path = Path(entry.path)
+                    if path.resolve().parent != folder.resolve():
+                        raise ValueError("Image resolves outside its mission folder")
+                    before = path.stat()
+                    with path.open("rb") as stream:
+                        header = stream.read(6)
+                        stream.seek(-1, os.SEEK_END)
+                        trailer = stream.read(1)
+                    after = path.stat()
+                    before_signature = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                    after_signature = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
+                    if (before_signature != after_signature or before.st_size < 14
+                            or header not in (b"GIF87a", b"GIF89a") or trailer != b";"):
+                        raise ValueError("Incomplete or changing GIF")
+                    files.append(entry.name)
+                except (OSError, ValueError):
+                    log.warning("Skipping unavailable history image %s", entry.path)
+    except FileNotFoundError:
+        return []
+    except (OSError, ValueError):
+        log.warning("Skipping unavailable history folder %s", folder)
+        return []
+    return sorted(set(files))
 
 
 def resolve_image_history(catalogue, input_path):
@@ -392,7 +444,6 @@ def resolve_image_history(catalogue, input_path):
     source = urlparse(catalogue["source_url"])
     prefix = source.path.rsplit("/", 1)[0] + "/"
     base = Path(input_path).parent
-    log = logging.getLogger("gliders_catalogue")
     for record in catalogue["missions"]:
         history = {}
         for window in ("4d", "12d", "30d"):
@@ -400,39 +451,21 @@ def resolve_image_history(catalogue, input_path):
             if len(folders) != 1:
                 continue
             folder = base / next(iter(folders))
-            try:
-                if folder.resolve() != base.resolve() / folder.name:
-                    raise ValueError("Mission folder resolves outside its expected path")
-                files = []
-                with os.scandir(folder) as entries:
-                    for entry in entries:
-                        if not re.fullmatch(r"[0-9]{10}\.[gG][iI][fF]", entry.name):
-                            continue
-                        try:
-                            datetime.strptime(entry.name[:10], "%Y%m%d%H")
-                            path = Path(entry.path)
-                            if path.resolve().parent != folder.resolve():
-                                raise ValueError("Image resolves outside its mission folder")
-                            before = path.stat()
-                            with path.open("rb") as stream:
-                                header = stream.read(6)
-                                stream.seek(-1, os.SEEK_END)
-                                trailer = stream.read(1)
-                            after = path.stat()
-                            before_signature = (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
-                            after_signature = (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)
-                            if (before_signature != after_signature or before.st_size < 14
-                                    or header not in (b"GIF87a", b"GIF89a") or trailer != b";"):
-                                raise ValueError("Incomplete or changing GIF")
-                            files.append(entry.name)
-                        except (OSError, ValueError):
-                            log.warning("Skipping unavailable history image %s", entry.path)
-                if files:
-                    history[window] = {"path": "/gliders/" + folder.name, "files": sorted(set(files))}
-            except FileNotFoundError:
+            files = _history_files(base, folder)
+            if not files:
                 continue
-            except (OSError, ValueError):
-                log.warning("Skipping unavailable history folder %s", folder)
+            group = {"path": "/gliders/" + folder.name, "files": files}
+            if record["is_nrt"]:
+                alternatives = sorted(_projection_folders(record, window) - {"nav" + folder.name})
+                for name in ["nav" + folder.name, *alternatives]:
+                    projected = _history_files(base, base / name)
+                    counts = Counter(file[:10] for file in projected)
+                    hours = {file[:10] for file in files}
+                    projected = [file for file in projected if file[:10] in hours and counts[file[:10]] == 1]
+                    if projected:
+                        group["projected_tracks"] = {"path": "/gliders/" + name, "files": projected}
+                        break
+            history[window] = group
         if history:
             record["image_history"] = history
         else:

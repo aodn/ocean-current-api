@@ -91,6 +91,26 @@ class GlidersMissionControllerTest {
     }
 
     @Test
+    void matchesProjectedTracksByMissionWindowAndLocalHour() throws Exception {
+        var root = new ObjectMapper().readTree(new ClassPathResource("gliders/catalogue-v1.json")
+                .getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        var mission = (com.fasterxml.jackson.databind.node.ObjectNode) root.path("missions").get(0);
+        var group = mission.putObject("image_history").putObject("4d");
+        group.put("path", "/gliders/Brisbane20180306A_nrt_4d")
+                .putArray("files").add("2018031500.gif").add("2018031512.gif");
+        group.putObject("projected_tracks").put("path", "/gliders/navBrisbane20180306A_4d_nrt")
+                .putArray("files").add("2018031512.GIF").add("2018031600.gif");
+
+        when(remote.getForEntity(URL, String.class)).thenReturn(ResponseEntity.ok(root.toString()));
+        mvc.perform(get("/gliders/missions/Brisbane20180306A_nrt@3.0."))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.image_history['4d'][0].projected_tracks_url").doesNotExist())
+                .andExpect(jsonPath("$.image_history['4d'][1].projected_tracks_url")
+                        .value("/gliders/navBrisbane20180306A_4d_nrt/2018031512.GIF"))
+                .andExpect(jsonPath("$.image_history['12d']").isEmpty());
+    }
+
+    @Test
     void defaultsAndResponseContract() throws Exception {
         mvc.perform(get("/gliders/missions"))
                 .andExpect(status().isOk())
